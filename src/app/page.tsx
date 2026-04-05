@@ -1,6 +1,6 @@
-import DashboardClient from '@/components/DashboardClient';
-import { db } from '@/db';
-import { finances, tasks } from '@/db/schema';
+import DashboardClient from '@/frontend/components/DashboardClient';
+import { db } from '@/backend/db';
+import { finances, tasks } from '@/backend/db/schema';
 import { desc, not } from 'drizzle-orm';
 import { Activity, ShieldAlert } from 'lucide-react';
 

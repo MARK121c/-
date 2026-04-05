@@ -1,128 +1,76 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    --background: 240 10% 2%;
-    --foreground: 210 40% 98%;
+@theme {
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+  
+  --color-primary-electric: #3b82f6;
+  --color-primary-glow: rgba(59, 130, 246, 0.5);
+  
+  --color-secondary-gold: #fbbf24;
+  --color-secondary-soft: rgba(251, 191, 36, 0.4);
+  
+  --color-obsidian-glass: rgba(10, 10, 10, 0.7);
+  --color-obsidian-border: rgba(255, 255, 255, 0.05);
 
-    --card: 240 10% 4%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 240 10% 4%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 217 91% 60%; /* Electric Blue */
-    --primary-foreground: 222 47% 11%;
-
-    --secondary: 43 96% 56%; /* Premium Gold */
-    --secondary-foreground: 240 10% 4%;
-
-    --muted: 240 10% 10%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 217 91% 60%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 240 10% 10%;
-    --input: 240 10% 10%;
-    --ring: 217 91% 60%;
-
-    --radius: 1rem;
-  }
+  --font-sans: var(--font-outfit), system-ui, sans-serif;
 }
 
 @layer base {
-  * {
-    border-color: rgba(255, 255, 255, 0.05);
-  }
   body {
     background-color: black;
-    color: hsl(var(--foreground));
+    color: white;
+    @apply antialiased selection:bg-blue-500/30;
+    
+    /* Cosmic Background Gradient */
     background-image: 
-      radial-gradient(circle at 20% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
-      radial-gradient(circle at 80% 100%, rgba(250, 204, 21, 0.05) 0%, transparent 40%);
+      radial-gradient(circle at top left, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at bottom right, rgba(234, 179, 8, 0.05) 0%, transparent 40%);
     background-attachment: fixed;
   }
 }
 
-/* Glassmorphism Classes */
+/* Premium Component Classes */
 @layer components {
-  .glass-panel {
-    background-color: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(64px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.3s ease;
+  .glass-card {
+    @apply bg-white/[0.02] backdrop-blur-3xl border border-white/[0.05] rounded-3xl transition-all duration-300;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   }
   
-  .glass-panel-hover {
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.1);
-      box-shadow: 0 0 40px rgba(59, 130, 246, 0.15);
-    }
+  .glass-card-hover {
+    @apply hover:bg-white/[0.04] hover:border-white/[0.1] hover:shadow-[0_0_40px_rgba(59,130,246,0.1)];
   }
 
-  .text-gradient {
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    background-image: linear-gradient(to right, #60a5fa, #2563eb, #60a5fa);
-    animation: gradient-x 8s ease infinite;
-    background-size: 200% 100%;
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 text-gray-400 font-medium;
+  }
+  
+  .nav-item-active {
+    @apply bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)];
   }
 
-  .text-gradient-gold {
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    background-image: linear-gradient(to right, #fde047, #f59e0b, #fde047);
+  .text-glow-blue {
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
   }
 }
 
-/* Micro-animations */
-@keyframes gradient-x {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* Futuristic Loader */
+.os-pulse {
+  animation: os-pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.animate-gradient-x {
-  background-size: 200% 100%;
-  animation: gradient-x 8s ease infinite;
+@keyframes os-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.98); }
 }
 
-/* Futuristic Scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 ::-webkit-scrollbar-track {
-  background-color: rgba(0, 0, 0, 0.2);
+  @apply bg-black;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 9999px;
-  transition: background-color 0.2s ease;
-  
-  &:hover {
-    background-color: hsla(var(--primary), 0.5);
-  }
-}
-
-/* Glow Border Effect */
-.glow-border {
-  position: relative;
-}
-.glow-border::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  background: linear-gradient(45deg, transparent, rgba(59, 130, 246, 0.3), transparent);
-  border-radius: inherit;
-  z-index: -1;
-  pointer-events: none;
+  @apply bg-white/10 rounded-full hover:bg-blue-500/50 transition-colors;
 }
