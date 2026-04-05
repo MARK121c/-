@@ -73,8 +73,8 @@ export const addAsset = async (link: string) => {
 export const getFinances = async () => {
   if (!process.env.FINANCE_DB_ID) return [];
   
-  const response = await notion.databases.query({
-    database_id: process.env.FINANCE_DB_ID,
+  const response = await (notion as any).dataSources.query({
+    data_source_id: process.env.FINANCE_DB_ID,
     sorts: [{ property: 'Date', direction: 'descending' }],
     page_size: 100,
   });
@@ -91,8 +91,8 @@ export const getFinances = async () => {
 export const getTasks = async () => {
   if (!process.env.TASKS_DB_ID) return [];
 
-  const response = await notion.databases.query({
-    database_id: process.env.TASKS_DB_ID,
+  const response = await (notion as any).dataSources.query({
+    data_source_id: process.env.TASKS_DB_ID,
     filter: {
       property: 'Status',
       status: {
