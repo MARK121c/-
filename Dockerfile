@@ -29,7 +29,7 @@ COPY --from=builder /app/package.json ./package.json
 USER nextjs
 
 # استهداف البوت الجديد
-EXPOSE 6000
-ENV PORT 6000
+EXPOSE 2000
+ENV PORT 2000
 
 CMD ["npm", "start"]
