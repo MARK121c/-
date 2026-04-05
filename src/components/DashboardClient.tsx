@@ -37,7 +37,7 @@ export default function DashboardClient({ finances, tasks }: { finances: any[], 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-  };
+  } as const;
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8 font-sans" dir="rtl">
