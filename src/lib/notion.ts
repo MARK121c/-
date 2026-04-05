@@ -80,7 +80,7 @@ export const robustQuery = async (id: string, options: any) => {
     });
   } catch (e) {
     // Fallback to databases
-    return await notion.databases.query({
+    return await (notion.databases as any).query({
       database_id: id,
       ...options,
     });

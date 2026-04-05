@@ -5,7 +5,7 @@ import { jwtVerify } from 'jose';
 const secretKey = process.env.AUTH_SECRET || 'fallback-secret-at-least-32-chars-long-12345';
 const key = new TextEncoder().encode(secretKey);
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. استثناء مسارات اللوجن والـ Bot والـ Auth API والـ Static files
