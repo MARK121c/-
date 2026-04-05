@@ -2,7 +2,7 @@ import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 
 // --- SECURITY & SESSIONS ---
 export const sessions = sqliteTable('sessions', {
-  id: text('id').primaryKey(), // The JWT token itself or a hash of it
+  id: text('id').primaryKey(),
   userId: text('user_id').notNull(),
   deviceLabel: text('device_label'),
   ipAddress: text('ip_address'),
@@ -10,51 +10,104 @@ export const sessions = sqliteTable('sessions', {
   lastSeen: integer('last_seen', { mode: 'timestamp' }).notNull(),
 });
 
-// --- SYSTEM SETTINGS --- (USD Rate, Ratios, Work Hours)
+// --- SYSTEM SETTINGS ---
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
 });
 
-// --- CORE FINANCIALS ---
+// --- CORE TRANSACTIONS ---
 export const transactions = sqliteTable('transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   amount: real('amount').notNull(),
-  currency: text('currency').default('EGP'), // EGP or USD
-  category: text('category').notNull(), // شغل، سكن، ترفيه، استثمار، إلخ
-  method: text('method').notNull(), // كاش، فيزا، انستا باي، تحويل بنكي
-  status: text('status').notNull(), // تم الصرف، معلق، اشتراك شهري، سنوي
+  currency: text('currency').default('EGP'),
+  category: text('category').notNull(),
+  method: text('method').notNull(),
+  status: text('status').notNull(),
   description: text('description').notNull(),
-  isEssential: integer('is_essential', { mode: 'boolean' }).default(true), // For Panic Button logic
-  date: text('date').notNull(), // ISO
+  isEssential: integer('is_essential', { mode: 'boolean' }).default(true),
+  date: text('date').notNull(),
 });
 
 export const incomes = sqliteTable('incomes', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   amount: real('amount').notNull(),
   currency: text('currency').default('EGP'),
+  source: text('source').default('general'),
   description: text('description').notNull(),
+  distributed: integer('distributed', { mode: 'boolean' }).default(false),
   date: text('date').notNull(),
 });
 
+// --- ASSETS (liquid + physical + digital) ---
 export const assets = sqliteTable('assets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
-  type: text('type').notNull(), // Bank, Gold, Crypto, Cash, Equipment
-  value: real('value').notNull(), // Primary value
+  type: text('type').notNull(), // بنك، كاش، ذهب، كريبتو، معدات
+  liquidType: text('liquid_type'),
+  value: real('value').notNull(),
   currency: text('currency').default('EGP'),
-  roi: real('roi').default(0), // % Return on investment
-  passiveIncome: real('passive_income').default(0), // Monthly passive income
+  roi: real('roi').default(0),
+  passiveIncome: real('passive_income').default(0),
   date: text('date').notNull(),
 });
 
-// --- WISHLIST ---
+// --- INVESTMENTS ---
+export const investments = sqliteTable('investments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  platform: text('platform').default(''),
+  initialValue: real('initial_value').notNull(),
+  currentValue: real('current_value').notNull(),
+  roiPercentage: real('roi_percentage').default(0),
+  currency: text('currency').default('EGP'),
+  date: text('date').notNull(),
+});
+
+// --- PASSIVE INCOME SOURCES ---
+export const passiveIncomeSources = sqliteTable('passive_income_sources', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  source: text('source').notNull(),
+  monthlyAmount: real('monthly_amount').notNull(),
+  type: text('type').default('subscription'),
+  currency: text('currency').default('EGP'),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+});
+
+// --- WALLETS (auto-filled from Income Distribution) ---
+export const wallets = sqliteTable('wallets', {
+  id: text('id').primaryKey(), // 'giving' | 'obligations' | 'personal' | 'investment'
+  type: text('type').notNull(),
+  balance: real('balance').default(0),
+  currency: text('currency').default('EGP'),
+});
+
+// --- INCOME DISTRIBUTION settings ---
+export const incomeDistribution = sqliteTable('income_distribution', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  givingPercentage: real('giving_percentage').default(0.1),
+  obligationsPercentage: real('obligations_percentage').default(0.2),
+  personalPercentage: real('personal_percentage').default(0.1),
+  investmentPercentage: real('investment_percentage').default(0.6),
+});
+
+// --- WORK TRACKING (manual hours input) ---
+export const workTracking = sqliteTable('work_tracking', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  date: text('date').notNull(),
+  hoursWorked: real('hours_worked').notNull(),
+  note: text('note').default(''),
+});
+
+// --- WISHLIST (with "hours of life" cost) ---
 export const wishlist = sqliteTable('wishlist', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   price: real('price').notNull(),
   currency: text('currency').default('EGP'),
   link: text('link'),
+  hoursCost: real('hours_cost').default(0),
   priority: integer('priority').default(1),
+  isPurchased: integer('is_purchased', { mode: 'boolean' }).default(false),
   date: text('date').notNull(),
 });

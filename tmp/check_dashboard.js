@@ -1,0 +1,13 @@
+const fs = require('fs');
+const d = fs.readFileSync('src/frontend/components/DashboardClient.tsx', 'utf8');
+console.log('Lines:', d.split('\n').length);
+console.log('Has Finance tab:', d.includes('finance'));
+console.log('Has Wallets tab:', d.includes('wallets'));
+console.log('Has Wishlist tab:', d.includes('wishlist'));
+console.log('Has Bar chart:', d.includes('BarChart'));
+console.log('Has Pie chart:', d.includes('PieChart'));
+console.log('Has income modal:', d.includes("modal==='income'"));
+console.log('Has hours modal:', d.includes("modal==='hours'"));
+console.log('Has investment modal:', d.includes("modal==='investment'"));
+console.log('Has Outfit font:', d.includes('Outfit'));
+console.log('Has panic mode:', d.includes('panic'));

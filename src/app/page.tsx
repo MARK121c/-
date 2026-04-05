@@ -1,105 +1,93 @@
 import DashboardClient from '@/frontend/components/DashboardClient';
 import { db } from '@/backend/db';
-import { transactions, assets, incomes, settings, wishlist } from '@/backend/db/schema';
-import { desc, sql } from 'drizzle-orm';
-import { Activity, ShieldAlert, Terminal } from 'lucide-react';
+import { createClient } from '@libsql/client';
+import { transactions, assets, incomes, wishlist, investments, passiveIncomeSources, wallets, workTracking } from '@/backend/db/schema';
+import { desc, eq } from 'drizzle-orm';
+import { ShieldAlert } from 'lucide-react';
 import { 
   calculateNetWorth, 
   getForecasting, 
   calculateHourlyRate, 
-  getSetting 
+  getSetting,
+  getWallets,
+  getDistributionSettings,
 } from '@/backend/lib/finance';
 import { ensureTables } from '@/backend/db/migrate';
 
-export const revalidate = 0; // Force dynamic SSR
+export const revalidate = 0;
+
+const rawClient = createClient({ url: process.env.DATABASE_URL || 'file:./data/sqlite.db' });
 
 export default async function Home() {
   let migrationLogs: string[] = [];
   
   try {
-    // 0. Ensure Tables Exist (Autonomous Migration)
     const result = await ensureTables();
     migrationLogs = result.logs;
 
-    // 1. Fetch Core Data
-    const [
-      transactionData, 
-      assetData, 
-      incomeData, 
-      wishlistData,
-      netWorth,
-      forecast,
-      hourlyRate,
-      usdRate,
-      panicMode
-    ] = await Promise.all([
+    // Defensive query for assets to avoid DB schema inconsistencies crashing the page
+    const assetData = await db.select().from(assets).orderBy(desc(assets.id)).catch(async () => {
+      const r = await rawClient.execute(`SELECT id, name, type, value, currency, COALESCE(roi,0) as roi, COALESCE(passive_income,0) as passive_income, date FROM assets ORDER BY id DESC`);
+      return r.rows.map((row: any) => ({
+        id: row[0]??row.id, name: row[1]??row.name, type: row[2]??row.type,
+        liquidType: 'مادي', value: row[3]??row.value, currency: row[4]??row.currency,
+        roi: row[5]??0, passiveIncome: row[6]??0, date: row[7]??row.date
+      }));
+    });
+
+    const investmentData = await db.select().from(investments).orderBy(desc(investments.id)).catch(() => []);
+    const passiveSourcesData = await db.select().from(passiveIncomeSources).where(eq(passiveIncomeSources.isActive, true)).catch(() => []);
+
+    // Always-safe queries
+    const [transactionData, incomeData, wishlistData, netWorth, forecast, hourlyRate, usdRate, panicMode, notionUrl, distSettings] = await Promise.all([
       db.select().from(transactions).orderBy(desc(transactions.id)).limit(50),
-      db.select().from(assets).orderBy(desc(assets.id)),
-      db.select().from(incomes).orderBy(desc(incomes.id)).limit(10),
+      db.select().from(incomes).orderBy(desc(incomes.id)).limit(20),
       db.select().from(wishlist).orderBy(desc(wishlist.id)),
-      calculateNetWorth(),
-      getForecasting(),
+      calculateNetWorth(assetData, investmentData, passiveSourcesData),
+      getForecasting(assetData),
       calculateHourlyRate(),
       getSetting('usd_rate', '50'),
       getSetting('is_panic', '0'),
+      getSetting('notion_url', ''),
+      getDistributionSettings(),
     ]);
 
-    // 2. Prepare Data for Frontend
+    const walletsData = await getWallets().catch(() => []);
+    const workData = await db.select().from(workTracking).orderBy(desc(workTracking.id)).limit(30).catch(() => []);
+
     return (
       <DashboardClient 
         transactions={transactionData}
         assets={assetData}
         incomes={incomeData}
         wishlist={wishlistData}
+        investments={investmentData}
+        passiveSources={passiveSourcesData}
+        wallets={walletsData}
+        workTracking={workData}
         netWorth={netWorth}
         forecast={forecast}
         hourlyRate={hourlyRate}
+        distributionSettings={distSettings}
         settings={{
           usdRate: parseFloat(usdRate),
-          isPanic: panicMode === '1'
+          isPanic: panicMode === '1',
+          notionUrl,
         }}
       />
     );
   } catch (error: any) {
-    console.error('SYSTEM DATABASE ERROR:', error);
-    
+    console.error('SYSTEM ERROR:', error);
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center p-6 font-sans select-none" dir="rtl">
         <div className="fixed inset-0 bg-red-500/5 blur-[120px] pointer-events-none" />
-        
-        <div className="glass-panel p-12 rounded-[2.5rem] border border-red-500/20 max-w-2xl w-full text-center space-y-8 shadow-[0_0_100px_rgba(239,68,68,0.15)] relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 blur-3xl -mr-16 -mt-16" />
-          
-          <div className="inline-flex p-5 rounded-3xl bg-red-500/10 border border-red-500/20 mb-2 relative">
-            <ShieldAlert className="w-12 h-12 text-red-500 animate-pulse" />
+        <div className="p-12 rounded-[2.5rem] border border-red-500/20 max-w-2xl w-full text-center space-y-8 bg-white/[0.02]">
+          <ShieldAlert className="w-12 h-12 text-red-500 animate-pulse mx-auto" />
+          <h1 className="text-4xl font-black tracking-tighter">System Error (V5)</h1>
+          <div className="bg-black/50 p-4 rounded-2xl font-mono text-[10px] text-gray-500 text-left overflow-y-auto max-h-40 border border-white/5">
+            {migrationLogs.map((log, i) => <div key={i}>{`> ${log}`}</div>)}
+            <div className="mt-4 text-red-400 font-bold">{`ERROR: ${error.message}`}</div>
           </div>
-          
-          <div className="space-y-4">
-            <h1 className="text-4xl font-black text-white tracking-tighter">System Malfunction</h1>
-            <p className="text-gray-400 font-medium leading-relaxed">حدث خطأ في استدعاء المحرك المالي الذكي. يرجى التأكد من استقرار قاعدة البيانات.</p>
-          </div>
-
-          <div className="bg-white/5 p-6 rounded-3xl border border-white/5 text-right space-y-4">
-            <div className="flex items-center gap-3 text-red-500 font-bold text-sm">
-              <Activity className="w-4 h-4" />
-              <span>فشل في الاتصال (LOG):</span>
-            </div>
-            
-            <div className="bg-black/50 p-4 rounded-2xl font-mono text-[10px] text-gray-500 overflow-y-auto max-h-40 border border-white/5" dir="ltr">
-              <div className="flex items-center gap-2 mb-2 text-blue-500 font-black">
-                <Terminal size={12} />
-                <span>MIGRATION DEBUG:</span>
-              </div>
-              {migrationLogs.map((log, i) => (
-                <div key={i} className="mb-1">{`> ${log}`}</div>
-              ))}
-              <div className="mt-4 text-red-400 font-bold">
-                {`ERROR: ${error.message || 'Critical Storage Failure'}`}
-              </div>
-            </div>
-          </div>
-
-          <p className="text-[10px] uppercase font-black tracking-[4px] text-white/20">Emergency Protocols Active</p>
         </div>
       </div>
     );

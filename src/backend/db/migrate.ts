@@ -5,57 +5,76 @@ const url = process.env.DATABASE_URL || 'file:./data/sqlite.db';
 export async function ensureTables() {
   const client = createClient({ url });
   const logs: string[] = [];
-  logs.push(`--- URL: ${url} ---`);
+  logs.push(`--- DB: ${url} ---`);
 
   try {
-    // 1. Core Tables
+    // 1. Core system tables
     await client.execute(`CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, device_label TEXT, ip_address TEXT, created_at INTEGER NOT NULL, last_seen INTEGER NOT NULL)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
-    await client.execute(`CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, amount REAL NOT NULL, currency TEXT DEFAULT 'EGP', category TEXT NOT NULL, method TEXT NOT NULL, status TEXT NOT NULL, description TEXT NOT NULL, is_essential INTEGER DEFAULT 1, date TEXT NOT NULL)`);
-    await client.execute(`CREATE TABLE IF NOT EXISTS incomes (id INTEGER PRIMARY KEY AUTOINCREMENT, amount REAL NOT NULL, currency TEXT DEFAULT 'EGP', description TEXT NOT NULL, date TEXT NOT NULL)`);
-    await client.execute(`CREATE TABLE IF NOT EXISTS assets (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, type TEXT NOT NULL, value REAL NOT NULL, currency TEXT DEFAULT 'EGP', roi REAL DEFAULT 0, passive_income REAL DEFAULT 0, date TEXT NOT NULL)`);
-    await client.execute(`CREATE TABLE IF NOT EXISTS wishlist (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, price REAL NOT NULL, currency TEXT DEFAULT 'EGP', link TEXT, priority INTEGER DEFAULT 1, date TEXT NOT NULL)`);
 
-    // 2. Column verification for 'assets'
-    const columnsRes = await client.execute("PRAGMA table_info(assets)");
-    const existingColumns = columnsRes.rows.map(r => r.name);
-    logs.push(`Assets Columns: ${existingColumns.join(', ')}`);
+    // 2. Financial tables
+    await client.execute(`CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, amount REAL NOT NULL, currency TEXT DEFAULT 'EGP', category TEXT NOT NULL, method TEXT NOT NULL DEFAULT 'كاش', status TEXT NOT NULL DEFAULT 'تم الصرف', description TEXT NOT NULL, is_essential INTEGER DEFAULT 1, date TEXT NOT NULL)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS incomes (id INTEGER PRIMARY KEY AUTOINCREMENT, amount REAL NOT NULL, currency TEXT DEFAULT 'EGP', source TEXT DEFAULT 'عام', description TEXT NOT NULL, distributed INTEGER DEFAULT 0, date TEXT NOT NULL)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS assets (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, type TEXT NOT NULL, liquid_type TEXT DEFAULT 'مادي', value REAL NOT NULL, currency TEXT DEFAULT 'EGP', roi REAL DEFAULT 0, passive_income REAL DEFAULT 0, date TEXT NOT NULL)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS wishlist (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, price REAL NOT NULL, currency TEXT DEFAULT 'EGP', link TEXT, hours_cost REAL DEFAULT 0, priority INTEGER DEFAULT 1, is_purchased INTEGER DEFAULT 0, date TEXT NOT NULL)`);
 
-    const requiredAssets = [
-      { name: 'type', sql: "ALTER TABLE assets ADD COLUMN type TEXT DEFAULT 'Other'" },
-      { name: 'value', sql: "ALTER TABLE assets ADD COLUMN value REAL DEFAULT 0" },
-      { name: 'passive_income', sql: "ALTER TABLE assets ADD COLUMN passive_income REAL DEFAULT 0" },
-      { name: 'roi', sql: "ALTER TABLE assets ADD COLUMN roi REAL DEFAULT 0" },
-      { name: 'currency', sql: "ALTER TABLE assets ADD COLUMN currency TEXT DEFAULT 'EGP'" }
-    ];
+    // 3. New Smart Tables
+    await client.execute(`CREATE TABLE IF NOT EXISTS investments (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, platform TEXT DEFAULT '', initial_value REAL NOT NULL, current_value REAL NOT NULL, roi_percentage REAL DEFAULT 0, currency TEXT DEFAULT 'EGP', date TEXT NOT NULL)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS passive_income_sources (id INTEGER PRIMARY KEY AUTOINCREMENT, source TEXT NOT NULL, monthly_amount REAL NOT NULL, type TEXT DEFAULT 'اشتراك', currency TEXT DEFAULT 'EGP', is_active INTEGER DEFAULT 1)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS wallets (id TEXT PRIMARY KEY, type TEXT NOT NULL, balance REAL DEFAULT 0, currency TEXT DEFAULT 'EGP')`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS income_distribution (id INTEGER PRIMARY KEY AUTOINCREMENT, giving_percentage REAL DEFAULT 0.1, obligations_percentage REAL DEFAULT 0.2, personal_percentage REAL DEFAULT 0.1, investment_percentage REAL DEFAULT 0.6)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS work_tracking (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, hours_worked REAL NOT NULL, note TEXT DEFAULT '')`);
 
-    for (const col of requiredAssets) {
-      if (!existingColumns.includes(col.name)) {
-        try {
-          await client.execute(col.sql);
-          logs.push(`ADDED: ${col.name}`);
-        } catch (e: any) {
-          logs.push(`FAILED ADD ${col.name}: ${e.message}`);
+    // 4. Seed default wallets if missing
+    const walletCheck = await client.execute(`SELECT id FROM wallets LIMIT 1`);
+    if (walletCheck.rows.length === 0) {
+      await client.execute(`INSERT OR IGNORE INTO wallets (id, type, balance) VALUES ('giving', 'عطاء (لله)', 0)`);
+      await client.execute(`INSERT OR IGNORE INTO wallets (id, type, balance) VALUES ('obligations', 'التزامات', 0)`);
+      await client.execute(`INSERT OR IGNORE INTO wallets (id, type, balance) VALUES ('personal', 'شخصي', 0)`);
+      await client.execute(`INSERT OR IGNORE INTO wallets (id, type, balance) VALUES ('investment', 'استثمار', 0)`);
+      logs.push('SEEDED: Default wallets created');
+    }
+
+    // 5. Seed default income distribution if missing
+    const distCheck = await client.execute(`SELECT id FROM income_distribution LIMIT 1`);
+    if (distCheck.rows.length === 0) {
+      await client.execute(`INSERT INTO income_distribution (giving_percentage, obligations_percentage, personal_percentage, investment_percentage) VALUES (0.1, 0.2, 0.1, 0.6)`);
+      logs.push('SEEDED: Default income distribution 10/20/10/60');
+    }
+
+    // 6. Add missing columns to existing tables (safe migrations)
+    const addIfMissing = async (table: string, col: string, sqlStr: string) => {
+      try {
+        const res = await client.execute(`PRAGMA table_info(${table})`);
+        // libsql rows are array-like: index 0=cid, 1=name, 2=type, etc.
+        const exists = res.rows.some((r: any) => {
+          // Try both named property and positional index
+          return r.name === col || r[1] === col || String(r[1]) === col;
+        });
+        if (!exists) {
+          await client.execute(sqlStr);
+          logs.push(`ADDED: ${table}.${col}`);
+        } else {
+          logs.push(`EXISTS: ${table}.${col}`);
         }
+      } catch (e: any) {
+        logs.push(`WARN addIfMissing ${table}.${col}: ${e.message}`);
       }
-    }
+    };
+    await addIfMissing('transactions', 'method', `ALTER TABLE transactions ADD COLUMN method TEXT DEFAULT 'كاش'`);
+    await addIfMissing('transactions', 'status', `ALTER TABLE transactions ADD COLUMN status TEXT DEFAULT 'تم الصرف'`);
+    await addIfMissing('assets', 'passive_income', `ALTER TABLE assets ADD COLUMN passive_income REAL DEFAULT 0`);
+    await addIfMissing('assets', 'roi', `ALTER TABLE assets ADD COLUMN roi REAL DEFAULT 0`);
+    await addIfMissing('assets', 'liquid_type', `ALTER TABLE assets ADD COLUMN liquid_type TEXT DEFAULT 'مادي'`);
+    await addIfMissing('incomes', 'source', `ALTER TABLE incomes ADD COLUMN source TEXT DEFAULT 'عام'`);
+    await addIfMissing('incomes', 'distributed', `ALTER TABLE incomes ADD COLUMN distributed INTEGER DEFAULT 0`);
+    await addIfMissing('wishlist', 'hours_cost', `ALTER TABLE wishlist ADD COLUMN hours_cost REAL DEFAULT 0`);
+    await addIfMissing('wishlist', 'is_purchased', `ALTER TABLE wishlist ADD COLUMN is_purchased INTEGER DEFAULT 0`);
 
-    // 3. Transactions repairs
-    const transColsRes = await client.execute("PRAGMA table_info(transactions)");
-    const existingTransCols = transColsRes.rows.map(r => r.name);
-    
-    if (!existingTransCols.includes('method')) {
-      await client.execute("ALTER TABLE transactions ADD COLUMN method TEXT DEFAULT 'كاش'");
-      logs.push("ADDED: transactions.method");
-    }
-    if (!existingTransCols.includes('status')) {
-      await client.execute("ALTER TABLE transactions ADD COLUMN status TEXT DEFAULT 'تم الصرف'");
-      logs.push("ADDED: transactions.status");
-    }
-
+    logs.push('DONE: All tables verified');
     return { success: true, logs };
   } catch (error: any) {
-    logs.push(`CRITICAL ERROR: ${error.message}`);
+    logs.push(`CRITICAL: ${error.message}`);
     return { success: false, logs };
   }
 }
