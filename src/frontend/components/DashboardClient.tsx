@@ -158,212 +158,187 @@ export default function DashboardClient({
           </div>
         </header>
 
-        {/* Real-time Financial Engine Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
-          {/* Main Net Worth Card */}
-          <div className="lg:col-span-2 glass-card p-10 rounded-[3rem] relative overflow-hidden group">
-            <div className={`absolute top-0 right-0 w-80 h-80 blur-[120px] -mr-40 -mt-40 transition-colors ${panicMode ? 'bg-red-500/20' : 'bg-blue-600/20'}`} />
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-8">
-                <span className="px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] font-black text-blue-500 uppercase tracking-widest">إجمالي الثروة (Net Worth)</span>
-                <Gem size={24} className="text-blue-500" />
-              </div>
-              <div className="flex items-baseline gap-4 mb-2">
-                <h2 className="text-6xl font-black tracking-tighter tabular-nums">
-                  {netWorth.totalEGP.toLocaleString()} <span className="text-2xl text-blue-500/50">ج.م</span>
-                </h2>
-              </div>
-              <div className="flex gap-10 mt-8 pt-8 border-t border-white/5">
-                <div>
-                  <p className="text-[10px] font-black text-gray-500 uppercase mb-1">بالدولار (USD)</p>
-                  <p className="text-xl font-black">${netWorth.totalUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-gray-500 uppercase mb-1">دخل سلبي (Passive)</p>
-                  <p className="text-xl font-black text-green-500">+{netWorth.passiveIncome.toLocaleString()} ج</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Forecasting & Risk Card */}
-          <div className="glass-card p-8 rounded-[3rem] flex flex-col justify-between border-l-4 border-l-yellow-500/50">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-gray-400 text-sm">توقعات الإفلاس (Forecasting)</h3>
-              <Activity size={20} className="text-yellow-500" />
-            </div>
-            <div className="py-6">
-              <p className="text-[10px] text-gray-500 mb-2">تقدير المصاريف لآخر الشهر</p>
-              <h4 className={`text-3xl font-black ${forecast.isBankruptcyRisk ? 'text-red-500' : 'text-white'}`}>
-                {forecast.projectedEndMonthSpent.toLocaleString()} ج
-              </h4>
-            </div>
-            <div className={`p-4 rounded-2xl flex items-center gap-3 ${forecast.isBankruptcyRisk ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}>
-              {forecast.isBankruptcyRisk ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
-              <span className="text-xs font-black">{forecast.isBankruptcyRisk ? 'تحذير: سيولة حرجة!' : 'السيولة في أمان'}</span>
-            </div>
-          </div>
-
-          {/* Hourly Rate Tool */}
-          <div className="glass-card p-8 rounded-[3rem] flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-gray-400 text-sm">تثمين الوقت</h3>
-              <Clock size={20} className="text-purple-500" />
-            </div>
-            <div className="space-y-4">
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                <p className="text-[10px] text-gray-500">سعر ساعتك الحقيقي</p>
-                <p className="text-2xl font-black text-purple-400">{hourlyRate.toFixed(0)} ج</p>
-              </div>
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                <p className="text-[10px] text-gray-500">كست الاستثمار اليومي</p>
-                <p className="text-2xl font-black text-blue-400">60%</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Assets & Visual Analytics */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-12 mb-12">
-          {/* Assets Grid */}
-          <div className="xl:col-span-2 space-y-6">
-            <h3 className="text-2xl font-black flex items-center gap-4">
-              <Briefcase className="text-blue-500" />
-              توزيع الأصول (Assets)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {assets.map((asset, idx) => (
-                <div key={idx} className="glass-card p-6 rounded-[2rem] hover:translate-y-[-5px] transition-all border-b border-b-white/5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-3 bg-white/5 rounded-xl text-blue-500">
-                      {asset.type === 'Gold' ? <Gem size={20} /> : asset.type === 'Crypto' ? <TrendingUp size={20} /> : <Wallet size={20} />}
+        {/* Main Content Render based on Tab */}
+        <AnimatePresence mode="wait">
+          {activeTab === 'Overview' ? (
+            <motion.div 
+              key="overview"
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+              className="space-y-12"
+            >
+              {/* Real-time Financial Engine Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
+                {/* Main Net Worth Card */}
+                <div className="lg:col-span-2 glass-card p-10 rounded-[3rem] relative overflow-hidden group">
+                  <div className={`absolute top-0 right-0 w-80 h-80 blur-[120px] -mr-40 -mt-40 transition-colors ${panicMode ? 'bg-red-500/20' : 'bg-blue-600/20'}`} />
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-8">
+                      <span className="px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] font-black text-blue-500 uppercase tracking-widest">إجمالي الثروة (Net Worth)</span>
+                      <Gem size={24} className="text-blue-500" />
                     </div>
-                    <span className="text-[9px] font-black p-1.5 bg-white/5 rounded-lg text-gray-500 uppercase">{asset.type}</span>
-                  </div>
-                  <h4 className="text-lg font-black mb-1">{asset.name}</h4>
-                  <p className="text-2xl font-black tabular-nums">{asset.value.toLocaleString()} <span className="text-xs text-gray-500">{asset.currency}</span></p>
-                  {asset.roi > 0 && <span className="text-[10px] text-green-500 font-bold flex items-center gap-1 mt-2">
-                    <ArrowUpRight size={12} /> ROI: %{asset.roi}
-                  </span>}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Spending Pie Chart */}
-          <div className="glass-card p-10 rounded-[3rem] flex flex-col items-center">
-            <h3 className="text-xl font-black mb-8 self-start">تحليل المصروفات</h3>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    innerRadius={80}
-                    outerRadius={110}
-                    paddingAngle={8}
-                    dataKey="value"
-                  >
-                    {categoryData.map((_entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#09090b', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.05)', color: '#fff' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid grid-cols-2 gap-4 w-full mt-6">
-              {categoryData.slice(0, 4).map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                  <span className="text-xs font-bold text-gray-400">{item.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Transactions & Wishlist */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-12">
-          {/* Recent Ledger */}
-          <div className="xl:col-span-8 glass-card rounded-[3rem] overflow-hidden">
-            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-              <h3 className="text-2xl font-black">سجل المعاملات الذكي</h3>
-              <span className="px-4 py-1.5 bg-blue-500/10 text-blue-500 rounded-full font-black text-xs">آخر 50 عملية</span>
-            </div>
-            <div className="overflow-x-auto p-4">
-              <table className="w-full text-right">
-                <thead>
-                  <tr className="text-gray-500 text-[11px] uppercase font-black tracking-widest border-b border-white/5">
-                    <th className="pb-6 px-4">التاريخ</th>
-                    <th className="pb-6 px-4">الفئة</th>
-                    <th className="pb-6 px-4">الوصف</th>
-                    <th className="pb-6 px-4">وسيلة الدفع</th>
-                    <th className="pb-6 px-4">الحالة</th>
-                    <th className="pb-6 px-4">المبلغ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {transactions.map((t, idx) => (
-                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="py-6 px-4 text-xs font-medium text-gray-500">{new Date(t.date).toLocaleDateString('ar-EG')}</td>
-                      <td className="py-6 px-4">
-                        <span className="px-3 py-1 bg-white/5 rounded-lg text-xs font-black">{t.category}</span>
-                      </td>
-                      <td className="py-6 px-4 font-bold text-sm">{t.description}</td>
-                      <td className="py-6 px-4 text-xs text-gray-400">{t.method}</td>
-                      <td className="py-6 px-4">
-                        <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black ${
-                          t.status === 'تم الصرف' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'
-                        }`}>
-                          {t.status}
-                        </span>
-                      </td>
-                      <td className="py-6 px-4 font-black">
-                        <span className={t.currency === 'USD' ? 'text-blue-500' : ''}>
-                          {t.amount.toLocaleString()} {t.currency}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Dynamic Wishlist (Hours of Life) */}
-          <div className="xl:col-span-4 glass-card p-10 rounded-[3rem] bg-gradient-to-br from-white/[0.02] to-transparent">
-            <h3 className="text-2xl font-black mb-8 flex items-center gap-3">
-              <Flame className="text-orange-500" />
-              قائمة الأمنيات (Wishlist)
-            </h3>
-            <div className="space-y-6">
-              {wishlist.map((item, idx) => {
-                const costInHours = (item.price / hourlyRate).toFixed(1);
-                return (
-                  <div key={idx} className="p-6 rounded-3xl bg-white/[0.03] border border-white/5 relative group hover:border-orange-500/30 transition-all">
-                    <div className="flex justify-between items-start mb-4">
-                      <h4 className="font-black text-lg">{item.name}</h4>
-                      <Gem size={18} className="text-gray-600 group-hover:text-orange-500" />
+                    <div className="flex items-baseline gap-4 mb-2">
+                      <h2 className="text-6xl font-black tracking-tighter tabular-nums">
+                        {netWorth.totalEGP.toLocaleString()} <span className="text-2xl text-blue-500/50">ج.م</span>
+                      </h2>
                     </div>
-                    <div className="flex items-baseline gap-2 mb-4">
-                      <span className="text-2xl font-black">{item.price.toLocaleString()}</span>
-                      <span className="text-xs text-gray-600">ج.م</span>
-                    </div>
-                    <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 text-orange-500">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Clock size={14} />
-                        <span className="text-[10px] font-black uppercase">تكلفة الحياة (Hours of Life)</span>
+                    <div className="flex gap-10 mt-8 pt-8 border-t border-white/5">
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">بالدولار (USD)</p>
+                        <p className="text-xl font-black">${netWorth.totalUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                       </div>
-                      <p className="text-base font-black">سيكلفك {costInHours} ساعة من عمرك</p>
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">دخل سلبي (Passive)</p>
+                        <p className="text-xl font-black text-green-500">+{netWorth.passiveIncome.toLocaleString()} ج</p>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+                </div>
+
+                {/* Forecasting & Risk Card */}
+                <div className="glass-card p-8 rounded-[3rem] flex flex-col justify-between border-l-4 border-l-yellow-500/50">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-black text-gray-400 text-sm">توقعات الإفلاس (Forecasting)</h3>
+                    <Activity size={20} className="text-yellow-500" />
+                  </div>
+                  <div className="py-6">
+                    <p className="text-[10px] text-gray-500 mb-2">تقدير المصاريف لآخر الشهر</p>
+                    <h4 className={`text-3xl font-black ${forecast.isBankruptcyRisk ? 'text-red-500' : 'text-white'}`}>
+                      {forecast.projectedEndMonthSpent.toLocaleString()} ج
+                    </h4>
+                  </div>
+                  <div className={`p-4 rounded-2xl flex items-center gap-3 ${forecast.isBankruptcyRisk ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}>
+                    {forecast.isBankruptcyRisk ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+                    <span className="text-xs font-black">{forecast.isBankruptcyRisk ? 'تحذير: سيولة حرجة!' : 'السيولة في أمان'}</span>
+                  </div>
+                </div>
+
+                {/* Hourly Rate Tool */}
+                <div className="glass-card p-8 rounded-[3rem] flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-black text-gray-400 text-sm">تثمين الوقت</h3>
+                    <Clock size={20} className="text-purple-500" />
+                  </div>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                      <p className="text-[10px] text-gray-500">سعر ساعتك الحقيقي</p>
+                      <p className="text-2xl font-black text-purple-400">{hourlyRate.toFixed(0)} ج</p>
+                    </div>
+                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                      <p className="text-[10px] text-gray-500">كست الاستثمار اليومي</p>
+                      <p className="text-2xl font-black text-blue-400">60%</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Assets & Visual Analytics */}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-12 mb-12">
+                {/* Assets Grid */}
+                <div className="xl:col-span-2 space-y-6">
+                  <h3 className="text-2xl font-black flex items-center gap-4">
+                    <Briefcase className="text-blue-500" />
+                    توزيع الأصول (Assets)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {assets.length > 0 ? assets.map((asset, idx) => (
+                      <div key={idx} className="glass-card p-6 rounded-[2rem] hover:translate-y-[-5px] transition-all border-b border-b-white/5">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="p-3 bg-white/5 rounded-xl text-blue-500">
+                            {asset.type === 'Gold' ? <Gem size={20} /> : asset.type === 'Crypto' ? <TrendingUp size={20} /> : <Wallet size={20} />}
+                          </div>
+                          <span className="text-[9px] font-black p-1.5 bg-white/5 rounded-lg text-gray-500 uppercase">{asset.type}</span>
+                        </div>
+                        <h4 className="text-lg font-black mb-1">{asset.name}</h4>
+                        <p className="text-2xl font-black tabular-nums">{asset.value.toLocaleString()} <span className="text-xs text-gray-500">{asset.currency}</span></p>
+                        {asset.roi > 0 && <span className="text-[10px] text-green-500 font-bold flex items-center gap-1 mt-2">
+                          <ArrowUpRight size={12} /> ROI: %{asset.roi}
+                        </span>}
+                      </div>
+                    )) : (
+                      <div className="col-span-3 p-12 text-center glass-card rounded-[2rem] opacity-50">
+                        لا توجد أصول مضافة حالياً.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Spending Pie Chart */}
+                <div className="glass-card p-10 rounded-[3rem] flex flex-col items-center">
+                  <h3 className="text-xl font-black mb-8 self-start">تحليل المصروفات</h3>
+                  <div className="h-[300px] w-full">
+                    {categoryData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={categoryData}
+                            innerRadius={80}
+                            outerRadius={110}
+                            paddingAngle={8}
+                            dataKey="value"
+                          >
+                            {categoryData.map((_entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip 
+                            contentStyle={{ backgroundColor: '#09090b', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.05)', color: '#fff' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-600 text-xs font-black">
+                        بانتظار البيانات...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Transactions & Wishlist */}
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-12">
+                <div className="xl:col-span-8 glass-card rounded-[3rem] overflow-hidden">
+                  <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+                    <h3 className="text-2xl font-black">سجل المعاملات الذكي</h3>
+                  </div>
+                  <div className="overflow-x-auto p-4">
+                    <table className="w-full text-right text-sm">
+                      <thead>
+                        <tr className="text-gray-500 text-[10px] uppercase font-black tracking-widest border-b border-white/5">
+                          <th className="pb-6 px-4">الفئة</th>
+                          <th className="pb-6 px-4">الوصف</th>
+                          <th className="pb-6 px-4">الحالة</th>
+                          <th className="pb-6 px-4">المبلغ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {transactions.length > 0 ? transactions.map((t, idx) => (
+                          <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="py-6 px-4"><span className="px-3 py-1 bg-white/5 rounded-lg text-xs font-black">{t.category}</span></td>
+                            <td className="py-6 px-4 font-bold">{t.description}</td>
+                            <td className="py-6 px-4"><span className="px-3 py-1.5 rounded-xl text-[10px] font-black bg-blue-500/10 text-blue-500">{t.status}</span></td>
+                            <td className="py-6 px-4 font-black">{t.amount.toLocaleString()} {t.currency}</td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan={4} className="py-12 text-center text-gray-600">لا توجد معاملات حالياً.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="soon"
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="flex flex-col items-center justify-center h-[60vh] glass-card rounded-[3rem] p-20 text-center"
+            >
+              <Zap className="w-16 h-16 text-blue-500 mb-6 animate-pulse" />
+              <h2 className="text-3xl font-black mb-4">قريباً في الإصدار القادم</h2>
+              <p className="text-gray-500 max-w-sm">جاري مكاملة نظام {activeTab} المتطور مع قاعدة البيانات الشخصية الخاصة بك.</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

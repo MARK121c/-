@@ -9,11 +9,15 @@ import {
   calculateHourlyRate, 
   getSetting 
 } from '@/backend/lib/finance';
+import { ensureTables } from '@/backend/db/migrate';
 
 export const revalidate = 0; // Force dynamic SSR
 
 export default async function Home() {
   try {
+    // 0. Ensure Tables Exist (Autonomous Migration)
+    await ensureTables();
+
     // 1. Fetch Core Data
     const [
       transactionData, 
