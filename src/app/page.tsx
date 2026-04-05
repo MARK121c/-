@@ -2,7 +2,7 @@ import DashboardClient from '@/frontend/components/DashboardClient';
 import { db } from '@/backend/db';
 import { transactions, assets, incomes, settings, wishlist } from '@/backend/db/schema';
 import { desc, sql } from 'drizzle-orm';
-import { Activity, ShieldAlert } from 'lucide-react';
+import { Activity, ShieldAlert, Terminal } from 'lucide-react';
 import { 
   calculateNetWorth, 
   getForecasting, 
@@ -14,9 +14,12 @@ import { ensureTables } from '@/backend/db/migrate';
 export const revalidate = 0; // Force dynamic SSR
 
 export default async function Home() {
+  let migrationLogs: string[] = [];
+  
   try {
     // 0. Ensure Tables Exist (Autonomous Migration)
-    await ensureTables();
+    const result = await ensureTables();
+    migrationLogs = result.logs;
 
     // 1. Fetch Core Data
     const [
@@ -76,14 +79,24 @@ export default async function Home() {
             <p className="text-gray-400 font-medium leading-relaxed">حدث خطأ في استدعاء المحرك المالي الذكي. يرجى التأكد من استقرار قاعدة البيانات.</p>
           </div>
 
-          <div className="bg-white/5 p-6 rounded-3xl border border-white/5 text-right space-y-3">
-            <div className="flex items-center gap-3 text-red-400 font-bold text-sm">
+          <div className="bg-white/5 p-6 rounded-3xl border border-white/5 text-right space-y-4">
+            <div className="flex items-center gap-3 text-red-500 font-bold text-sm">
               <Activity className="w-4 h-4" />
               <span>فشل في الاتصال (LOG):</span>
             </div>
-            <p className="text-xs font-mono text-gray-500 break-all leading-loose" dir="ltr">
-              {error.message || 'Critical Storage Failure'}
-            </p>
+            
+            <div className="bg-black/50 p-4 rounded-2xl font-mono text-[10px] text-gray-500 overflow-y-auto max-h-40 border border-white/5" dir="ltr">
+              <div className="flex items-center gap-2 mb-2 text-blue-500 font-black">
+                <Terminal size={12} />
+                <span>MIGRATION DEBUG:</span>
+              </div>
+              {migrationLogs.map((log, i) => (
+                <div key={i} className="mb-1">{`> ${log}`}</div>
+              ))}
+              <div className="mt-4 text-red-400 font-bold">
+                {`ERROR: ${error.message || 'Critical Storage Failure'}`}
+              </div>
+            </div>
           </div>
 
           <p className="text-[10px] uppercase font-black tracking-[4px] text-white/20">Emergency Protocols Active</p>
