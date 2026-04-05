@@ -22,6 +22,8 @@ export async function ensureTables() {
     logs.push(`Assets Columns: ${existingColumns.join(', ')}`);
 
     const requiredAssets = [
+      { name: 'type', sql: "ALTER TABLE assets ADD COLUMN type TEXT DEFAULT 'Other'" },
+      { name: 'value', sql: "ALTER TABLE assets ADD COLUMN value REAL DEFAULT 0" },
       { name: 'passive_income', sql: "ALTER TABLE assets ADD COLUMN passive_income REAL DEFAULT 0" },
       { name: 'roi', sql: "ALTER TABLE assets ADD COLUMN roi REAL DEFAULT 0" },
       { name: 'currency', sql: "ALTER TABLE assets ADD COLUMN currency TEXT DEFAULT 'EGP'" }
