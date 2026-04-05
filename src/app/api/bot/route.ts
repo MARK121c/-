@@ -1,64 +1,94 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { addExpense, addTask, addAsset } from '@/lib/notion';
+import { NextResponse } from 'next/server';
+import { db } from '@/db';
+import { finances, tasks, assets } from '@/db/schema';
+// Keep notion as optional assistant
+import * as notion from '@/lib/notion'; 
 
-export async function POST(req: NextRequest) {
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const MY_ID = process.env.MY_TELEGRAM_ID;
+
+export async function POST(request: Request) {
   try {
-    const body = await req.json();
-    
-    // Validate telegram message
+    const body = await request.json();
+    console.log('Bot Webhook Received:', JSON.stringify(body, null, 2));
+
     if (!body.message || !body.message.text) {
-      return NextResponse.json({ status: 'Ignored: No text' });
+      return NextResponse.json({ ok: true });
     }
 
-    const chatId = body.message.chat.id.toString();
-    const text = body.message.text.trim();
+    const { text, chat, from } = body.message;
 
     // Security check
-    if (chatId !== process.env.MY_TELEGRAM_ID) {
-      console.warn(`Unauthorized access attempt from chat ID: ${chatId}`);
-      // Don't reply to unauthorized users to avoid spam
-      return NextResponse.json({ status: 'Unauthorized' }, { status: 403 });
+    if (MY_ID && from.id.toString() !== MY_ID) {
+      console.warn('Unauthorized access attempt from:', from.id);
+      return NextResponse.json({ ok: true });
     }
 
-    let responseMessage = 'لم أفهم رسالتك. يرجى البدء برقم (للمصروفات)، أو كلمة "تاسك" (للمهام)، أو رابط (للأصول).';
+    const messageText = text.trim();
+    let responseText = 'تم استلام الرسالة، جاري المعالجة...';
 
-    // 1. Finance parsing (starts with a number)
-    const expenseMatch = text.match(/^([\d.]+)\s+(.*)/);
+    // 1. تحليل المصروفات (رقم + وصف)
+    const expenseMatch = messageText.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
     if (expenseMatch) {
       const amount = parseFloat(expenseMatch[1]);
-      const description = expenseMatch[2].trim();
-      await addExpense(amount, description);
-      responseMessage = `✅ تمت إضافة المصروف: ${amount} - ${description}`;
+      const description = expenseMatch[2];
+
+      // حفظ في SQLite (المحرك الأساسي)
+      await db.insert(finances).values({
+        amount,
+        name: description,
+        date: new Date().toISOString(),
+        category: 'Telegram',
+      });
+
+      // محاولة الحفظ في نوشن (مساعد ثانوي)
+      try { await notion.addExpense(amount, description); } catch (e) { console.error('Notion Sync Failed:', e); }
+
+      responseText = `✅ تم تسجيل مصروف بقيمة ${amount} لـ "${description}" في قاعدة البيانات المحلية.`;
+    } 
+    // 2. تحليل المهام (كلمة "تاسك" أو "مهمة")
+    else if (messageText.startsWith('تاسك ') || messageText.startsWith('مهمة ')) {
+      const taskName = messageText.replace(/^(تاسك|مهمة)\s+/, '');
+
+      // حفظ في SQLite
+      await db.insert(tasks).values({
+        name: taskName,
+        status: 'Active',
+        dueDate: new Date().toISOString(),
+      });
+
+      // محاولة الحفظ في نوشن
+      try { await notion.addTask(taskName); } catch (e) { console.error('Notion Sync Failed:', e); }
+
+      responseText = `📝 تمت إضافة المهمة: "${taskName}" بنجاح.`;
     }
-    // 2. Task parsing (starts with 'تاسك')
-    else if (text.startsWith('تاسك')) {
-      const taskName = text.replace(/^تاسك\s*/, '').trim();
-      if (taskName) {
-        await addTask(taskName);
-        responseMessage = `✅ تمت إضافة المهمة: ${taskName}`;
-      } else {
-        responseMessage = '⚠️ يجب كتابة اسم المهمة بعد كلمة "تاسك".';
-      }
+    // 3. تحليل الأصول والروابط (رابط يبدأ بـ http)
+    else if (messageText.startsWith('http')) {
+      await db.insert(assets).values({
+        name: messageText,
+        date: new Date().toISOString(),
+      });
+      
+      try { await notion.addAsset(messageText); } catch (e) { console.error('Notion Sync Failed:', e); }
+      responseText = `🔗 تم حفظ الرابط في الأصول الرقمية.`;
     }
-    // 3. Asset parsing (is a URL)
-    else if (/^(https?:\/\/[^\s]+)$/.test(text)) {
-      await addAsset(text);
-      responseMessage = `✅ تم حفظ الرابط في الأصول.`;
+    else {
+      responseText = 'لم أفهم الأمر. جرب إرسال مبلغ ووصف (مثل: 50 غداء) أو كلمة "تاسك" وبعدها المهمة.';
     }
 
-    // Send response back to Telegram
-    await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    // إرسال رد للمستخدم عبر تليجرام
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: chatId,
-        text: responseMessage,
+        chat_id: chat.id,
+        text: responseText,
       }),
     });
 
-    return NextResponse.json({ status: 'Success' });
+    return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('Error in bot webhook:', error);
-    return NextResponse.json({ status: 'Error', error: String(error) }, { status: 500 });
+    console.error('Webhook Error:', error);
+    return NextResponse.json({ ok: true }); // Always return 200 to Telegram
   }
 }

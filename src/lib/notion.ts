@@ -5,7 +5,7 @@ const notion = new Client({
 });
 
 export const addExpense = async (amount: number, description: string) => {
-  if (!process.env.FINANCE_DB_ID) throw new Error('Missing FINANCE_DB_ID');
+  if (!process.env.NOTION_SECRET || !process.env.FINANCE_DB_ID) return;
   
   await notion.pages.create({
     parent: { database_id: process.env.FINANCE_DB_ID },
@@ -24,14 +24,14 @@ export const addExpense = async (amount: number, description: string) => {
         date: { start: new Date().toISOString() },
       },
       Category: {
-        select: { name: 'Uncategorized' },
+        select: { name: 'Telegram' },
       },
     },
   });
 };
 
 export const addTask = async (taskName: string) => {
-  if (!process.env.TASKS_DB_ID) throw new Error('Missing TASKS_DB_ID');
+  if (!process.env.NOTION_SECRET || !process.env.TASKS_DB_ID) return;
 
   await notion.pages.create({
     parent: { database_id: process.env.TASKS_DB_ID },
@@ -54,7 +54,7 @@ export const addTask = async (taskName: string) => {
 };
 
 export const addAsset = async (link: string) => {
-  if (!process.env.ASSETS_DB_ID) throw new Error('Missing ASSETS_DB_ID');
+  if (!process.env.NOTION_SECRET || !process.env.ASSETS_DB_ID) return;
 
   await notion.pages.create({
     parent: { database_id: process.env.ASSETS_DB_ID },
@@ -70,42 +70,19 @@ export const addAsset = async (link: string) => {
   });
 };
 
-export const getFinances = async () => {
-  if (!process.env.FINANCE_DB_ID) return [];
-  
-  const response = await (notion as any).dataSources.query({
-    data_source_id: process.env.FINANCE_DB_ID,
-    sorts: [{ property: 'Date', direction: 'descending' }],
-    page_size: 100,
-  });
-
-  return response.results.map((page: any) => ({
-    id: page.id,
-    name: page.properties.Name?.title[0]?.plain_text || 'Unknown',
-    amount: page.properties.Amount?.number || 0,
-    date: page.properties.Date?.date?.start || 'Unknown',
-    category: page.properties.Category?.select?.name || 'Empty',
-  }));
-};
-
-export const getTasks = async () => {
-  if (!process.env.TASKS_DB_ID) return [];
-
-  const response = await (notion as any).dataSources.query({
-    data_source_id: process.env.TASKS_DB_ID,
-    filter: {
-      property: 'Status',
-      status: {
-        does_not_equal: 'Done',
-      },
-    },
-    sorts: [{ property: 'Due Date', direction: 'ascending' }],
-  });
-
-  return response.results.map((page: any) => ({
-    id: page.id,
-    name: page.properties['Task Name']?.title[0]?.plain_text || 'Unnamed Task',
-    status: page.properties.Status?.status?.name || 'Unknown',
-    dueDate: page.properties['Due Date']?.date?.start || null,
-  }));
+// Robust fetch helper that tries both database.query and dataSources.query
+export const robustQuery = async (id: string, options: any) => {
+  try {
+    // Try dataSources first (new standard in v5.x)
+    return await (notion as any).dataSources.query({
+      data_source_id: id,
+      ...options,
+    });
+  } catch (e) {
+    // Fallback to databases
+    return await notion.databases.query({
+      database_id: id,
+      ...options,
+    });
+  }
 };
