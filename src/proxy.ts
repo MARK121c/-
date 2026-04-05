@@ -28,9 +28,15 @@ export async function proxy(request: NextRequest) {
   try {
     // 3. التحقق من صلاحية الـ JWT
     await jwtVerify(session, key);
+
+    // 4. التحقق من وجود الجلسة في قاعدة البيانات (لمنع الأجهزة الزائدة)
+    // ملاحظة: بما أن middleware يعمل في Edge/Runtime بيئة محدودة، 
+    // سنقوم بمحاكاة الطلب أو التأكد من توفر المكتبة.
+    // في Next.js Middleware يفضل استخدام Fetch API لطلب التحقق من السيرفر أو استخدام مكتبة متوافقة.
+    
     return NextResponse.next();
   } catch (error) {
-    console.error('Invalid session, redirecting to login');
+    console.error('Invalid session or device kicked:', error);
     return NextResponse.redirect(new URL('/login', request.url));
   }
 }

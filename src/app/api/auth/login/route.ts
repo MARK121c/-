@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
+import { db } from '@/backend/db';
+import { sessions } from '@/backend/db/schema';
+import { eq, asc, count } from 'drizzle-orm';
 
 const secretKey = process.env.AUTH_SECRET || 'fallback-secret-at-least-32-chars-long-12345';
 const key = new TextEncoder().encode(secretKey);
@@ -17,6 +20,29 @@ export async function POST(request: Request) {
         .setIssuedAt()
         .setExpirationTime('24h')
         .sign(key);
+
+      // 4. Record the session & enforce 2-device limit
+      try {
+        // Find existing sessions for this user
+        const userSessions = await db.select().from(sessions).where(eq(sessions.userId, email)).orderBy(asc(sessions.createdAt));
+        
+        if (userSessions.length >= 2) {
+          // Kick the oldest session
+          await db.delete(sessions).where(eq(sessions.id, userSessions[0].id));
+        }
+
+        // Add new session
+        await db.insert(sessions).values({
+          id: token,
+          userId: email,
+          deviceLabel: request.headers.get('user-agent') || 'Unknown Device',
+          ipAddress: request.headers.get('x-forwarded-for') || '127.0.0.1',
+          createdAt: new Date(),
+          lastSeen: new Date(),
+        });
+      } catch (dbErr) {
+        console.error('Session management error:', dbErr);
+      }
 
       const response = NextResponse.json(
         { message: 'Logged in successfully' },
