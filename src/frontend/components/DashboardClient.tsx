@@ -216,35 +216,38 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
           {mainTab === 'finance' && (
             <motion.div key="fi" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-10 max-w-[1400px] mx-auto flex flex-col h-full">
               
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-4">
-                <div>
-                  <h2 className="text-2xl md:text-4xl font-black mb-1">النظام المالي العميق</h2>
-                  <p className="text-base text-gray-500 mb-1">إدارة مركزية لكافة الأصول، الاستثمارات، والمحافظ بذكاء فائق.</p>
+              {/* FIXED FINANCE HEADER (TITLE + BUTTONS + TABS) */}
+              <div className="sticky top-0 z-40 bg-super-dark pt-4 pb-2 space-y-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2 transition-all">
+                  <div>
+                    <h2 className="text-2xl md:text-3xl font-black mb-1">النظام المالي العميق</h2>
+                    <p className="text-sm text-gray-500 mb-1">إدارة مركزية لكافة الأصول، الاستثمارات، والمحافظ بذكاء فائق.</p>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                      <a href="https://www.notion.so/Personal-finances-685797555bc5459b9e437cb1a60d402a" target="_blank" rel="noopener noreferrer" className="mega-action-btn bg-blue-500/10 text-blue-300 border border-blue-500/20 px-4 py-2 text-xs hover:bg-blue-500/20">
+                        <ExternalLink size={14}/> Notion
+                      </a>
+                      <button onClick={() => { setForm({ ...form, currency: 'EGP' }); setModal('income'); }} className="mega-action-btn bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-2 text-xs hover:bg-emerald-500/20">
+                        <Wallet size={14}/> تسجيل دخل
+                      </button>
+                      <button onClick={() => { setForm({ ...form, currency: 'EGP' }); setModal('transaction'); }} className="mega-action-btn bg-rose-500/10 text-rose-400 border border-rose-500/20 px-4 py-2 text-xs hover:bg-rose-500/20">
+                        <Banknote size={14}/> تسجيل صرف
+                      </button>
+                      <button onClick={() => { setForm({ ...form, usdRate: settings.usdRate }); setModal('asset'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-4 py-2 text-xs">+ أصل</button>
+                      <button onClick={() => { setForm({ ...form, usdRate: settings.usdRate }); setModal('investment'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-4 py-2 text-xs">+ استثمار</button>
+                  </div>
                 </div>
-                
-                <div className="flex flex-wrap gap-2">
-                    <a href="https://www.notion.so/Personal-finances-685797555bc5459b9e437cb1a60d402a" target="_blank" rel="noopener noreferrer" className="mega-action-btn bg-blue-500/10 text-blue-300 border border-blue-500/20 px-6 py-3 text-sm hover:bg-blue-500/20">
-                      <ExternalLink size={16}/> Notion
-                    </a>
-                    <button onClick={() => { setForm({ ...form, currency: 'EGP' }); setModal('income'); }} className="mega-action-btn bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-6 py-3 text-sm hover:bg-emerald-500/20">
-                      <Wallet size={16}/> تسجيل دخل
-                    </button>
-                    <button onClick={() => { setForm({ ...form, currency: 'EGP' }); setModal('transaction'); }} className="mega-action-btn bg-rose-500/10 text-rose-400 border border-rose-500/20 px-6 py-3 text-sm hover:bg-rose-500/20">
-                      <Banknote size={16}/> تسجيل صرف
-                    </button>
-                    <button onClick={() => { setForm({ ...form }); setModal('asset'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-6 py-3 text-sm">+ أصل</button>
-                    <button onClick={() => { setForm({ ...form }); setModal('investment'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-6 py-3 text-sm">+ استثمار</button>
-                </div>
-              </div>
 
-              {/* HORIZONTAL FINANCE TABS - STICKY TO PREVENT DISAPPEARING */}
-              <div className="sticky top-0 z-30 bg-super-dark/80 backdrop-blur-xl flex overflow-x-auto gap-4 pb-4 scrollbar-hide py-6 w-full border-b border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
-                {financeTabs.map(tab => (
-                  <button key={tab.id} onClick={() => setFinanceTab(tab.id)} className={`relative flex items-center gap-3 px-8 py-3 rounded-[2rem] text-xl font-black transition-all whitespace-nowrap ${financeTab === tab.id ? 'text-black' : 'text-gray-500 bg-white/2 hover:text-white hover:bg-white/5'}`}>
-                    {financeTab === tab.id && <motion.div layoutId="financeTabPill" className="absolute inset-0 bg-emerald-400 rounded-[2rem] shadow-[0_10px_30px_rgba(16,185,129,0.3)]" style={{ originY: "0px" }} />}
-                    <span className="relative z-10 flex items-center gap-2">{tab.icon} {tab.label}</span>
-                  </button>
-                ))}
+                {/* HORIZONTAL FINANCE TABS */}
+                <div className="flex overflow-x-auto gap-4 scrollbar-hide py-4 w-full border-b border-white/5 bg-super-dark/50 backdrop-blur-md">
+                  {financeTabs.map(tab => (
+                    <button key={tab.id} onClick={() => setFinanceTab(tab.id)} className={`relative flex items-center gap-3 px-6 py-2 rounded-full text-lg font-black transition-all whitespace-nowrap ${financeTab === tab.id ? 'text-black' : 'text-gray-500 bg-white/2 hover:text-white hover:bg-white/5'}`}>
+                      {financeTab === tab.id && <motion.div layoutId="financeTabPill" className="absolute inset-0 bg-emerald-400 rounded-full shadow-[0_5px_20px_rgba(16,185,129,0.3)]" style={{ originY: "0px" }} />}
+                      <span className="relative z-10 flex items-center gap-2">{tab.icon} {tab.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* FINANCE SUB-PAGES - ADDED MIN-HEIGHT TO PREVENT LAYOUT 'RUINING' */}
