@@ -49,7 +49,9 @@ export async function deductFromWallet(amount: number, category: string) {
   if (category === 'استثمار') walletId = 'investment';
   if (category === 'شخصي' || category === 'ترفيه') walletId = 'personal';
 
-  const wallet = await db.select().from(wallets).where(eq(wallets.id, walletId));
+  const wallet = await db.select().from(wallets).where(eq(wallets.id, walletId)).limit(1).catch(() => []);
+  if (wallet.length === 0) return { success: false, error: 'Wallet not found' };
+  
   const currentBalance = wallet[0]?.balance ?? 0;
   
   await db.update(wallets)
@@ -95,9 +97,9 @@ export async function calculateNetWorth(
   const totalEGP = assetsTotal + investmentsTotal + totalPassiveAnnual;
 
   // New: Net Liquid Profit (Total Income - Total Expenses)
-  const incomeRes = await db.select({ total: sql<number>`coalesce(sum(amount), 0)` }).from(incomes);
-  const expenseRes = await db.select({ total: sql<number>`coalesce(sum(amount), 0)` }).from(transactions);
-  const netLiquidProfit = (incomeRes[0]?.total ?? 0) - (expenseRes[0]?.total ?? 0);
+  const incomeRes = await db.select({ total: sql<number>`coalesce(sum(amount), 0)` }).from(incomes).catch(() => [{total:0}]);
+  const expenseRes = await db.select({ total: sql<number>`coalesce(sum(amount), 0)` }).from(transactions).catch(() => [{total:0}]);
+  const netLiquidProfit = (Number(incomeRes[0]?.total) || 0) - (Number(expenseRes[0]?.total) || 0);
 
   return {
     totalEGP,
