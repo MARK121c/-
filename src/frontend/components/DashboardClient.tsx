@@ -143,8 +143,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
               
               <div className="flex items-end justify-between">
                 <div>
-                  <h2 className="text-3xl md:text-5xl font-black mb-2 flex items-center gap-4">نظرة عامة <Sparkles className="text-amber-400 md:w-10 md:h-10" /></h2>
-                  <p className="text-lg text-gray-400 bg-white/5 px-4 py-1.5 rounded-xl inline-block">تحياتي يا مارك، إليك ملخص حي للنظام المالي.</p>
+                  <h2 className="text-2xl md:text-4xl font-black mb-1 flex items-center gap-3">نظرة عامة <Sparkles className="text-amber-400 md:w-8 md:h-8" /></h2>
+                  <p className="text-base text-gray-400 bg-white/5 px-3 py-1 rounded-lg inline-block">تحياتي يا مارك، إليك ملخص حي للنظام المالي.</p>
                 </div>
               </div>
 
@@ -165,8 +165,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
 
                 <div className="grand-card p-10 bg-blue-500/5 hover:bg-blue-500/10 border-blue-500/20 group relative overflow-hidden">
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-3xl transition-all group-hover:scale-150" />
-                  <p className="text-blue-400 font-black text-lg mb-2 flex items-center gap-2"><Briefcase size={20}/> سعر ساعة العمل</p>
-                  <p className="text-4xl lg:text-5xl font-black leading-none">{fmt(hourlyRate)} <span className="text-xl text-blue-500/50">EGP/hr</span></p>
+                  <p className="text-blue-400 font-black text-base mb-1 flex items-center gap-2"><Briefcase size={18}/> سعر ساعة العمل</p>
+                  <p className="text-3xl lg:text-4xl font-black leading-none">{fmt(hourlyRate)} <span className="text-lg text-blue-500/50">EGP/hr</span></p>
                 </div>
               </div>
 
@@ -222,8 +222,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
               
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-4">
                 <div>
-                  <h2 className="text-3xl md:text-5xl font-black mb-2">النظام المالي العميق</h2>
-                  <p className="text-lg text-gray-500 mb-2">إدارة مركزية لكافة الأصول، الاستثمارات، والمحافظ بذكاء فائق.</p>
+                  <h2 className="text-2xl md:text-4xl font-black mb-1">النظام المالي العميق</h2>
+                  <p className="text-base text-gray-500 mb-1">إدارة مركزية لكافة الأصول، الاستثمارات، والمحافظ بذكاء فائق.</p>
                 </div>
                 
                 <div className="flex flex-wrap gap-3">
@@ -506,12 +506,12 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
       {/* ===================== GIANT MODALS - SYSTEM LEVEL ===================== */}
       <AnimatePresence>
         {modal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-12 bg-super-dark/95 backdrop-blur-[60px] overflow-y-auto">
-            <motion.div initial={{ opacity: 0, scale: 0.85, y: 100 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.85, y: 100 }} transition={{ type: "spring", damping: 30, stiffness: 400 }} className="w-full max-w-3xl bg-black border border-white/10 rounded-[4rem] p-12 shadow-[0_0_100px_rgba(0,0,0,0.8)] relative my-auto">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-super-dark/95 backdrop-blur-[40px] overflow-y-auto">
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 50 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 50 }} className="w-full max-w-xl bg-black border border-white/10 rounded-[2.5rem] p-8 shadow-[0_0_80px_rgba(0,0,0,0.9)] relative my-auto">
               
-              <button type="button" onClick={() => setModal(null)} className="absolute top-12 left-12 p-5 bg-white/5 hover:bg-white/10 rounded-[2rem] transition-all border border-white/10 hover:scale-110 active:scale-90"><X size={40}/></button>
+              <button type="button" onClick={() => setModal(null)} className="absolute top-8 left-8 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/10 hover:scale-110 active:scale-90"><X size={24}/></button>
               
-              <h2 className="text-5xl md:text-6xl font-black mb-12 text-emerald-400 border-r-8 border-emerald-500 pr-8">
+              <h2 className="text-3xl md:text-4xl font-black mb-8 text-emerald-400 border-r-4 border-emerald-500 pr-5">
                 {{transaction:'توثيق مصروف مالي', asset:'إضافة لقفص الأصول', income:'تسجيل مورد دخل', investment:'فتح مركز استثماري', hours:'تتبع زمن العمل', wishlist:'تسجيل رغبة مستقبلية'}[modal] || 'إدخال بيانات'}
               </h2>
 
@@ -520,8 +520,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 {/* Visual Impact Number Input */}
                 {!['hours','wishlist'].includes(modal) && (
                   <div>
-                    <label className="text-xl font-black text-gray-500 mb-6 block uppercase tracking-widest text-center">{modal==='investment'?'قائمة التكلفة الأولية':'المبلغ المالي الصافي'}</label>
-                    <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-3 border-white/5 focus:border-emerald-500 rounded-[2.5rem] p-10 text-6xl font-black text-center eng-num outline-none transition-all placeholder-gray-800 shadow-inner" value={modal==='investment'?form.initialValue:form.amount} onChange={e=>setForm({...form,[modal==='investment'?'initialValue':'amount']:e.target.value})} placeholder="0.00" />
+                    <label className="text-lg font-black text-gray-500 mb-4 block uppercase tracking-widest text-center">{modal==='investment'?'قائمة التكلفة الأولية':'المبلغ المالي الصافي'}</label>
+                    <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-6 text-4xl font-black text-center eng-num outline-none transition-all placeholder-gray-800 shadow-inner" value={modal==='investment'?form.initialValue:form.amount} onChange={e=>setForm({...form,[modal==='investment'?'initialValue':'amount']:e.target.value})} placeholder="0.00" />
                   </div>
                 )}
 
@@ -536,12 +536,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 {/* Item Identity */}
                 {['asset','investment','wishlist','income','transaction'].includes(modal) && (
                   <div>
-                    <select className="w-full bg-super-dark border-2 border-white/10 focus:border-blue-500 rounded-3xl p-6 text-3xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.currency} onChange={e=>setForm({...form,currency:e.target.value})}>
-                      <option className="bg-super-dark" value="EGP">EGP - جنيه مصري</option>
-                      <option className="bg-super-dark" value="USD">USD - دولار أمريكي</option>
-                    </select>
-                    <label className="text-2xl font-black text-gray-500 mb-4 block">{['transaction','income'].includes(modal) ? 'بيان المعاملة (السبب)' : 'اسم العنصر / الكيان'}</label>
-                    <input required type="text" className="w-full bg-white/5 border-2 border-white/10 focus:border-emerald-500 rounded-[2.5rem] p-8 text-3xl font-black outline-none transition-all" value={['transaction','income'].includes(modal) ? form.description : form.name} onChange={e=>setForm({...form, [['transaction','income'].includes(modal)?'description':'name']:e.target.value})} placeholder="..." />
+                    <label className="text-lg font-black text-gray-500 mb-3 block">{['transaction','income'].includes(modal) ? 'بيان المعاملة (السبب)' : 'اسم العنصر / الكيان'}</label>
+                    <input required type="text" className="w-full bg-white/5 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-5 text-xl font-black outline-none transition-all" value={['transaction','income'].includes(modal) ? form.description : form.name} onChange={e=>setForm({...form, [['transaction','income'].includes(modal)?'description':'name']:e.target.value})} placeholder="..." />
                   </div>
                 )}
 
@@ -549,40 +545,40 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 {!['hours'].includes(modal) && (
                   <div className="grid grid-cols-2 gap-8">
                     <div className="relative group">
-                      <label className="text-xl font-black text-gray-500 mb-4 block">عملة التداول</label>
-                      <select className="w-full bg-white/5 border-2 border-white/10 focus:border-blue-500 rounded-3xl p-6 text-3xl font-black outline-none transition-all appearance-none cursor-pointer" value={form.currency} onChange={e=>setForm({...form,currency:e.target.value})}>
-                        <option value="EGP">EGP - جنيه مصري</option>
-                        <option value="USD">USD - دولار أمريكي</option>
+                      <label className="text-base font-black text-gray-500 mb-3 block">عملة التداول</label>
+                      <select className="w-full bg-[#111] border-2 border-white/10 focus:border-blue-500 rounded-2xl p-5 text-xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.currency} onChange={e=>setForm({...form,currency:e.target.value})}>
+                        <option className="bg-[#111] text-white" value="EGP">EGP - جنيه مصري</option>
+                        <option className="bg-[#111] text-white" value="USD">USD - دولار أمريكي</option>
                       </select>
-                      <ChevronLeft className="absolute left-6 bottom-8 text-gray-500 pointer-events-none -rotate-90" />
+                      <ChevronLeft className="absolute left-6 bottom-6 text-gray-500 pointer-events-none -rotate-90" />
                     </div>
 
                     {modal==='transaction' && (
                       <div className="relative">
-                        <label className="text-xl font-black text-gray-500 mb-4 block">التصنيف المالي</label>
-                        <select className="w-full bg-super-dark border-2 border-white/10 focus:border-rose-500 rounded-3xl p-6 text-3xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>
-                          {['شخصي','طعام','سكن','مواصلات','ترفيه','صحة','استثمار','تعليم','أخرى'].map(c=><option className="bg-super-dark" key={c}>{c}</option>)}
+                        <label className="text-base font-black text-gray-500 mb-3 block">التصنيف المالي</label>
+                        <select className="w-full bg-[#111] border-2 border-white/10 focus:border-rose-500 rounded-2xl p-5 text-xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>
+                          {['شخصي','طعام','سكن','مواصلات','ترفيه','صحة','استثمار','تعليم','أخرى'].map(c=><option className="bg-[#111] text-white" key={c}>{c}</option>)}
                         </select>
-                        <ChevronLeft className="absolute left-6 bottom-8 text-gray-500 pointer-events-none -rotate-90" />
+                        <ChevronLeft className="absolute left-6 bottom-6 text-gray-500 pointer-events-none -rotate-90" />
                       </div>
                     )}
                     
                     {modal==='asset' && (
                       <div className="relative">
-                         <label className="text-xl font-black text-gray-500 mb-4 block">سيولة الأصل</label>
-                        <select className="w-full bg-super-dark border-2 border-white/10 focus:border-blue-500 rounded-3xl p-6 text-3xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.liquidType} onChange={e=>setForm({...form,liquidType:e.target.value})}>
-                          <option className="bg-super-dark" value="سائل">كاش / بنك (سيولة)</option>
-                          <option className="bg-super-dark" value="مادي">أصل مادي (ذهب/عقار)</option>
-                          <option className="bg-super-dark" value="رقمي">أصول مشفرة (Crypto)</option>
+                         <label className="text-base font-black text-gray-500 mb-3 block">سيولة الأصل</label>
+                        <select className="w-full bg-[#111] border-2 border-white/10 focus:border-blue-500 rounded-2xl p-5 text-xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.liquidType} onChange={e=>setForm({...form,liquidType:e.target.value})}>
+                          <option className="bg-[#111] text-white" value="سائل">كاش / بنك (سيولة)</option>
+                          <option className="bg-[#111] text-white" value="مادي">أصل مادي (ذهب/عقار)</option>
+                          <option className="bg-[#111] text-white" value="رقمي">أصول مشفرة (Crypto)</option>
                         </select>
-                        <ChevronLeft className="absolute left-6 bottom-8 text-gray-500 pointer-events-none -rotate-90" />
+                        <ChevronLeft className="absolute left-6 bottom-6 text-gray-500 pointer-events-none -rotate-90" />
                       </div>
                     )}
                   </div>
                 )}
 
-                <button type="submit" disabled={saving} className="w-full py-10 bg-emerald-500 hover:bg-emerald-400 text-black disabled:opacity-60 rounded-[3rem] text-4xl font-black flex items-center justify-center gap-6 transition-all active:scale-95 mt-10 shadow-[0_20px_80px_rgba(16,185,129,0.3)]">
-                  {saving ? <div className="w-10 h-10 border-6 border-black/20 border-t-black rounded-full animate-spin"/> : <Check size={48}/>}
+                <button type="submit" disabled={saving} className="w-full py-6 bg-emerald-500 hover:bg-emerald-400 text-black disabled:opacity-60 rounded-2xl text-2xl font-black flex items-center justify-center gap-4 transition-all active:scale-95 mt-6 shadow-[0_15px_60px_rgba(16,185,129,0.3)]">
+                  {saving ? <div className="w-8 h-8 border-4 border-black/20 border-t-black rounded-full animate-spin"/> : <Check size={32}/>}
                   {saving ? 'جاري المزامنة...' : 'تأكيد وحفظ'}
                 </button>
               </form>
