@@ -98,7 +98,7 @@ export async function calculateNetWorth(
   });
 
   const totalPassiveAnnual = (passiveIncomeMonthly + passiveIncomeData) * 12;
-  const totalEGP = assetsTotal + investmentsTotal + totalPassiveAnnual;
+  const totalEGP = assetsTotal + investmentsTotal; // Corrected: Assets + Investments only as per user request
 
   // New: Net Liquid Profit (Total Income - Total Expenses)
   const incomeRes = await db.select({ total: sql<number>`coalesce(sum(amount), 0)` }).from(incomes).catch(() => [{total:0}]);

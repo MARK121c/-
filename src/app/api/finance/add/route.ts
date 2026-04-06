@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     // --- INVESTMENT ---
     if (type === 'investment') {
       const initial = parseFloat(data.initialValue || data.amount);
-      const current = parseFloat(data.currentValue || data.amount);
+      const current = parseFloat(data.currentValue || data.initialValue || data.amount);
       const roi = initial > 0 ? ((current - initial) / initial) * 100 : 0;
       await db.insert(investments).values({
         name: data.name,
@@ -85,8 +85,8 @@ export async function POST(request: Request) {
     // --- PASSIVE INCOME SOURCE ---
     if (type === 'passive_income') {
       await db.insert(passiveIncomeSources).values({
-        source: data.source || data.name,
-        monthlyAmount: parseFloat(data.amount),
+        source: data.source || data.name || 'دخل سلبي',
+        monthlyAmount: parseFloat(data.monthlyAmount || data.amount),
         type: data.type || 'اشتراك',
         currency: 'EGP',
         isActive: true,

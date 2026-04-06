@@ -45,7 +45,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
   const [panic, setPanic] = useState(settings.isPanic);
   const [notionUrl, setNotionUrl] = useState(settings.notionUrl);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<any>({ amount:'', currency:'EGP', description:'', name:'', category:'شخصي', method:'كاش', source:'عام', hours:'', date: new Date().toISOString().split('T')[0], assetType:'كاش', liquidType:'سائل', initialValue:'', currentValue:'', platform:'', price:'', priority:'1', profitAmount:'', duration:'' });
+  const [form, setForm] = useState<any>({ amount:'', currency:'EGP', description:'', name:'', category:'شخصي', method:'كاش', source:'عام', hours:'', date: new Date().toISOString().split('T')[0], assetType:'كاش', liquidType:'سائل', initialValue:'', currentValue:'', platform:'', price:'', priority:'1', profitAmount:'', duration:'', monthlyAmount:'', type: 'اشتراك' });
   
   // Last Income Split Calculation
   const lastIncome = incomes?.[0]; // incomes are desc by date
@@ -277,7 +277,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                     <motion.div key="fnw" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                       <div className="lg:col-span-3 grand-card p-12 bg-gradient-to-br from-emerald-500/10 via-super-dark to-blue-500/10 border-emerald-500/20 flex flex-col md:flex-row items-center justify-between">
                         <div>
-                          <p className="text-emerald-400 font-black text-lg uppercase tracking-widest mb-3">صافي الثروة المجمّعة</p>
+                          <p className="text-emerald-400 font-black text-lg uppercase tracking-widest mb-3">صافي الثروة الحقيقية (أصول + استثمارات)</p>
                           <p className="text-5xl md:text-6xl font-black text-white">{fmt(netWorth.totalEGP)} <span className="text-xl text-white/30">EGP</span></p>
                         </div>
                       </div>
