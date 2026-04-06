@@ -16,16 +16,19 @@ export async function setSetting(key: string, value: string) {
 }
 
 // --- INCOME DISTRIBUTION ENGINE ---
-export async function distributeIncome(amount: number, currency: string = 'EGP') {
+export async function distributeIncome(amount: number, currency: string = 'EGP', forcedUsdRate?: number) {
+  const usdRate = forcedUsdRate || parseFloat(await getSetting('usd_rate', '50'));
+  const amountInEGP = currency === 'USD' ? amount * usdRate : amount;
+
   // Get current distribution ratios
   const dist = await db.select().from(incomeDistribution).limit(1);
   const ratios = dist[0] || { givingPercentage: 0.1, obligationsPercentage: 0.2, personalPercentage: 0.1, investmentPercentage: 0.6 };
 
   const splits = {
-    giving: amount * (ratios.givingPercentage ?? 0.1),
-    obligations: amount * (ratios.obligationsPercentage ?? 0.2),
-    personal: amount * (ratios.personalPercentage ?? 0.1),
-    investment: amount * (ratios.investmentPercentage ?? 0.6),
+    giving: amountInEGP * (ratios.givingPercentage ?? 0.1),
+    obligations: amountInEGP * (ratios.obligationsPercentage ?? 0.2),
+    personal: amountInEGP * (ratios.personalPercentage ?? 0.1),
+    investment: amountInEGP * (ratios.investmentPercentage ?? 0.6),
   };
 
   // Update wallet balances

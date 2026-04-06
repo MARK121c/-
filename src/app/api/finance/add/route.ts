@@ -43,6 +43,7 @@ export async function POST(request: Request) {
     if (type === 'income') {
       const amount = parseFloat(data.amount);
       const currency = data.currency || 'EGP';
+      const usdRate = parseFloat(data.usdRate || '50');
 
       // Insert income record
       await db.insert(incomes).values({
@@ -54,8 +55,8 @@ export async function POST(request: Request) {
         date: new Date().toISOString(),
       });
 
-      // Auto-distribute to wallets
-      const splits = await distributeIncome(amount, currency);
+      // Auto-distribute to wallets (pass forced rate)
+      const splits = await distributeIncome(amount, currency, usdRate);
       return NextResponse.json({ success: true, splits });
     }
 
@@ -139,6 +140,60 @@ export async function POST(request: Request) {
     // --- SETTINGS ---
     if (type === 'setting') {
       await setSetting(data.key, data.value);
+      return NextResponse.json({ success: true });
+    }
+
+    // --- PROFIT UPDATE (ASSETS) ---
+    if (type === 'profit') {
+      const assetId = parseInt(data.selectedId as string);
+      const profit = parseFloat(data.profitAmount);
+      const rate = data.currency === 'USD' ? parseFloat(data.usdRate || '50') : 1;
+      const profitInEGP = profit * rate;
+
+      const asset = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);
+      if (asset.length > 0) {
+        // Update asset value
+        await db.update(assets).set({ value: (asset[0].value || 0) + (data.currency === 'USD' ? profit : profitInEGP) }).where(eq(assets.id, assetId));
+        
+        // Add to incomes and distribute
+        await db.insert(incomes).values({
+          amount: profitInEGP,
+          currency: 'EGP',
+          source: `ربح أصل: ${asset[0].name}`,
+          description: data.duration || 'ربح دوري',
+          distributed: true,
+          date: new Date().toISOString(),
+        });
+        await distributeIncome(profitInEGP, 'EGP');
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    // --- PROFIT UPDATE (INVESTMENTS) ---
+    if (type === 'profit_inv') {
+      const invId = parseInt(data.selectedId as string);
+      const profit = parseFloat(data.profitAmount);
+      const rate = data.currency === 'USD' ? parseFloat(data.usdRate || '50') : 1;
+      const profitInEGP = profit * rate;
+
+      const inv = await db.select().from(investments).where(eq(investments.id, invId)).limit(1);
+      if (inv.length > 0) {
+        const newTotalValue = (inv[0].currentValue || 0) + (data.currency === 'USD' ? profit : profitInEGP);
+        const newROI = inv[0].initialValue && inv[0].initialValue > 0 ? ((newTotalValue - inv[0].initialValue) / inv[0].initialValue) * 100 : 0;
+
+        await db.update(investments).set({ currentValue: newTotalValue, roiPercentage: newROI }).where(eq(investments.id, invId));
+        
+        // Add to incomes and distribute
+        await db.insert(incomes).values({
+          amount: profitInEGP,
+          currency: 'EGP',
+          source: `ربح استثمار: ${inv[0].name}`,
+          description: data.duration || 'توزيع أرباح',
+          distributed: true,
+          date: new Date().toISOString(),
+        });
+        await distributeIncome(profitInEGP, 'EGP');
+      }
       return NextResponse.json({ success: true });
     }
 

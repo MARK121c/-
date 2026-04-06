@@ -22,13 +22,15 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
   const [panic, setPanic] = useState(settings.isPanic);
   const [notionUrl, setNotionUrl] = useState(settings.notionUrl);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<any>({ amount:'', currency:'EGP', description:'', name:'', category:'شخصي', method:'كاش', source:'عام', hours:'', date: new Date().toISOString().split('T')[0], assetType:'كاش', liquidType:'سائل', initialValue:'', currentValue:'', platform:'', price:'', priority:'1' });
+  const [form, setForm] = useState<any>({ amount:'', currency:'EGP', usdRate: settings.usdRate, description:'', name:'', category:'شخصي', method:'كاش', source:'عام', hours:'', date: new Date().toISOString().split('T')[0], assetType:'كاش', liquidType:'سائل', initialValue:'', currentValue:'', platform:'', price:'', priority:'1', profitAmount:'', duration:'' });
+  const [selectedId, setSelectedId] = useState<number|string|null>(null);
 
   const post = async (type: string, data: any) => {
     setSaving(true);
-    await fetch('/api/finance/add', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type, data }) });
+    await fetch('/api/finance/add', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type, data: { ...data, selectedId } }) });
     setSaving(false);
     setModal(null);
+    setSelectedId(null);
     window.location.reload();
   };
 
@@ -83,15 +85,9 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
         ))}
       </nav>
 
-      {/* Quick Actions - In Sidebar */}
-      <div className="mt-auto flex flex-col gap-3">
-        <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest px-2 mb-1">أوامر سريعة بنظام التشغيل</p>
-        <button onClick={() => { setForm({ ...form }); setModal('transaction'); }} className="mega-action-btn bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20 w-full justify-center py-5">
-          <Banknote size={24}/> تسجيل صرف
-        </button>
-        <button onClick={() => { setForm({ ...form }); setModal('income'); }} className="mega-action-btn bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20 w-full justify-center py-5">
-          <Wallet size={24}/> تسجيل دخل
-        </button>
+      {/* Quick Actions - Removed from Sidebar as per request */}
+      <div className="mt-auto flex flex-col gap-2 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
+        <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest text-center">محرك التجربة CORE V4</p>
       </div>
     </div>
   );
@@ -226,12 +222,18 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                   <p className="text-base text-gray-500 mb-1">إدارة مركزية لكافة الأصول، الاستثمارات، والمحافظ بذكاء فائق.</p>
                 </div>
                 
-                <div className="flex flex-wrap gap-3">
-                    <a href="https://www.notion.so/Personal-finances-685797555bc5459b9e437cb1a60d402a" target="_blank" rel="noopener noreferrer" className="mega-action-btn bg-blue-500/20 text-blue-300 border border-blue-500/30 px-8 hover:bg-blue-500/30">
-                      <ExternalLink size={20}/> Notion المركزية
+                <div className="flex flex-wrap gap-2">
+                    <a href="https://www.notion.so/Personal-finances-685797555bc5459b9e437cb1a60d402a" target="_blank" rel="noopener noreferrer" className="mega-action-btn bg-blue-500/10 text-blue-300 border border-blue-500/20 px-6 py-3 text-sm hover:bg-blue-500/20">
+                      <ExternalLink size={16}/> Notion
                     </a>
-                    <button onClick={() => { setForm({ ...form }); setModal('asset'); }} className="mega-action-btn bg-white/5 text-emerald-400 border border-white/10 hover:bg-white/10 px-8">+ توثيق أصل</button>
-                    <button onClick={() => { setForm({ ...form }); setModal('investment'); }} className="mega-action-btn bg-white/5 text-amber-400 border border-white/10 hover:bg-white/10 px-8">+ دخول استثمار</button>
+                    <button onClick={() => { setForm({ ...form, currency: 'EGP' }); setModal('income'); }} className="mega-action-btn bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-6 py-3 text-sm hover:bg-emerald-500/20">
+                      <Wallet size={16}/> تسجيل دخل
+                    </button>
+                    <button onClick={() => { setForm({ ...form, currency: 'EGP' }); setModal('transaction'); }} className="mega-action-btn bg-rose-500/10 text-rose-400 border border-rose-500/20 px-6 py-3 text-sm hover:bg-rose-500/20">
+                      <Banknote size={16}/> تسجيل صرف
+                    </button>
+                    <button onClick={() => { setForm({ ...form }); setModal('asset'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-6 py-3 text-sm">+ أصل</button>
+                    <button onClick={() => { setForm({ ...form }); setModal('investment'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-6 py-3 text-sm">+ استثمار</button>
                 </div>
               </div>
 
@@ -280,13 +282,16 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                   {financeTab === 'assets' && (
                     <motion.div key="fa" initial={{opacity:0, scale:0.98}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {assets.map((a, i) => (
-                          <div key={i} className="grand-card p-10 flex flex-col justify-between group cursor-pointer hover:border-emerald-500/50">
-                            <div className="mb-8">
-                              <h3 className="text-3xl font-black mb-3 group-hover:text-emerald-400 transition-colors uppercase">{a.name}</h3>
-                              <span className="px-5 py-2 rounded-2xl bg-white/10 text-gray-400 text-base font-bold border border-white/5 uppercase tracking-widest">{a.type} · {a.liquidType || 'مادي'}</span>
+                          <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:border-emerald-500/50">
+                            <button onClick={() => { setSelectedId(a.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الأصل">
+                              <Gem size={18} />
+                            </button>
+                            <div className="mb-6">
+                              <h3 className="text-xl font-black mb-2 group-hover:text-emerald-400 transition-colors uppercase">{a.name}</h3>
+                              <span className="px-3 py-1 rounded-lg bg-white/10 text-gray-400 text-xs font-bold border border-white/5 uppercase tracking-widest">{a.type} · {a.liquidType || 'مادي'}</span>
                             </div>
                             <div>
-                               <p className="text-5xl font-black text-emerald-400">{fmt(a.value)} <span className="text-xl text-emerald-400/50">{a.currency}</span></p>
+                               <p className="text-3xl font-black text-emerald-400 leading-none">{fmt(a.value)} <span className="text-sm text-emerald-400/50">{a.currency}</span></p>
                             </div>
                           </div>
                         ))}
@@ -299,17 +304,20 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                         {investments.map((inv, i) => {
                           const roi = inv.roiPercentage || 0;
                           return (
-                            <div key={i} className="grand-card p-10 flex flex-col justify-between hover:scale-[1.02]">
-                              <div className="mb-8">
-                                <h3 className="text-3xl font-black mb-3">{inv.name}</h3>
-                                <p className="text-gray-500 text-xl font-bold bg-white/5 inline-block px-4 py-1 rounded-xl">{inv.platform}</p>
+                            <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all">
+                              <button onClick={() => { setSelectedId(inv.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit_inv'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الاستثمار">
+                                <Activity size={18} />
+                              </button>
+                              <div className="mb-6">
+                                <h3 className="text-xl font-black mb-1">{inv.name}</h3>
+                                <p className="text-gray-500 text-sm font-bold bg-white/5 inline-block px-3 py-0.5 rounded-lg">{inv.platform}</p>
                               </div>
                               <div className="flex items-end justify-between gap-4">
                                 <div>
-                                  <p className="text-sm text-gray-500 font-black uppercase tracking-widest mb-2">القيمة السوقية</p>
-                                  <p className="text-5xl font-black">{fmt(inv.currentValue)}</p>
+                                  <p className="text-xs text-gray-500 font-black uppercase tracking-widest mb-1 leading-none">القيمة الحالية</p>
+                                  <p className="text-3xl font-black leading-none">{fmt(inv.currentValue)}</p>
                                 </div>
-                                <div className={`text-2xl font-black px-6 py-4 rounded-3xl border shadow-xl ${roi >= 0 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'}`}>
+                                <div className={`text-lg font-black px-4 py-2 rounded-xl border shadow-xl ${roi >= 0 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'}`}>
                                   <span className="eng-num">{roi >= 0 ? '+' : ''}{roi.toFixed(1)}%</span>
                                 </div>
                               </div>
@@ -321,32 +329,59 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                   )}
 
                   {financeTab === 'wallets' && (
-                    <motion.div key="fw" initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="space-y-12">
-                      <div className="grand-card p-10 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 blur-3xl rounded-full" />
-                        <h3 className="text-2xl font-black mb-8 text-white flex items-center gap-3">توزيع الدخل التلقائي <Gem className="text-purple-400" size={20} /></h3>
-                        <div className="h-16 w-full flex rounded-xl overflow-hidden border border-white/10 font-black text-lg text-white shadow-xl">
-                          <div style={{ flex: distributionSettings?.givingPercentage || 0.1 }} className="h-full bg-emerald-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all min-w-[30px]">عطاء</div>
-                          <div style={{ flex: distributionSettings?.obligationsPercentage || 0.2 }} className="h-full bg-blue-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all min-w-[30px]">التزامات</div>
-                          <div style={{ flex: distributionSettings?.personalPercentage || 0.1 }} className="h-full bg-amber-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all min-w-[30px]">شخصي</div>
-                          <div style={{ flex: distributionSettings?.investmentPercentage || 0.6 }} className="h-full bg-purple-500/90 flex items-center justify-center hover:brightness-110 transition-all min-w-[30px]">استثمار</div>
-                        </div>
-                        <p className="mt-8 text-gray-500 text-lg font-bold text-center">كل جنيه يدخل النظام يتم تقسيمه تلقائياً حسب الموازين المحددة أعلاه.</p>
+                    <motion.div key="fw" initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="space-y-12 pb-20">
+                       <div className="grand-card p-10 relative overflow-hidden bg-white/2 border-white/10">
+                          <div className="flex items-center justify-between mb-8">
+                            <div>
+                              <h3 className="text-xl font-black text-purple-400 flex items-center gap-3"><Gem size={20}/> نسب توزيع الدخل</h3>
+                              <p className="text-gray-500 font-bold text-sm">تحكم في كيفية تقسيم الدخل القادم تلقائياً إلى محافظك.</p>
+                            </div>
+                            <button onClick={() => post('dist_update', {
+                                giving: (document.getElementById('dist-giving') as HTMLInputElement).value,
+                                obs: (document.getElementById('dist-obs') as HTMLInputElement).value,
+                                pers: (document.getElementById('dist-pers') as HTMLInputElement).value,
+                                inv: (document.getElementById('dist-inv') as HTMLInputElement).value,
+                            })} className="mega-action-btn bg-purple-500/20 text-purple-300 border border-purple-500/30 px-6 py-2 text-sm">حفظ التوزيع</button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            {[
+                              { id: 'dist-giving', label: 'عطاء', val: distributionSettings.givingPercentage, col: 'emerald' },
+                              { id: 'dist-obs', label: 'التزامات', val: distributionSettings.obligationsPercentage, col: 'blue' },
+                              { id: 'dist-pers', label: 'شخصي', val: distributionSettings.personalPercentage, col: 'amber' },
+                              { id: 'dist-inv', label: 'استثمار', val: distributionSettings.investmentPercentage, col: 'purple' },
+                            ].map(d => (
+                              <div key={d.id} className="bg-black/30 p-3 rounded-xl border border-white/5">
+                                <label className={`block text-[10px] font-black text-${d.col}-400 mb-1 uppercase`}>{d.label}</label>
+                                <div className="relative">
+                                    <input id={d.id} type="number" step="0.01" className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xl font-black eng-num focus:border-white transition-all text-center" defaultValue={d.val} />
+                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-700 font-black text-xs">%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="h-16 w-full flex rounded-xl overflow-hidden border border-white/10 font-black text-lg text-white shadow-xl">
+                            <div style={{ flex: distributionSettings?.givingPercentage || 0.1 }} className="h-full bg-emerald-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all min-w-[30px]">عطاء</div>
+                            <div style={{ flex: distributionSettings?.obligationsPercentage || 0.2 }} className="h-full bg-blue-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all min-w-[30px]">التزامات</div>
+                            <div style={{ flex: distributionSettings?.personalPercentage || 0.1 }} className="h-full bg-amber-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all min-w-[30px]">شخصي</div>
+                            <div style={{ flex: distributionSettings?.investmentPercentage || 0.6 }} className="h-full bg-purple-500/90 flex items-center justify-center hover:brightness-110 transition-all min-w-[30px]">استثمار</div>
+                          </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {['عطاء (وفاء)', 'الالتزامات', 'شخصي', 'الاستثمار'].map((name, idx) => {
                           const wIds = ['giving', 'obligations', 'personal', 'investment'];
                           const cols = ['emerald', 'blue', 'amber', 'purple'];
                           const col = cols[idx];
                           const wallet = wallets.find((w:any) => w.id === wIds[idx]);
                           return (
-                            <div key={idx} className={`grand-card p-10 bg-${col}-500/[0.03] border-${col}-500/20 hover:bg-${col}-500/[0.08] transition-all hover:-translate-y-2`}>
-                              <div className={`w-12 h-12 rounded-2xl bg-${col}-500/20 border border-${col}-500/30 flex items-center justify-center mb-10`}>
-                                 <Gem className={`text-${col}-400`} size={24} />
+                            <div key={idx} className={`grand-card p-8 bg-${col}-500/[0.03] border-${col}-500/20 hover:bg-${col}-500/[0.08] transition-all`}>
+                              <div className={`w-10 h-10 rounded-xl bg-${col}-500/20 border border-${col}-500/30 flex items-center justify-center mb-6`}>
+                                 <Gem className={`text-${col}-400`} size={20} />
                               </div>
-                              <h3 className={`text-3xl font-black text-white mb-2`}>{fmt(wallet?.balance || 0)}</h3>
-                              <p className={`text-lg font-black text-${col}-400 uppercase tracking-widest`}>{name}</p>
+                              <h3 className={`text-2xl font-black text-white mb-1`}>{fmt(wallet?.balance || 0)}</h3>
+                              <p className={`text-xs font-black text-${col}-400 uppercase tracking-widest`}>{name}</p>
                             </div>
                           );
                         })}
@@ -369,10 +404,20 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                            <tbody className="divide-y divide-white/2">
                              {transactions.map((t, i) => (
                                <tr key={i} className="hover:bg-white/[0.03] transition-colors group">
-                                 <td className="py-8 font-black text-white group-hover:text-emerald-400 transition-colors">{t.description}</td>
-                                 <td className="py-8"><span className="bg-white/5 px-5 py-2.5 rounded-2xl text-lg text-gray-400 font-black border border-white/10 uppercase">{t.category}</span></td>
-                                 <td className="py-8 text-gray-500 font-bold eng-num">{new Date(t.date).toLocaleDateString('en-US')}</td>
-                                 <td className="py-8 text-left font-black text-3xl text-rose-400 eng-num truncate">- {fmt(t.amount)}</td>
+                                 <td className="py-6 font-black text-white group-hover:text-emerald-400 transition-colors">
+                                   <div className="flex flex-col">
+                                     <span>{t.description}</span>
+                                     <span className="text-[10px] text-gray-600 font-bold eng-num uppercase tracking-tighter">ID: {t.id} · {t.method}</span>
+                                   </div>
+                                 </td>
+                                 <td className="py-6"><span className="bg-white/5 px-4 py-1.5 rounded-xl text-sm text-gray-500 font-black border border-white/5 uppercase">{t.category}</span></td>
+                                 <td className="py-6">
+                                   <div className="flex flex-col">
+                                     <span className="text-gray-400 font-bold eng-num text-sm">{new Date(t.date).toLocaleDateString('ar-EG')}</span>
+                                     <span className="text-[10px] text-gray-600 font-bold eng-num">{new Date(t.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                                   </div>
+                                 </td>
+                                 <td className="py-6 text-left font-black text-2xl text-rose-400 eng-num truncate">- {fmt(t.amount)}</td>
                                </tr>
                              ))}
                              {transactions.length === 0 && <tr><td colSpan={4} className="py-24 text-center text-gray-600 font-black text-3xl italic">دفتر المعاملات نظيف تماماً...</td></tr>}
@@ -512,38 +557,43 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
               <button type="button" onClick={() => setModal(null)} className="absolute top-8 left-8 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/10 hover:scale-110 active:scale-90"><X size={24}/></button>
               
               <h2 className="text-3xl md:text-4xl font-black mb-8 text-emerald-400 border-r-4 border-emerald-500 pr-5">
-                {{transaction:'توثيق مصروف مالي', asset:'إضافة لقفص الأصول', income:'تسجيل مورد دخل', investment:'فتح مركز استثماري', hours:'تتبع زمن العمل', wishlist:'تسجيل رغبة مستقبلية'}[modal] || 'إدخال بيانات'}
+                {{transaction:'توثيق مصروف مالي', asset:'إضافة لقفص الأصول', income:'تسجيل مورد دخل', investment:'فتح مركز استثماري', hours:'تتبع زمن العمل', wishlist:'تسجيل رغبة مستقبلية', profit:'تسجيل ربح للأصل', profit_inv:'تسجيل ربح استثمار'}[modal] || 'إدخال بيانات'}
               </h2>
 
-              <form onSubmit={handleSubmit} className="space-y-10">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 
                 {/* Visual Impact Number Input */}
-                {!['hours','wishlist'].includes(modal) && (
+                {!['hours','wishlist','profit','profit_inv'].includes(modal) && (
                   <div>
                     <label className="text-lg font-black text-gray-500 mb-4 block uppercase tracking-widest text-center">{modal==='investment'?'قائمة التكلفة الأولية':'المبلغ المالي الصافي'}</label>
                     <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-6 text-4xl font-black text-center eng-num outline-none transition-all placeholder-gray-800 shadow-inner" value={modal==='investment'?form.initialValue:form.amount} onChange={e=>setForm({...form,[modal==='investment'?'initialValue':'amount']:e.target.value})} placeholder="0.00" />
                   </div>
                 )}
 
-                {/* Investment Floating Value */}
-                 {modal==='investment' && (
-                  <div>
-                    <label className="text-2xl font-black text-gray-500 mb-4 block">القيمة العادلة حالياً</label>
-                    <input required type="number" step="0.01" className="w-full bg-white/2 border-2 border-white/10 focus:border-amber-500 rounded-[2.5rem] p-8 text-5xl font-black eng-num outline-none transition-all text-center" value={form.currentValue} onChange={e=>setForm({...form,currentValue:e.target.value})} placeholder="0.00" />
-                  </div>
-                )}
+                {modal === 'profit' || modal === 'profit_inv' ? (
+                   <div className="space-y-6">
+                      <div>
+                        <label className="text-lg font-black text-amber-400 mb-4 block uppercase tracking-widest text-center">مبلغ الربح المحقق</label>
+                        <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-2 border-amber-500/20 focus:border-amber-500 rounded-2xl p-6 text-4xl font-black text-center eng-num outline-none transition-all" value={form.profitAmount} onChange={e=>setForm({...form, profitAmount: e.target.value})} placeholder="0.00" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-black text-gray-500 mb-2 block">المدة / الفترة (اختياري)</label>
+                        <input type="text" className="w-full bg-white/5 border-2 border-white/10 rounded-xl p-4 text-xl font-bold" value={form.duration} onChange={e=>setForm({...form, duration: e.target.value})} placeholder="مثلاً: شهر مارس 2024" />
+                      </div>
+                   </div>
+                ) : null}
 
-                {/* Item Identity */}
-                {['asset','investment','wishlist','income','transaction'].includes(modal) && (
-                  <div>
-                    <label className="text-lg font-black text-gray-500 mb-3 block">{['transaction','income'].includes(modal) ? 'بيان المعاملة (السبب)' : 'اسم العنصر / الكيان'}</label>
-                    <input required type="text" className="w-full bg-white/5 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-5 text-xl font-black outline-none transition-all" value={['transaction','income'].includes(modal) ? form.description : form.name} onChange={e=>setForm({...form, [['transaction','income'].includes(modal)?'description':'name']:e.target.value})} placeholder="..." />
+                {/* Exchange Rate UI - SHOW ONLY IF CURRENCY IS USD OR Modal is specific */}
+                {['transaction','income','asset','investment','profit','profit_inv'].includes(modal!) && form.currency === 'USD' && (
+                  <div className="bg-blue-500/10 border border-blue-500/20 p-6 rounded-2xl">
+                     <label className="text-sm font-black text-blue-400 mb-2 block">سعر الصرف اللحظي (EGP/USD)</label>
+                     <input type="number" className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-3xl font-black eng-num outline-none focus:border-blue-500" value={form.usdRate} onChange={e=>setForm({...form, usdRate: e.target.value})} />
                   </div>
                 )}
 
                 {/* Selectors Grid */}
-                {!['hours'].includes(modal) && (
-                  <div className="grid grid-cols-2 gap-8">
+                {['transaction','income','asset', 'investment'].includes(modal!) && (
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="relative group">
                       <label className="text-base font-black text-gray-500 mb-3 block">عملة التداول</label>
                       <select className="w-full bg-[#111] border-2 border-white/10 focus:border-blue-500 rounded-2xl p-5 text-xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.currency} onChange={e=>setForm({...form,currency:e.target.value})}>
@@ -574,6 +624,14 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                         <ChevronLeft className="absolute left-6 bottom-6 text-gray-500 pointer-events-none -rotate-90" />
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Item Identity */}
+                {['asset','investment','wishlist','income','transaction'].includes(modal!) && (
+                  <div>
+                    <label className="text-lg font-black text-gray-500 mb-3 block">{['transaction','income'].includes(modal!) ? 'بيان المعاملة (السبب)' : 'اسم العنصر / الكيان'}</label>
+                    <input required type="text" className="w-full bg-white/5 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-5 text-xl font-black outline-none transition-all" value={['transaction','income'].includes(modal!) ? form.description : form.name} onChange={e=>setForm({...form, [['transaction','income'].includes(modal!)?'description':'name']:e.target.value})} placeholder="..." />
                   </div>
                 )}
 
