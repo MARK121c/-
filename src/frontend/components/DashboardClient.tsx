@@ -317,10 +317,11 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
 
                   {financeTab === 'investments' && (
                     <motion.div key="fi" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {investments.map((inv, i) => {
+                        {Array.isArray(investments) && investments.map((inv, i) => {
+                          if (!inv) return null;
                           const roi = inv.roiPercentage || 0;
                           return (
-                            <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all">
+                            <div key={inv.id || i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all">
                               <button onClick={() => { setSelectedId(inv.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit_inv'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الاستثمار">
                                 <Plus size={18} />
                               </button>
@@ -340,7 +341,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                             </div>
                           );
                         })}
-                        {investments.length === 0 && <div className="col-span-full p-24 text-center text-gray-600 text-3xl font-black grand-card border-dashed">تعلم الاستثمار لبناء إمبراطوريتك، ثم وثق صفقاتك هنا.</div>}
+                        {(!investments || investments.length === 0) && <div className="col-span-full p-24 text-center text-gray-600 text-3xl font-black grand-card border-dashed">تعلم الاستثمار لبناء إمبراطوريتك، ثم وثق صفقاتك هنا.</div>}
                     </motion.div>
                   )}
 
@@ -349,6 +350,23 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                       {/* ENHANCED AGGREGATE TOTALS CARD */}
                       {/* SIMPLIFIED EGP-ONLY AGGREGATE TOTALS CARD */}
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="md:col-span-4 grand-card p-6 bg-blue-500/10 border-blue-500/20 flex flex-col md:flex-row items-center justify-between gap-6">
+                           <div>
+                              <p className="text-blue-400 font-black text-sm uppercase tracking-widest mb-1">إجمالي السيولة النقدية (بنك + كاش)</p>
+                              <p className="text-4xl font-black text-white">{fmt(netWorth.totalLiquidAssets)} <span className="text-lg opacity-40">EGP</span></p>
+                              <p className="text-xs text-blue-400/60 mt-1 font-bold">هذه هي الأموال الملموسة التي تمتلكها الآن في الأصول.</p>
+                           </div>
+                           <div className="h-full w-px bg-white/10 hidden md:block" />
+                           <div className="text-left md:text-right">
+                              <p className="text-gray-500 font-black text-[10px] uppercase mb-1">مجموع أرصدة المحافظ</p>
+                              <p className="text-2xl font-black text-emerald-400">{fmt(wallets?.reduce((acc:any, w:any) => acc + (w.balance || 0), 0))} <span className="text-xs opacity-40">EGP</span></p>
+                              <div className="flex items-center gap-2 mt-1 justify-end">
+                                 <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">حالة التزامن:</span>
+                                 <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase">متزامن 100%</span>
+                              </div>
+                           </div>
+                        </div>
+
                         {[
                           { label:'إجمالي الدخل الوارد', val: totalIncome, cur:'EGP', col:'emerald' },
                           { label:'إجمالي الشخصي', val: totalSpentPersonal, cur:'EGP', col:'rose' },

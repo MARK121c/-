@@ -73,6 +73,7 @@ export async function calculateNetWorth(
   const allPassive = prefetchedPassive || await db.select().from(passiveIncomeSources).where(eq(passiveIncomeSources.isActive, true)).catch(() => []);
 
   let assetsTotal = 0;
+  let totalLiquidAssets = 0;
   let investmentsTotal = 0;
   let passiveIncomeMonthly = 0;
   let passiveIncomeData = 0;
@@ -80,6 +81,9 @@ export async function calculateNetWorth(
   allAssets.forEach(a => {
     const val = (a.value ?? 0);
     assetsTotal += val;
+    if (a.type === 'كاش' || a.type === 'بنك' || (a as any).liquidType === 'سائل') {
+      totalLiquidAssets += val;
+    }
     passiveIncomeData += (a.passiveIncome ?? 0);
   });
 
@@ -104,6 +108,7 @@ export async function calculateNetWorth(
   return {
     totalEGP,
     assetsTotal,
+    totalLiquidAssets,
     investmentsTotal,
     passiveIncomeMonthly: passiveIncomeMonthly + passiveIncomeData,
     passiveIncomeAnnual: totalPassiveAnnual,
