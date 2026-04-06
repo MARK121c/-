@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History } from 'lucide-react';
@@ -16,14 +16,33 @@ const fmt = (n: number) => <span className="eng-num">{Number(n || 0).toLocaleStr
 
 export default function DashboardClient({ transactions, assets, incomes, wishlist, investments, passiveSources, wallets, workTracking, netWorth, forecast, hourlyRate, distributionSettings, settings }: Props) {
   const [mainTab, setMainTab] = useState('overview');
-  const [financeTab, setFinanceTab] = useState('networth');
+  const [financeTab, setFinanceTab] = useState('networth'); // sub-tab for finance
+
+  // Persistent Tab State
+  useEffect(() => {
+    const savedMain = localStorage.getItem('mainTab');
+    const savedFinance = localStorage.getItem('financeTab');
+    if (savedMain) setMainTab(savedMain);
+    if (savedFinance) setFinanceTab(savedFinance);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('mainTab', mainTab);
+    localStorage.setItem('financeTab', financeTab);
+  }, [mainTab, financeTab]);
+
   const [mobileSidebar, setMobileSidebar] = useState(false);
 
   // Financial Aggregations
   const totalIncomeEGP = incomes?.filter(inc => inc.currency === 'EGP').reduce((acc, current) => acc + (current.amount || 0), 0) || 0;
   const totalIncomeUSD = incomes?.filter(inc => inc.currency === 'USD').reduce((acc, current) => acc + (current.amount || 0), 0) || 0;
+  
+  // NEW: Combined Total (EGP + USD*Rate)
+  const totalIncomeCombinedEGP = totalIncomeEGP + (totalIncomeUSD * settings.usdRate);
+
   const totalSpentGiving = transactions?.filter(t => t.category === 'عطاء' || t.category === 'شخصي لله').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
   const totalSpentInvest = transactions?.filter(t => t.category === 'استثمار').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+  const totalSpentPersonal = transactions?.filter(t => t.category === 'شخصي').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
 
   const [modal, setModal] = useState<string|null>(null);
   const [panic, setPanic] = useState(settings.isPanic);
@@ -325,24 +344,28 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
 
                   {financeTab === 'wallets' && (
                     <motion.div key="fw" initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="space-y-12 pb-20">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {/* ENHANCED AGGREGATE TOTALS CARD */}
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         {[
-                          { label:'إجمالي الدخل (ج.م)', val: totalIncomeEGP, cur:'EGP', col:'emerald' },
+                          { label:'إجمالي الدخل المجمع (ج.م)', val: totalIncomeCombinedEGP, cur:'EGP', col:'emerald', desc: 'شامل الدولار بسعر الصرف' },
                           { label:'إجمالي الدخل ($)', val: totalIncomeUSD, cur:'USD', col:'blue' },
+                          { label:'إجمالي الشخصي', val: totalSpentPersonal, cur:'EGP', col:'rose' },
                           { label:'ما خرج لله (عطاء)', val: totalSpentGiving, cur:'EGP', col:'amber' },
                           { label:'إجمالي الاستثمارات', val: totalSpentInvest, cur:'EGP', col:'purple' },
                         ].map((stat, idx) => {
                            const colors: any = {
                              emerald: 'border-emerald-500/10 bg-emerald-500/5 text-emerald-400',
                              blue: 'border-blue-500/10 bg-blue-500/5 text-blue-400',
+                             rose: 'border-rose-500/10 bg-rose-500/5 text-rose-400',
                              amber: 'border-amber-500/10 bg-amber-500/5 text-amber-400',
                              purple: 'border-purple-500/10 bg-purple-500/5 text-purple-400',
                            };
                            const activeCol = colors[stat.col];
                            return (
-                             <div key={idx} className={`grand-card p-6 border ${activeCol}`}>
-                                <p className="text-[10px] font-black uppercase mb-2 opacity-70">{stat.label}</p>
-                                <p className="text-2xl font-black text-white">{fmt(stat.val)} <span className="text-[10px] opacity-40">{stat.cur}</span></p>
+                             <div key={idx} className={`grand-card p-4 border ${activeCol} transition-transform hover:scale-[1.03]`}>
+                                <p className="text-[9px] font-black uppercase mb-1 opacity-70">{stat.label}</p>
+                                <p className="text-xl font-black text-white">{fmt(stat.val)} <span className="text-[10px] opacity-40">{stat.cur}</span></p>
+                                {'desc' in stat && <p className="text-[8px] opacity-30 mt-1 font-bold">{stat.desc}</p>}
                              </div>
                            )
                         })}
@@ -410,41 +433,49 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                         })}
                       </div>
 
-                      {/* INCOME HISTORY LOG */}
-                      <div className="grand-card p-12 bg-white/2 border-white/10 mt-12 relative overflow-hidden">
-                        <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/5 rounded-full blur-3xl" />
-                        <h3 className="text-2xl font-black text-emerald-400 mb-8 flex items-center gap-4"><History size={28}/> سجل تدفقات الدخل (Income History)</h3>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-lg">
-                            <thead>
-                              <tr className="text-gray-600 border-b border-white/5 uppercase font-black text-xs tracking-widest">
-                                <th className="py-6 text-right">التفاصيل والبيان</th>
-                                <th className="py-6 text-right">المصدر</th>
-                                <th className="py-6 text-left">المبلغ الوارد</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/2">
-                              {incomes.map((inc, idx) => (
-                                <tr key={idx} className="group hover:bg-white/[0.03] transition-all">
-                                  <td className="py-6">
-                                    <div className="flex flex-col text-right">
-                                      <span className="font-black text-white text-xl">{inc.description}</span>
-                                      <span className="text-sm text-gray-700 eng-num mt-1">{new Date(inc.date).toLocaleDateString('ar-EG')}</span>
-                                    </div>
-                                  </td>
-                                  <td className="py-6 text-right">
-                                    <span className="text-emerald-400 bg-emerald-500/10 px-4 py-1 rounded-full text-sm font-black border border-emerald-500/10">{inc.source}</span>
-                                  </td>
-                                  <td className="py-6 text-left">
-                                    <div className="font-black text-2xl text-emerald-300 eng-num">+{fmt(inc.amount)} <span className="text-sm opacity-40">{inc.currency}</span></div>
-                                  </td>
-                                </tr>
-                              ))}
-                              {incomes.length === 0 && <tr><td colSpan={3} className="py-24 text-center text-gray-700 font-bold italic text-2xl">لا يوجد سجل دخل مسجل حالياً.</td></tr>}
-                            </tbody>
-                          </table>
-                        </div>
+                      {/* COMBINED FINANCIAL CHRONICLE (INCOME + SPENDING) */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
+                         {/* INCOME LOG */}
+                         <div className="grand-card p-10 bg-white/2 border-white/10 relative overflow-hidden">
+                            <h3 className="text-xl font-black text-emerald-400 mb-8 flex items-center gap-4"><History size={24}/> سجل تدفقات الدخل</h3>
+                            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 scrollbar-hide">
+                               {incomes.map((inc, idx) => (
+                                  <div key={idx} className="flex items-center justify-between p-4 bg-white/2 rounded-2xl border border-white/5 hover:bg-white/5 transition-all">
+                                     <div className="text-right">
+                                        <p className="font-black text-white text-lg">{inc.description}</p>
+                                        <p className="text-[10px] text-gray-600 eng-num">{new Date(inc.date).toLocaleDateString('ar-EG')}</p>
+                                     </div>
+                                     <div className="text-left">
+                                        <p className="text-emerald-400 font-black text-xl eng-num">+{fmt(inc.amount)} <span className="text-xs opacity-40">{inc.currency}</span></p>
+                                        <p className="text-[10px] text-gray-700 font-bold uppercase">{inc.source}</p>
+                                     </div>
+                                  </div>
+                               ))}
+                               {incomes.length === 0 && <p className="text-center text-gray-700 py-12 italic">لا يوجد دخل مسجل.</p>}
+                            </div>
+                         </div>
+
+                         {/* SPENDING LOG */}
+                         <div className="grand-card p-10 bg-white/2 border-white/10 relative overflow-hidden">
+                            <h3 className="text-xl font-black text-rose-400 mb-8 flex items-center gap-4"><CreditCard size={24}/> سجل مصروفات المحافظ</h3>
+                            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 scrollbar-hide">
+                               {transactions.filter(t => !['profit','profit_inv'].includes(t.type)).map((t, idx) => (
+                                  <div key={idx} className="flex items-center justify-between p-4 bg-white/2 rounded-2xl border border-white/5 hover:bg-white/5 transition-all">
+                                     <div className="text-right">
+                                        <p className="font-black text-white text-lg">{t.description}</p>
+                                        <p className="text-[10px] text-gray-600 eng-num">{new Date(t.date).toLocaleDateString('ar-EG')}</p>
+                                     </div>
+                                     <div className="text-left">
+                                        <p className="text-rose-400 font-black text-xl eng-num">-{fmt(t.amount)} <span className="text-xs opacity-40">{t.currency}</span></p>
+                                        <p className="text-[10px] text-gray-700 font-bold uppercase">{t.category}</p>
+                                     </div>
+                                  </div>
+                               ))}
+                               {transactions.length === 0 && <p className="text-center text-gray-700 py-12 italic">لا يوجد مصروفات مسجلة.</p>}
+                            </div>
+                         </div>
                       </div>
+
                     </motion.div>
                   )}
 
