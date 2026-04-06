@@ -346,15 +346,15 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                           
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                             {[
-                              { id: 'dist-giving', label: 'عطاء', val: distributionSettings.givingPercentage, col: 'emerald' },
-                              { id: 'dist-obs', label: 'التزامات', val: distributionSettings.obligationsPercentage, col: 'blue' },
-                              { id: 'dist-pers', label: 'شخصي', val: distributionSettings.personalPercentage, col: 'amber' },
-                              { id: 'dist-inv', label: 'استثمار', val: distributionSettings.investmentPercentage, col: 'purple' },
+                              { id: 'dist-giving', label: 'عطاء', val: distributionSettings?.givingPercentage || 0.1, colText: 'text-emerald-400' },
+                              { id: 'dist-obs', label: 'التزامات', val: distributionSettings?.obligationsPercentage || 0.2, colText: 'text-blue-400' },
+                              { id: 'dist-pers', label: 'شخصي', val: distributionSettings?.personalPercentage || 0.1, colText: 'text-amber-400' },
+                              { id: 'dist-inv', label: 'استثمار', val: distributionSettings?.investmentPercentage || 0.6, colText: 'text-purple-400' },
                             ].map(d => (
                               <div key={d.id} className="bg-black/30 p-3 rounded-xl border border-white/5">
-                                <label className={`block text-[10px] font-black text-${d.col}-400 mb-1 uppercase`}>{d.label}</label>
+                                <label className={`block text-[10px] font-black ${d.colText} mb-1 uppercase`}>{d.label}</label>
                                 <div className="relative">
-                                    <input id={d.id} type="number" step="0.01" className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xl font-black eng-num focus:border-white transition-all text-center" defaultValue={d.val} />
+                                    <input id={d.id} type="number" step="0.01" className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-xl font-black eng-num focus:border-white outline-none transition-all text-center" defaultValue={d.val} />
                                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-700 font-black text-xs">%</span>
                                 </div>
                               </div>
@@ -369,19 +369,24 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                           </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {['عطاء (وفاء)', 'الالتزامات', 'شخصي', 'الاستثمار'].map((name, idx) => {
                           const wIds = ['giving', 'obligations', 'personal', 'investment'];
-                          const cols = ['emerald', 'blue', 'amber', 'purple'];
+                          const cols = [
+                            { flat: 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400', icon: 'text-emerald-400 bg-emerald-500/20' },
+                            { flat: 'bg-blue-500/5 border-blue-500/20 text-blue-400', icon: 'text-blue-400 bg-blue-500/20' },
+                            { flat: 'bg-amber-500/5 border-amber-500/20 text-amber-400', icon: 'text-amber-400 bg-amber-500/20' },
+                            { flat: 'bg-purple-500/5 border-purple-500/20 text-purple-400', icon: 'text-purple-400 bg-purple-500/20' }
+                          ];
                           const col = cols[idx];
-                          const wallet = wallets.find((w:any) => w.id === wIds[idx]);
+                          const wallet = wallets?.find((w:any) => w.id === wIds[idx]);
                           return (
-                            <div key={idx} className={`grand-card p-8 bg-${col}-500/[0.03] border-${col}-500/20 hover:bg-${col}-500/[0.08] transition-all`}>
-                              <div className={`w-10 h-10 rounded-xl bg-${col}-500/20 border border-${col}-500/30 flex items-center justify-center mb-6`}>
-                                 <Gem className={`text-${col}-400`} size={20} />
+                            <div key={idx} className={`grand-card p-6 border ${col.flat} transition-all hover:scale-[1.02]`}>
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${col.icon}`}>
+                                 <Gem size={20} />
                               </div>
-                              <h3 className={`text-2xl font-black text-white mb-1`}>{fmt(wallet?.balance || 0)}</h3>
-                              <p className={`text-xs font-black text-${col}-400 uppercase tracking-widest`}>{name}</p>
+                              <h3 className="text-2xl font-black text-white mb-1">{fmt(wallet?.balance || 0)}</h3>
+                              <p className="text-xs font-bold uppercase tracking-widest opacity-60">{name}</p>
                             </div>
                           );
                         })}
