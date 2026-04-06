@@ -227,6 +227,9 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 </div>
                 
                 <div className="flex flex-wrap gap-3">
+                    <a href="https://www.notion.so/Personal-finances-685797555bc5459b9e437cb1a60d402a" target="_blank" rel="noopener noreferrer" className="mega-action-btn bg-blue-500/20 text-blue-300 border border-blue-500/30 px-8 hover:bg-blue-500/30">
+                      <ExternalLink size={20}/> Notion المركزية
+                    </a>
                     <button onClick={() => { setForm({ ...form }); setModal('asset'); }} className="mega-action-btn bg-white/5 text-emerald-400 border border-white/10 hover:bg-white/10 px-8">+ توثيق أصل</button>
                     <button onClick={() => { setForm({ ...form }); setModal('investment'); }} className="mega-action-btn bg-white/5 text-amber-400 border border-white/10 hover:bg-white/10 px-8">+ دخول استثمار</button>
                 </div>
@@ -250,8 +253,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                     <motion.div key="fnw" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                       <div className="lg:col-span-3 grand-card p-12 bg-gradient-to-br from-emerald-500/10 via-super-dark to-blue-500/10 border-emerald-500/20 flex flex-col md:flex-row items-center justify-between">
                         <div>
-                          <p className="text-emerald-400 font-black text-xl uppercase tracking-widest mb-3">صافي الثروة المجمّعة</p>
-                          <p className="text-6xl md:text-7xl font-black text-white">{fmt(netWorth.totalEGP)} <span className="text-2xl text-white/30">EGP</span></p>
+                          <p className="text-emerald-400 font-black text-lg uppercase tracking-widest mb-3">صافي الثروة المجمّعة</p>
+                          <p className="text-5xl md:text-6xl font-black text-white">{fmt(netWorth.totalEGP)} <span className="text-xl text-white/30">EGP</span></p>
                         </div>
                         <div className="mt-8 md:mt-0 bg-black/40 p-6 rounded-[2.5rem] border border-white/10 text-center shadow-xl">
                           <p className="text-gray-500 font-bold text-base mb-2">القيمة المعادلة بالدولار</p>
@@ -260,16 +263,16 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                       </div>
 
                       <div className="grand-card p-10 bg-purple-500/5 hover:bg-purple-500/10 border-purple-500/10 transition-all">
-                        <p className="text-purple-400 font-black text-2xl mb-3">إجمالي الأصول</p>
-                        <p className="text-6xl font-black text-white">{fmt(netWorth.assetsTotal)}</p>
+                        <p className="text-purple-400 font-black text-xl mb-3">إجمالي الأصول</p>
+                        <p className="text-5xl font-black text-white">{fmt(netWorth.assetsTotal)}</p>
                       </div>
                       <div className="grand-card p-10 bg-amber-500/5 hover:bg-amber-500/10 border-amber-500/10 transition-all">
-                        <p className="text-amber-400 font-black text-2xl mb-3">قيمة الاستثمارات</p>
-                        <p className="text-6xl font-black text-white">{fmt(netWorth.investmentsTotal)}</p>
+                        <p className="text-amber-400 font-black text-xl mb-3">قيمة الاستثمارات</p>
+                        <p className="text-5xl font-black text-white">{fmt(netWorth.investmentsTotal)}</p>
                       </div>
                       <div className="grand-card p-10 bg-blue-500/5 hover:bg-blue-500/10 border-blue-500/10 transition-all">
-                        <p className="text-blue-400 font-black text-2xl mb-3">دخل سلبي سنوي</p>
-                        <p className="text-6xl font-black text-white">{fmt(netWorth.passiveIncomeAnnual)}</p>
+                        <p className="text-blue-400 font-black text-xl mb-3">دخل سلبي سنوي</p>
+                        <p className="text-5xl font-black text-white">{fmt(netWorth.passiveIncomeAnnual)}</p>
                       </div>
                     </motion.div>
                   )}
@@ -342,7 +345,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                               <div className={`w-12 h-12 rounded-2xl bg-${col}-500/20 border border-${col}-500/30 flex items-center justify-center mb-10`}>
                                  <Gem className={`text-${col}-400`} size={24} />
                               </div>
-                              <h3 className={`text-4xl font-black text-white mb-2`}>{fmt(wallet?.balance || 0)}</h3>
+                              <h3 className={`text-3xl font-black text-white mb-2`}>{fmt(wallet?.balance || 0)}</h3>
                               <p className={`text-lg font-black text-${col}-400 uppercase tracking-widest`}>{name}</p>
                             </div>
                           );
@@ -408,7 +411,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                            </span>
                          </div>
                          
-                         <p className="text-6xl font-black text-white mb-10 bg-white/3 py-6 px-8 rounded-[2rem] border border-white/5 w-max eng-num">{fmt(w.price)} <span className="text-2xl text-gray-500">EGP</span></p>
+                         <p className="text-5xl font-black text-white mb-10 bg-white/3 py-6 px-8 rounded-[2rem] border border-white/5 w-max eng-num">{fmt(w.price)} <span className="text-xl text-gray-500">EGP</span></p>
 
                          <div className="bg-amber-500/10 border border-amber-500/20 p-8 rounded-[2.5rem] flex items-center gap-6 shadow-2xl relative overflow-hidden">
                            <div className="p-4 bg-amber-500/20 rounded-2xl text-amber-500 shadow-inner"><Clock size={32} /></div>
@@ -517,8 +520,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 {/* Visual Impact Number Input */}
                 {!['hours','wishlist'].includes(modal) && (
                   <div>
-                    <label className="text-2xl font-black text-gray-500 mb-6 block uppercase tracking-widest text-center">{modal==='investment'?'قائمة التكلفة الأولية':'المبلغ المالي الصافي'}</label>
-                    <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-3 border-white/5 focus:border-emerald-500 rounded-[3rem] p-12 text-8xl font-black text-center eng-num outline-none transition-all placeholder-gray-800 shadow-inner" value={modal==='investment'?form.initialValue:form.amount} onChange={e=>setForm({...form,[modal==='investment'?'initialValue':'amount']:e.target.value})} placeholder="0.00" />
+                    <label className="text-xl font-black text-gray-500 mb-6 block uppercase tracking-widest text-center">{modal==='investment'?'قائمة التكلفة الأولية':'المبلغ المالي الصافي'}</label>
+                    <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-3 border-white/5 focus:border-emerald-500 rounded-[2.5rem] p-10 text-6xl font-black text-center eng-num outline-none transition-all placeholder-gray-800 shadow-inner" value={modal==='investment'?form.initialValue:form.amount} onChange={e=>setForm({...form,[modal==='investment'?'initialValue':'amount']:e.target.value})} placeholder="0.00" />
                   </div>
                 )}
 
