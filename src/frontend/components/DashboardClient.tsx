@@ -322,14 +322,14 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
 
                   {financeTab === 'wallets' && (
                     <motion.div key="fw" initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="space-y-12">
-                       <div className="grand-card p-12 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full" />
-                        <h3 className="text-3xl font-black mb-10 text-white flex items-center gap-4">توزيع الدخل التلقائي الآلي <Gem className="text-purple-400" /></h3>
-                        <div className="h-24 w-full flex rounded-3xl overflow-hidden border-2 border-white/10 font-black text-2xl text-white shadow-2xl">
-                          <div style={{width:`${distributionSettings?.givingPercentage*100||10}%`}} className="h-full bg-emerald-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all">عطاء</div>
-                          <div style={{width:`${distributionSettings?.obligationsPercentage*100||20}%`}} className="h-full bg-blue-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all">التزامات</div>
-                          <div style={{width:`${distributionSettings?.personalPercentage*100||10}%`}} className="h-full bg-amber-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all">شخصي</div>
-                          <div style={{width:`${distributionSettings?.investmentPercentage*100||60}%`}} className="h-full bg-purple-500/90 flex items-center justify-center hover:brightness-110 transition-all">استثمار</div>
+                      <div className="grand-card p-10 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 blur-3xl rounded-full" />
+                        <h3 className="text-2xl font-black mb-8 text-white flex items-center gap-3">توزيع الدخل التلقائي <Gem className="text-purple-400" size={20} /></h3>
+                        <div className="h-16 w-full flex rounded-xl overflow-hidden border border-white/10 font-black text-lg text-white shadow-xl">
+                          <div style={{ flex: distributionSettings?.givingPercentage || 0.1 }} className="h-full bg-emerald-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all min-w-[30px]">عطاء</div>
+                          <div style={{ flex: distributionSettings?.obligationsPercentage || 0.2 }} className="h-full bg-blue-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all min-w-[30px]">التزامات</div>
+                          <div style={{ flex: distributionSettings?.personalPercentage || 0.1 }} className="h-full bg-amber-500/90 flex items-center justify-center border-l border-white/10 hover:brightness-110 transition-all min-w-[30px]">شخصي</div>
+                          <div style={{ flex: distributionSettings?.investmentPercentage || 0.6 }} className="h-full bg-purple-500/90 flex items-center justify-center hover:brightness-110 transition-all min-w-[30px]">استثمار</div>
                         </div>
                         <p className="mt-8 text-gray-500 text-lg font-bold text-center">كل جنيه يدخل النظام يتم تقسيمه تلقائياً حسب الموازين المحددة أعلاه.</p>
                       </div>
