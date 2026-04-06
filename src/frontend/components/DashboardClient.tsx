@@ -85,6 +85,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
     { id: 'networth', label: 'صافي الثروة', icon: <Sparkles size={18}/> },
     { id: 'assets', label: 'الأصول', icon: <Briefcase size={18}/> },
     { id: 'investments', label: 'الاستثمارات', icon: <Activity size={18}/> },
+    { id: 'passive', label: 'الدخل السلبي', icon: <Sparkles size={18}/> },
     { id: 'wallets', label: 'المحافظ', icon: <Gem size={18}/> },
     { id: 'transactions', label: 'المعاملات', icon: <CreditCard size={18}/> },
   ];
@@ -255,6 +256,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                       </button>
                       <button onClick={() => { setForm({ ...form }); setModal('asset'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-4 py-2 text-xs">+ أصل</button>
                       <button onClick={() => { setForm({ ...form }); setModal('investment'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-4 py-2 text-xs">+ استثمار</button>
+                      <button onClick={() => { setForm({ ...form }); setModal('passive_income'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-4 py-2 text-xs">+ دخل سلبي</button>
                   </div>
                 </div>
 
@@ -316,7 +318,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                   )}
 
                   {financeTab === 'investments' && (
-                    <motion.div key="fi" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <motion.div key="f-inv" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {Array.isArray(investments) && investments.map((inv, i) => {
                           if (!inv) return null;
                           const roi = inv.roiPercentage || 0;
@@ -342,6 +344,29 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                           );
                         })}
                         {(!investments || investments.length === 0) && <div className="col-span-full p-24 text-center text-gray-600 text-3xl font-black grand-card border-dashed">تعلم الاستثمار لبناء إمبراطوريتك، ثم وثق صفقاتك هنا.</div>}
+                    </motion.div>
+                  )}
+
+                  {financeTab === 'passive' && (
+                    <motion.div key="f-pass" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
+                        {Array.isArray(passiveSources) && passiveSources.map((src, i) => (
+                          <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all">
+                            <div className="mb-6">
+                              <h3 className="text-xl font-black mb-1">{src.source}</h3>
+                              <p className="text-gray-500 text-sm font-bold bg-white/5 inline-block px-3 py-0.5 rounded-lg">{src.type || 'اشتراك'}</p>
+                            </div>
+                            <div className="flex items-end justify-between gap-4">
+                              <div>
+                                <p className="text-xs text-gray-500 font-black uppercase tracking-widest mb-1 leading-none">العائد الشهري</p>
+                                <p className="text-3xl font-black text-emerald-400 leading-none">{fmt(src.monthlyAmount)} <span className="text-sm opacity-40">EGP</span></p>
+                              </div>
+                              <div className={`px-4 py-2 rounded-xl border text-xs font-black ${src.isActive ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'}`}>
+                                {src.isActive ? 'نشط' : 'متوقف'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {(!passiveSources || passiveSources.length === 0) && <div className="col-span-full p-24 text-center text-gray-600 text-3xl font-black grand-card border-dashed hover:border-white/20 transition-all cursor-pointer" onClick={() => setModal('passive_income')}>لا يوجد مصادر دخل سلبي مسجلة. اضغط هنا لإضافة أول مصدر.</div>}
                     </motion.div>
                   )}
 
@@ -682,7 +707,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
               <button type="button" onClick={() => setModal(null)} className="absolute top-8 left-8 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/10 hover:scale-110 active:scale-90"><X size={24}/></button>
               
               <h2 className="text-3xl md:text-4xl font-black mb-8 text-emerald-400 border-r-4 border-emerald-500 pr-5">
-                {{transaction:'توثيق مصروف مالي', asset:'إضافة لقفص الأصول', income:'تسجيل مورد دخل', investment:'فتح مركز استثماري', hours:'تتبع زمن العمل', wishlist:'تسجيل رغبة مستقبلية', profit:'تسجيل ربح للأصل', profit_inv:'تسجيل ربح استثمار'}[modal] || 'إدخال بيانات'}
+                {{transaction:'توثيق مصروف مالي', asset:'إضافة لقفص الأصول', income:'تسجيل مورد دخل', investment:'فتح مركز استثمار', hours:'تتبع زمن العمل', wishlist:'تسجيل رغبة مستقبلية', profit:'تسجيل ربح للأصل', profit_inv:'تسجيل ربح استثمار', passive_income:'إضافة مصدر دخل سلبي'}[modal] || 'إدخال بيانات'}
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -690,23 +715,36 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 {/* Visual Impact Number Input */}
                 {!['hours','wishlist','profit','profit_inv'].includes(modal) && (
                   <div>
-                    <label className="text-lg font-black text-gray-500 mb-4 block uppercase tracking-widest text-center">{modal==='investment'?'قائمة التكلفة الأولية':'المبلغ المالي الصافي'}</label>
-                    <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-6 text-4xl font-black text-center eng-num outline-none transition-all placeholder-gray-800 shadow-inner" value={modal==='investment'?form.initialValue:form.amount} onChange={e=>setForm({...form,[modal==='investment'?'initialValue':'amount']:e.target.value})} placeholder="0.00" />
+                    <label className="text-lg font-black text-gray-500 mb-4 block uppercase tracking-widest text-center">
+                      {modal==='investment'?'قائمة التكلفة الأولية': modal==='passive_income'?'العائد الشهري المتوقع' : 'المبلغ المالي الصافي'}
+                    </label>
+                    <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-6 text-4xl font-black text-center eng-num outline-none transition-all placeholder-gray-800 shadow-inner" value={modal==='investment'?form.initialValue : modal==='passive_income' ? form.monthlyAmount : form.amount} onChange={e=>setForm({...form,[modal==='investment'?'initialValue': modal==='passive_income' ? 'monthlyAmount' : 'amount']:e.target.value})} placeholder="0.00" />
                   </div>
                 )}
 
-                {modal === 'profit' || modal === 'profit_inv' ? (
-                   <div className="space-y-6">
-                      <div>
-                        <label className="text-lg font-black text-amber-400 mb-4 block uppercase tracking-widest text-center">مبلغ الربح المحقق</label>
-                        <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-2 border-amber-500/20 focus:border-amber-500 rounded-2xl p-6 text-4xl font-black text-center eng-num outline-none transition-all" value={form.profitAmount} onChange={e=>setForm({...form, profitAmount: e.target.value})} placeholder="0.00" />
-                      </div>
-                      <div>
-                        <label className="text-sm font-black text-gray-500 mb-2 block">المدة / الفترة (اختياري)</label>
-                        <input type="text" className="w-full bg-white/5 border-2 border-white/10 rounded-xl p-4 text-xl font-bold" value={form.duration} onChange={e=>setForm({...form, duration: e.target.value})} placeholder="مثلاً: شهر مارس 2024" />
-                      </div>
+                 {modal === 'profit' || modal === 'profit_inv' ? (
+                    <div className="space-y-6">
+                       <div>
+                         <label className="text-lg font-black text-amber-400 mb-4 block uppercase tracking-widest text-center">مبلغ الربح المحقق</label>
+                         <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-2 border-amber-500/20 focus:border-amber-500 rounded-2xl p-6 text-4xl font-black text-center eng-num outline-none transition-all" value={form.profitAmount} onChange={e=>setForm({...form, profitAmount: e.target.value})} placeholder="0.00" />
+                       </div>
+                       <div>
+                         <label className="text-sm font-black text-gray-500 mb-2 block">المدة / الفترة (اختياري)</label>
+                         <input type="text" className="w-full bg-white/5 border-2 border-white/10 rounded-xl p-4 text-xl font-bold" value={form.duration} onChange={e=>setForm({...form, duration: e.target.value})} placeholder="مثلاً: شهر مارس 2024" />
+                       </div>
+                    </div>
+                 ) : modal === 'passive_income' ? (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                       <label className="text-sm font-black text-gray-500 mb-2 block uppercase tracking-widest">اسم المصدر</label>
+                       <input required type="text" className="w-full bg-white/5 border-2 border-white/10 rounded-xl p-4 text-xl font-bold focus:border-emerald-500 outline-none transition-all" value={form.source} onChange={e=>setForm({...form, source: e.target.value})} placeholder="مثلاً: عقار إيجار" />
+                     </div>
+                     <div>
+                       <label className="text-sm font-black text-gray-500 mb-2 block uppercase tracking-widest">نوع المصدر</label>
+                       <input required type="text" className="w-full bg-white/5 border-2 border-white/10 rounded-xl p-4 text-xl font-bold focus:border-emerald-500 outline-none transition-all" value={form.type} onChange={e=>setForm({...form, type: e.target.value})} placeholder="مثلاً: اشتراك / إيجار" />
+                     </div>
                    </div>
-                ) : null}
+                 ) : null}
 
 
                 {/* Selectors Grid */}
