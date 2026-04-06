@@ -8,7 +8,7 @@ interface Props {
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
   investments: any[]; passiveSources: any[]; wallets: any[]; workTracking: any[];
   netWorth: any; forecast: any; hourlyRate: number; distributionSettings: any;
-  settings: { usdRate: number; isPanic: boolean; notionUrl: string };
+  settings: { isPanic: boolean; notionUrl: string };
 }
 
 const COLORS = ['var(--color-emerald-glow)', 'var(--color-blue-glow)', 'var(--color-amber-glow)', 'var(--color-purple-glow)', 'var(--color-rose-glow)', '#06b6d4'];
@@ -34,12 +34,9 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
   const [mobileSidebar, setMobileSidebar] = useState(false);
 
   // Financial Aggregations
-  const totalIncomeEGP = incomes?.filter(inc => inc.currency === 'EGP').reduce((acc, current) => acc + (current.amount || 0), 0) || 0;
-  const totalIncomeUSD = incomes?.filter(inc => inc.currency === 'USD').reduce((acc, current) => acc + (current.amount || 0), 0) || 0;
+  // Now simpler: just sum all amounts (assuming all are EGP or legacy USD will be treated as value)
+  const totalIncome = incomes?.reduce((acc, current) => acc + (current.amount || 0), 0) || 0;
   
-  // NEW: Combined Total (EGP + USD*Rate)
-  const totalIncomeCombinedEGP = totalIncomeEGP + (totalIncomeUSD * settings.usdRate);
-
   const totalSpentGiving = transactions?.filter(t => t.category === 'عطاء' || t.category === 'شخصي لله').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
   const totalSpentInvest = transactions?.filter(t => t.category === 'استثمار').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
   const totalSpentPersonal = transactions?.filter(t => t.category === 'شخصي').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
@@ -48,7 +45,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
   const [panic, setPanic] = useState(settings.isPanic);
   const [notionUrl, setNotionUrl] = useState(settings.notionUrl);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<any>({ amount:'', currency:'EGP', usdRate: settings.usdRate, description:'', name:'', category:'شخصي', method:'كاش', source:'عام', hours:'', date: new Date().toISOString().split('T')[0], assetType:'كاش', liquidType:'سائل', initialValue:'', currentValue:'', platform:'', price:'', priority:'1', profitAmount:'', duration:'' });
+  const [form, setForm] = useState<any>({ amount:'', currency:'EGP', description:'', name:'', category:'شخصي', method:'كاش', source:'عام', hours:'', date: new Date().toISOString().split('T')[0], assetType:'كاش', liquidType:'سائل', initialValue:'', currentValue:'', platform:'', price:'', priority:'1', profitAmount:'', duration:'' });
   const [selectedId, setSelectedId] = useState<number|string|null>(null);
 
   const post = async (type: string, data: any) => {
@@ -247,8 +244,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                       <button onClick={() => { setForm({ ...form, currency: 'EGP' }); setModal('transaction'); }} className="mega-action-btn bg-rose-500/10 text-rose-400 border border-rose-500/20 px-4 py-2 text-xs hover:bg-rose-500/20">
                         <Banknote size={14}/> تسجيل صرف
                       </button>
-                      <button onClick={() => { setForm({ ...form, usdRate: settings.usdRate }); setModal('asset'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-4 py-2 text-xs">+ أصل</button>
-                      <button onClick={() => { setForm({ ...form, usdRate: settings.usdRate }); setModal('investment'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-4 py-2 text-xs">+ استثمار</button>
+                      <button onClick={() => { setForm({ ...form }); setModal('asset'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-4 py-2 text-xs">+ أصل</button>
+                      <button onClick={() => { setForm({ ...form }); setModal('investment'); }} className="mega-action-btn bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 px-4 py-2 text-xs">+ استثمار</button>
                   </div>
                 </div>
 
@@ -271,10 +268,6 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                         <div>
                           <p className="text-emerald-400 font-black text-lg uppercase tracking-widest mb-3">صافي الثروة المجمّعة</p>
                           <p className="text-5xl md:text-6xl font-black text-white">{fmt(netWorth.totalEGP)} <span className="text-xl text-white/30">EGP</span></p>
-                        </div>
-                        <div className="mt-8 md:mt-0 bg-black/40 p-6 rounded-[2.5rem] border border-white/10 text-center shadow-xl">
-                          <p className="text-gray-500 font-bold text-base mb-2">القيمة المعادلة بالدولار</p>
-                          <p className="text-4xl font-black text-amber-400">{fmt(netWorth.totalUSD)} <span className="text-xl text-amber-400/40">USD</span></p>
                         </div>
                       </div>
 
@@ -345,17 +338,16 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                   {financeTab === 'wallets' && (
                     <motion.div key="fw" initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="space-y-12 pb-20">
                       {/* ENHANCED AGGREGATE TOTALS CARD */}
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                      {/* SIMPLIFIED EGP-ONLY AGGREGATE TOTALS CARD */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         {[
-                          { label:'إجمالي الدخل المجمع (ج.م)', val: totalIncomeCombinedEGP, cur:'EGP', col:'emerald', desc: 'شامل الدولار بسعر الصرف' },
-                          { label:'إجمالي الدخل ($)', val: totalIncomeUSD, cur:'USD', col:'blue' },
+                          { label:'إجمالي الدخل الوارد', val: totalIncome, cur:'EGP', col:'emerald' },
                           { label:'إجمالي الشخصي', val: totalSpentPersonal, cur:'EGP', col:'rose' },
                           { label:'ما خرج لله (عطاء)', val: totalSpentGiving, cur:'EGP', col:'amber' },
                           { label:'إجمالي الاستثمارات', val: totalSpentInvest, cur:'EGP', col:'purple' },
                         ].map((stat, idx) => {
                            const colors: any = {
                              emerald: 'border-emerald-500/10 bg-emerald-500/5 text-emerald-400',
-                             blue: 'border-blue-500/10 bg-blue-500/5 text-blue-400',
                              rose: 'border-rose-500/10 bg-rose-500/5 text-rose-400',
                              amber: 'border-amber-500/10 bg-amber-500/5 text-amber-400',
                              purple: 'border-purple-500/10 bg-purple-500/5 text-purple-400',
@@ -365,7 +357,6 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                              <div key={idx} className={`grand-card p-4 border ${activeCol} transition-transform hover:scale-[1.03]`}>
                                 <p className="text-[9px] font-black uppercase mb-1 opacity-70">{stat.label}</p>
                                 <p className="text-xl font-black text-white">{fmt(stat.val)} <span className="text-[10px] opacity-40">{stat.cur}</span></p>
-                                {'desc' in stat && <p className="text-[8px] opacity-30 mt-1 font-bold">{stat.desc}</p>}
                              </div>
                            )
                         })}
@@ -570,12 +561,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                <h2 className="text-3xl md:text-5xl font-black mb-10 flex items-center gap-4">إعدادات النواة المركزية <Settings className="text-blue-400 md:w-10 md:h-10" /></h2>
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="grand-card p-10 hover:border-emerald-500/30 transition-all">
-                    <h3 className="text-xl font-black mb-6 text-emerald-400 flex items-center gap-3">سعر الصرف العالمي (EGP/USD)</h3>
-                    <div className="flex gap-4">
-                      <input type="number" className="flex-1 bg-black/40 border-2 border-white/10 rounded-2xl p-6 text-4xl font-black eng-num focus:border-emerald-500 outline-none transition-all" defaultValue={settings.usdRate} onBlur={e => post('setting', { key: 'usd_rate', value: e.target.value })} />
-                    </div>
-                  </div>
+
 
                   <div className="grand-card p-10 flex flex-col justify-between hover:border-rose-500/30 transition-all">
                     <div>
@@ -673,24 +659,16 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                    </div>
                 ) : null}
 
-                {/* Exchange Rate UI - SHOW ONLY IF CURRENCY IS USD OR Modal is specific */}
-                {['transaction','income','asset','investment','profit','profit_inv'].includes(modal!) && form.currency === 'USD' && (
-                  <div className="bg-blue-500/10 border border-blue-500/20 p-6 rounded-2xl">
-                     <label className="text-sm font-black text-blue-400 mb-2 block">سعر الصرف اللحظي (EGP/USD)</label>
-                     <input type="number" className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-3xl font-black eng-num outline-none focus:border-blue-500" value={form.usdRate} onChange={e=>setForm({...form, usdRate: e.target.value})} />
-                  </div>
-                )}
 
                 {/* Selectors Grid */}
                 {['transaction','income','asset', 'investment'].includes(modal!) && (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="relative group">
                       <label className="text-base font-black text-gray-500 mb-3 block">عملة التداول</label>
-                      <select className="w-full bg-[#111] border-2 border-white/10 focus:border-blue-500 rounded-2xl p-5 text-xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.currency} onChange={e=>setForm({...form,currency:e.target.value})}>
-                        <option className="bg-[#111] text-white" value="EGP">EGP - جنيه مصري</option>
-                        <option className="bg-[#111] text-white" value="USD">USD - دولار أمريكي</option>
-                      </select>
-                      <ChevronLeft className="absolute left-6 bottom-6 text-gray-500 pointer-events-none -rotate-90" />
+                      <div className="w-full bg-[#111] border-2 border-white/5 rounded-2xl p-5 text-xl font-black text-gray-400 flex items-center justify-between">
+                        <span>EGP - جنيه مصري</span>
+                        <Check size={20} className="text-emerald-500" />
+                      </div>
                     </div>
 
                     {modal==='transaction' && (

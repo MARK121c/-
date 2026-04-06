@@ -39,14 +39,13 @@ export default async function Home() {
     const passiveSourcesData = await db.select().from(passiveIncomeSources).where(eq(passiveIncomeSources.isActive, true)).catch(() => []);
 
     // Always-safe queries
-    const [transactionData, incomeData, wishlistData, netWorth, forecast, hourlyRate, usdRate, panicMode, notionUrl, distSettings] = await Promise.all([
+    const [transactionData, incomeData, wishlistData, netWorth, forecast, hourlyRate, panicMode, notionUrl, distSettings] = await Promise.all([
       db.select().from(transactions).orderBy(desc(transactions.id)).limit(50),
       db.select().from(incomes).orderBy(desc(incomes.id)).limit(20),
       db.select().from(wishlist).orderBy(desc(wishlist.id)),
       calculateNetWorth(assetData, investmentData, passiveSourcesData),
       getForecasting(assetData),
       calculateHourlyRate(),
-      getSetting('usd_rate', '50'),
       getSetting('is_panic', '0'),
       getSetting('notion_url', ''),
       getDistributionSettings(),
@@ -70,7 +69,6 @@ export default async function Home() {
         hourlyRate={hourlyRate}
         distributionSettings={distSettings}
         settings={{
-          usdRate: parseFloat(usdRate),
           isPanic: panicMode === '1',
           notionUrl,
         }}

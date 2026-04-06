@@ -42,21 +42,19 @@ export async function POST(request: Request) {
     // --- INCOME (auto-distributes to wallets) ---
     if (type === 'income') {
       const amount = parseFloat(data.amount);
-      const currency = data.currency || 'EGP';
-      const usdRate = parseFloat(data.usdRate || '50');
 
       // Insert income record
       await db.insert(incomes).values({
         amount,
-        currency,
+        currency: 'EGP',
         source: data.source || 'عام',
         description: data.description || 'دخل جديد',
         distributed: true,
         date: new Date().toISOString(),
       });
 
-      // Auto-distribute to wallets (pass forced rate)
-      const splits = await distributeIncome(amount, currency, usdRate);
+      // Auto-distribute to wallets
+      const splits = await distributeIncome(amount);
       return NextResponse.json({ success: true, splits });
     }
 
@@ -147,13 +145,12 @@ export async function POST(request: Request) {
     if (type === 'profit') {
       const assetId = parseInt(data.selectedId as string);
       const profit = parseFloat(data.profitAmount);
-      const rate = data.currency === 'USD' ? parseFloat(data.usdRate || '50') : 1;
-      const profitInEGP = profit * rate;
+      const profitInEGP = profit;
 
       const asset = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);
       if (asset.length > 0) {
         // Update asset value
-        await db.update(assets).set({ value: (asset[0].value || 0) + (data.currency === 'USD' ? profit : profitInEGP) }).where(eq(assets.id, assetId));
+        await db.update(assets).set({ value: (asset[0].value || 0) + profitInEGP }).where(eq(assets.id, assetId));
         
         // Add to incomes and distribute
         await db.insert(incomes).values({
@@ -164,7 +161,7 @@ export async function POST(request: Request) {
           distributed: true,
           date: new Date().toISOString(),
         });
-        await distributeIncome(profitInEGP, 'EGP');
+        await distributeIncome(profitInEGP);
       }
       return NextResponse.json({ success: true });
     }
@@ -173,12 +170,11 @@ export async function POST(request: Request) {
     if (type === 'profit_inv') {
       const invId = parseInt(data.selectedId as string);
       const profit = parseFloat(data.profitAmount);
-      const rate = data.currency === 'USD' ? parseFloat(data.usdRate || '50') : 1;
-      const profitInEGP = profit * rate;
+      const profitInEGP = profit;
 
       const inv = await db.select().from(investments).where(eq(investments.id, invId)).limit(1);
       if (inv.length > 0) {
-        const newTotalValue = (inv[0].currentValue || 0) + (data.currency === 'USD' ? profit : profitInEGP);
+        const newTotalValue = (inv[0].currentValue || 0) + profitInEGP;
         const newROI = inv[0].initialValue && inv[0].initialValue > 0 ? ((newTotalValue - inv[0].initialValue) / inv[0].initialValue) * 100 : 0;
 
         await db.update(investments).set({ currentValue: newTotalValue, roiPercentage: newROI }).where(eq(investments.id, invId));
@@ -192,7 +188,7 @@ export async function POST(request: Request) {
           distributed: true,
           date: new Date().toISOString(),
         });
-        await distributeIncome(profitInEGP, 'EGP');
+        await distributeIncome(profitInEGP);
       }
       return NextResponse.json({ success: true });
     }

@@ -16,9 +16,8 @@ export async function setSetting(key: string, value: string) {
 }
 
 // --- INCOME DISTRIBUTION ENGINE ---
-export async function distributeIncome(amount: number, currency: string = 'EGP', forcedUsdRate?: number) {
-  const usdRate = forcedUsdRate || parseFloat(await getSetting('usd_rate', '50'));
-  const amountInEGP = currency === 'USD' ? amount * usdRate : amount;
+export async function distributeIncome(amount: number) {
+  const amountInEGP = amount; // Always treatment as EGP now
 
   // Get current distribution ratios
   const dist = await db.select().from(incomeDistribution).limit(1);
@@ -50,7 +49,6 @@ export async function calculateNetWorth(
   prefetchedInvestments?: any[],
   prefetchedPassive?: any[]
 ) {
-  const usdRate = parseFloat(await getSetting('usd_rate', '50'));
   const allAssets = prefetchedAssets || await db.select().from(assets).catch(() => []);
   const allInvestments = prefetchedInvestments || await db.select().from(investments).catch(() => []);
   const allPassive = prefetchedPassive || await db.select().from(passiveIncomeSources).where(eq(passiveIncomeSources.isActive, true)).catch(() => []);
@@ -61,18 +59,18 @@ export async function calculateNetWorth(
   let passiveIncomeData = 0;
 
   allAssets.forEach(a => {
-    const val = a.currency === 'USD' ? (a.value ?? 0) * usdRate : (a.value ?? 0);
+    const val = (a.value ?? 0);
     assetsTotal += val;
     passiveIncomeData += (a.passiveIncome ?? 0);
   });
 
   allInvestments.forEach(inv => {
-    const val = inv.currency === 'USD' ? (inv.currentValue ?? 0) * usdRate : (inv.currentValue ?? 0);
+    const val = (inv.currentValue ?? 0);
     investmentsTotal += val;
   });
 
   allPassive.forEach(src => {
-    const monthly = src.currency === 'USD' ? (src.monthlyAmount ?? 0) * usdRate : (src.monthlyAmount ?? 0);
+    const monthly = (src.monthlyAmount ?? 0);
     passiveIncomeMonthly += monthly;
   });
 
@@ -81,7 +79,6 @@ export async function calculateNetWorth(
 
   return {
     totalEGP,
-    totalUSD: totalEGP / usdRate,
     assetsTotal,
     investmentsTotal,
     passiveIncomeMonthly: passiveIncomeMonthly + passiveIncomeData,
@@ -147,10 +144,9 @@ export async function getForecasting(prefetchedAssets?: any[]) {
   // Get liquid assets (cash + bank)
   const allAssets = prefetchedAssets || await db.select().from(assets).catch(() => []);
   const liquidAssets = allAssets.filter(a => a.liquidType === 'سائل' || (a.liquidType !== 'مادي' && (a.type === 'بنك' || a.type === 'كاش')));
-  const usdRate = parseFloat(await getSetting('usd_rate', '50'));
   let liquidTotal = 0;
   liquidAssets.forEach(a => {
-    liquidTotal += a.currency === 'USD' ? (a.value ?? 0) * usdRate : (a.value ?? 0);
+    liquidTotal += (a.value ?? 0);
   });
 
   const daysUntilEmpty = avgDailySpent > 0 ? Math.floor(liquidTotal / avgDailySpent) : 999;
