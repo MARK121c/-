@@ -298,7 +298,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                               <span className="px-3 py-1 rounded-lg bg-white/10 text-gray-400 text-xs font-bold border border-white/5 uppercase tracking-widest">{a.type} · {a.liquidType || 'مادي'}</span>
                             </div>
                             <div>
-                               <p className="text-3xl font-black text-emerald-400 leading-none">{fmt(a.value)} <span className="text-sm text-emerald-400/50">{a.currency}</span></p>
+                               <p className="text-3xl font-black text-emerald-400 leading-none">{fmt(a.value)} <span className="text-sm text-emerald-400/50">EGP</span></p>
                             </div>
                           </div>
                         ))}
@@ -437,7 +437,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                                         <p className="text-[10px] text-gray-600 eng-num">{new Date(inc.date).toLocaleDateString('ar-EG')}</p>
                                      </div>
                                      <div className="text-left">
-                                        <p className="text-emerald-400 font-black text-xl eng-num">+{fmt(inc.amount)} <span className="text-xs opacity-40">{inc.currency}</span></p>
+                                        <p className="text-emerald-400 font-black text-xl eng-num">+{fmt(inc.amount)} <span className="text-xs opacity-40">EGP</span></p>
                                         <p className="text-[10px] text-gray-700 font-bold uppercase">{inc.source}</p>
                                      </div>
                                   </div>
@@ -457,7 +457,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                                         <p className="text-[10px] text-gray-600 eng-num">{new Date(t.date).toLocaleDateString('ar-EG')}</p>
                                      </div>
                                      <div className="text-left">
-                                        <p className="text-rose-400 font-black text-xl eng-num">-{fmt(t.amount)} <span className="text-xs opacity-40">{t.currency}</span></p>
+                                        <p className="text-rose-400 font-black text-xl eng-num">-{fmt(t.amount)} <span className="text-xs opacity-40">EGP</span></p>
                                         <p className="text-[10px] text-gray-700 font-bold uppercase">{t.category}</p>
                                      </div>
                                   </div>

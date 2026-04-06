@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if (type === 'transaction') {
       await db.insert(transactions).values({
         amount: parseFloat(data.amount),
-        currency: data.currency || 'EGP',
+        currency: 'EGP',
         category: data.category || 'شخصي',
         description: data.description || '',
         method: data.method || 'كاش',
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         type: data.assetType || data.type || 'كاش',
         liquidType: data.liquidType || 'مادي',
         value: parseFloat(data.amount),
-        currency: data.currency || 'EGP',
+        currency: 'EGP',
         roi: parseFloat(data.roi || '0'),
         passiveIncome: parseFloat(data.passiveIncome || '0'),
         date: new Date().toISOString(),
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         initialValue: initial,
         currentValue: current,
         roiPercentage: roi,
-        currency: data.currency || 'EGP',
+        currency: 'EGP',
         date: new Date().toISOString(),
       });
       return NextResponse.json({ success: true });
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
         source: data.source || data.name,
         monthlyAmount: parseFloat(data.amount),
         type: data.type || 'اشتراك',
-        currency: data.currency || 'EGP',
+        currency: 'EGP',
         isActive: true,
       });
       return NextResponse.json({ success: true });
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
       await db.insert(wishlist).values({
         name: data.name,
         price,
-        currency: data.currency || 'EGP',
+        currency: 'EGP',
         link: data.link || null,
         hoursCost,
         priority: parseInt(data.priority || '1'),
