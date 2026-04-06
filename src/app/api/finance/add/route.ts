@@ -169,6 +169,17 @@ export async function POST(request: Request) {
           date: new Date().toISOString(),
         });
         await distributeIncome(profitInEGP);
+
+        // --- NEW: Audit Trail Sync to Transactions ---
+        await db.insert(transactions).values({
+          amount: profitInEGP,
+          currency: 'EGP',
+          category: 'الأصول',
+          description: `زيادة قيمة أصل (ربح): ${asset[0].name}`,
+          method: 'داخلي',
+          status: 'تم الإيداع',
+          date: new Date().toISOString(),
+        });
       }
       return NextResponse.json({ success: true });
     }
@@ -196,6 +207,17 @@ export async function POST(request: Request) {
           date: new Date().toISOString(),
         });
         await distributeIncome(profitInEGP);
+
+        // --- NEW: Audit Trail Sync to Transactions ---
+        await db.insert(transactions).values({
+          amount: profitInEGP,
+          currency: 'EGP',
+          category: 'استثمار',
+          description: `توزيع أرباح استثمار: ${inv[0].name}`,
+          method: 'داخلي',
+          status: 'تم الإيداع',
+          date: new Date().toISOString(),
+        });
       }
       return NextResponse.json({ success: true });
     }

@@ -298,75 +298,175 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                   )}
 
                   {financeTab === 'assets' && (
-                    <motion.div key="fa" initial={{opacity:0, scale:0.98}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {assets.map((a, i) => (
-                          <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:border-emerald-500/50">
-                            <button onClick={() => { setSelectedId(a.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الأصل">
-                              <Plus size={18} />
-                            </button>
-                            <div className="mb-6">
-                              <h3 className="text-xl font-black mb-2 group-hover:text-emerald-400 transition-colors uppercase">{a.name}</h3>
-                              <span className="px-3 py-1 rounded-lg bg-white/10 text-gray-400 text-xs font-bold border border-white/5 uppercase tracking-widest">{a.type} · {a.liquidType || 'مادي'}</span>
-                            </div>
-                            <div>
-                               <p className="text-3xl font-black text-emerald-400 leading-none">{fmt(a.value)} <span className="text-sm text-emerald-400/50">EGP</span></p>
-                            </div>
-                          </div>
-                        ))}
-                        {assets.length === 0 && <div className="col-span-full p-24 text-center text-gray-600 text-3xl font-black grand-card border-dashed">لم يتم توثيق أي أصول بعد بنظام التشغيل الأساسي.</div>}
+                    <motion.div key="fa" initial={{opacity:0, scale:0.98}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="space-y-8 pb-20">
+                        {/* TOP SUMMARY CARDS */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                           <div className="grand-card p-10 bg-emerald-500/5 border-emerald-500/10 hover:bg-emerald-500/10 transition-all group">
+                              <p className="text-emerald-400 font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2 italic opacity-60 group-hover:opacity-100 transition-all"><Plus size={14}/> إجمالي رأس المال (Invested)</p>
+                              <p className="text-4xl font-black text-white">{fmt(netWorth.assetsCapital)} <span className="text-sm opacity-30">EGP</span></p>
+                           </div>
+                           <div className="grand-card p-10 bg-blue-500/5 border-blue-500/10 hover:bg-blue-500/10 transition-all group">
+                              <p className="text-blue-400 font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2 italic opacity-60 group-hover:opacity-100 transition-all"><Activity size={14}/> إجمالي الأرباح المضافة</p>
+                              <p className="text-4xl font-black text-white">{fmt(netWorth.assetsProfit)} <span className="text-sm opacity-30">EGP</span></p>
+                           </div>
+                           <div className="grand-card p-10 bg-purple-500/5 border-purple-500/10 hover:bg-purple-500/10 transition-all group">
+                              <p className="text-purple-400 font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2 italic opacity-60 group-hover:opacity-100 transition-all"><History size={14}/> سجل نمو الأصول</p>
+                              <p className="text-4xl font-black text-white">{assets.length} <span className="text-sm opacity-30">عناصر نشطة</span></p>
+                           </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {assets.map((a, i) => (
+                              <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:border-emerald-500/50">
+                                <button onClick={() => { setSelectedId(a.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الأصل">
+                                  <Plus size={18} />
+                                </button>
+                                <div className="mb-6">
+                                  <h3 className="text-xl font-black mb-2 group-hover:text-emerald-400 transition-colors uppercase">{a.name}</h3>
+                                  <span className="px-3 py-1 rounded-lg bg-white/10 text-gray-400 text-xs font-bold border border-white/5 uppercase tracking-widest">{a.type} · {a.liquidType || 'مادي'}</span>
+                                </div>
+                                <div>
+                                   <p className="text-3xl font-black text-emerald-400 leading-none">{fmt(a.value)} <span className="text-sm text-emerald-400/50">EGP</span></p>
+                                </div>
+                              </div>
+                            ))}
+                            {assets.length === 0 && <div className="col-span-full p-24 text-center text-gray-600 text-3xl font-black grand-card border-dashed">لم يتم توثيق أي أصول بعد بنظام التشغيل الأساسي.</div>}
+                        </div>
+
+                        {/* PROFIT LEDGER (SIJIL) */}
+                        <div className="grand-card p-10 border-white/5 bg-white/[0.02]">
+                             <h3 className="text-2xl font-black mb-8 text-white flex items-center gap-3"><History className="text-emerald-400" size={24}/> سجل أرباح الأصول المحققة</h3>
+                             <div className="space-y-4">
+                                {incomes.filter(inc => inc.source?.includes('أصل')).length > 0 ? incomes.filter(inc => inc.source?.includes('أصل')).map((inc, idx) => (
+                                   <div key={idx} className="flex items-center justify-between p-6 bg-black/40 rounded-2xl border border-white/5 hover:border-emerald-500/20 transition-all group">
+                                      <div className="flex items-center gap-6">
+                                         <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                                            <Sparkles size={20}/>
+                                         </div>
+                                         <div>
+                                            <p className="text-lg font-black text-white group-hover:text-emerald-400 transition-colors">{inc.source}</p>
+                                            <p className="text-sm text-gray-500 font-bold italic">{inc.description} · <span className="eng-num">{new Date(inc.date).toLocaleDateString('ar-EG')}</span></p>
+                                         </div>
+                                      </div>
+                                      <p className="text-2xl font-black text-emerald-400">+{fmt(inc.amount)} <span className="text-xs opacity-40">EGP</span></p>
+                                   </div>
+                                )) : (
+                                   <div className="p-12 text-center text-gray-700 font-black italic">لا يوجد سجل أرباح بعد.. ابدأ بإضافة أول ربح للأصل لإظهار البيانات هنا.</div>
+                                )}
+                             </div>
+                        </div>
                     </motion.div>
                   )}
 
                   {financeTab === 'investments' && (
-                    <motion.div key="f-inv" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {Array.isArray(investments) && investments.map((inv, i) => {
-                          if (!inv) return null;
-                          const roi = inv.roiPercentage || 0;
-                          return (
-                            <div key={inv.id || i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all">
-                              <button onClick={() => { setSelectedId(inv.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit_inv'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الاستثمار">
-                                <Plus size={18} />
-                              </button>
-                              <div className="mb-6">
-                                <h3 className="text-xl font-black mb-1">{inv.name}</h3>
-                                <p className="text-gray-500 text-sm font-bold bg-white/5 inline-block px-3 py-0.5 rounded-lg">{inv.platform}</p>
-                              </div>
-                              <div className="flex items-end justify-between gap-4">
-                                <div>
-                                  <p className="text-xs text-gray-500 font-black uppercase tracking-widest mb-1 leading-none">القيمة الحالية</p>
-                                  <p className="text-3xl font-black leading-none">{fmt(inv.currentValue)}</p>
+                    <motion.div key="f-inv" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="space-y-8 pb-20">
+                        {/* TOP SUMMARY CARDS */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                           <div className="grand-card p-10 bg-amber-500/5 border-amber-500/10 transition-all group">
+                              <p className="text-amber-400 font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2 italic opacity-60"><Wallet size={14}/> رأس المال المستثمر</p>
+                              <p className="text-4xl font-black text-white">{fmt(netWorth.investmentsCapital)} <span className="text-sm opacity-30">EGP</span></p>
+                           </div>
+                           <div className="grand-card p-10 bg-emerald-500/5 border-emerald-500/10 transition-all group">
+                              <p className="text-emerald-400 font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2 italic opacity-60"><Activity size={14}/> صافي الربح / الخسارة</p>
+                              <p className={`text-4xl font-black ${netWorth.investmentsProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmt(netWorth.investmentsProfit)} <span className="text-sm opacity-30">EGP</span></p>
+                           </div>
+                           <div className="grand-card p-10 bg-blue-500/5 border-blue-500/10 transition-all group">
+                              <p className="text-blue-400 font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2 italic opacity-60"><Target size={14}/> العائد الكلي (ROI)</p>
+                              <p className="text-4xl font-black text-white">{netWorth.investmentsCapital > 0 ? ((netWorth.investmentsProfit / netWorth.investmentsCapital) * 100).toFixed(1) : '0.0'}%</p>
+                           </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {Array.isArray(investments) && investments.map((inv, i) => {
+                              if (!inv) return null;
+                              const roi = inv.roiPercentage || 0;
+                              return (
+                                <div key={inv.id || i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all border-white/5 hover:border-amber-500/30">
+                                  <button onClick={() => { setSelectedId(inv.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit_inv'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الاستثمار">
+                                    <Plus size={18} />
+                                  </button>
+                                  <div className="mb-6">
+                                    <h3 className="text-xl font-black mb-1 group-hover:text-amber-400 transition-colors">{inv.name}</h3>
+                                    <p className="text-gray-500 text-sm font-bold bg-white/5 inline-block px-3 py-0.5 rounded-lg">{inv.platform}</p>
+                                  </div>
+                                  <div className="flex items-end justify-between gap-4">
+                                    <div>
+                                      <p className="text-xs text-gray-500 font-black uppercase tracking-widest mb-1 leading-none">القيمة الحالية</p>
+                                      <p className="text-3xl font-black leading-none">{fmt(inv.currentValue)}</p>
+                                    </div>
+                                    <div className={`text-lg font-black px-4 py-2 rounded-xl border shadow-xl ${roi >= 0 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'}`}>
+                                      <span className="eng-num">{roi >= 0 ? '+' : ''}{roi.toFixed(1)}%</span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className={`text-lg font-black px-4 py-2 rounded-xl border shadow-xl ${roi >= 0 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'}`}>
-                                  <span className="eng-num">{roi >= 0 ? '+' : ''}{roi.toFixed(1)}%</span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {(!investments || investments.length === 0) && <div className="col-span-full p-24 text-center text-gray-600 text-3xl font-black grand-card border-dashed">تعلم الاستثمار لبناء إمبراطوريتك، ثم وثق صفقاتك هنا.</div>}
+                              );
+                            })}
+                            {(!investments || investments.length === 0) && <div className="col-span-full p-24 text-center text-gray-600 text-3xl font-black grand-card border-dashed">تعلم الاستثمار لبناء إمبراطوريتك، ثم وثق صفقاتك هنا.</div>}
+                        </div>
+
+                        {/* PROFIT LEDGER (SIJIL) */}
+                        <div className="grand-card p-10 border-white/5 bg-white/[0.02]">
+                             <h3 className="text-2xl font-black mb-8 text-white flex items-center gap-3"><History className="text-amber-400" size={24}/> سجل أرباح الاستثمارات والتدفقات</h3>
+                             <div className="space-y-4">
+                                {incomes.filter(inc => inc.source?.includes('استثمار')).length > 0 ? incomes.filter(inc => inc.source?.includes('استثمار')).map((inc, idx) => (
+                                   <div key={idx} className="flex items-center justify-between p-6 bg-black/40 rounded-2xl border border-white/5 hover:border-amber-500/20 transition-all group">
+                                      <div className="flex items-center gap-6">
+                                         <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                                            <Activity size={20}/>
+                                         </div>
+                                         <div>
+                                            <p className="text-lg font-black text-white group-hover:text-amber-400 transition-colors">{inc.source}</p>
+                                            <p className="text-sm text-gray-500 font-bold italic">{inc.description} · <span className="eng-num">{new Date(inc.date).toLocaleDateString('ar-EG')}</span></p>
+                                         </div>
+                                      </div>
+                                      <p className="text-2xl font-black text-emerald-400">+{fmt(inc.amount)} <span className="text-xs opacity-40">EGP</span></p>
+                                   </div>
+                                )) : (
+                                   <div className="p-12 text-center text-gray-700 font-black italic">لا يوجد سجل أرباح استثمارية حتى الآن.</div>
+                                )}
+                             </div>
+                        </div>
                     </motion.div>
                   )}
 
                   {financeTab === 'passive' && (
-                    <motion.div key="f-pass" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
-                        {Array.isArray(passiveSources) && passiveSources.map((src, i) => (
-                          <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all">
-                            <div className="mb-6">
-                              <h3 className="text-xl font-black mb-1">{src.source}</h3>
-                              <p className="text-gray-500 text-sm font-bold bg-white/5 inline-block px-3 py-0.5 rounded-lg">{src.type || 'اشتراك'}</p>
-                            </div>
-                            <div className="flex items-end justify-between gap-4">
-                              <div>
-                                <p className="text-xs text-gray-500 font-black uppercase tracking-widest mb-1 leading-none">العائد الشهري</p>
-                                <p className="text-3xl font-black text-emerald-400 leading-none">{fmt(src.monthlyAmount)} <span className="text-sm opacity-40">EGP</span></p>
+                    <motion.div key="f-pass" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="space-y-8 pb-20">
+                         {/* TOP SUMMARY CARDS */}
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                           <div className="grand-card p-10 bg-blue-500/5 border-blue-500/10 transition-all group">
+                              <p className="text-blue-400 font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2 italic opacity-60"><Sparkles size={14}/> إجمالي الدخل الشهري</p>
+                              <p className="text-4xl font-black text-white">{fmt(netWorth.passiveIncomeMonthly)} <span className="text-sm opacity-30">EGP</span></p>
+                           </div>
+                           <div className="grand-card p-10 bg-emerald-500/5 border-emerald-500/10 transition-all group">
+                              <p className="text-emerald-400 font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2 italic opacity-60"><Gem size={14}/> العائد السنوي المتوقع</p>
+                              <p className="text-4xl font-black text-white">{fmt(netWorth.passiveIncomeAnnual)} <span className="text-sm opacity-30">EGP</span></p>
+                           </div>
+                           <div className="grand-card p-10 bg-purple-500/5 border-purple-500/10 transition-all group">
+                              <p className="text-purple-400 font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2 italic opacity-60"><ListTodo size={14}/> عدد المصادر النشطة</p>
+                              <p className="text-4xl font-black text-white">{passiveSources.length} <span className="text-sm opacity-30">قيد العمل</span></p>
+                           </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {Array.isArray(passiveSources) && passiveSources.map((src, i) => (
+                              <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all border-white/5 hover:border-blue-500/30">
+                                <div className="mb-6">
+                                  <h3 className="text-xl font-black mb-1 group-hover:text-blue-400 transition-colors uppercase">{src.source}</h3>
+                                  <p className="text-gray-500 text-sm font-bold bg-white/5 inline-block px-3 py-0.5 rounded-lg italic">{src.type || 'اشتراك'}</p>
+                                </div>
+                                <div className="flex items-end justify-between gap-4">
+                                  <div>
+                                    <p className="text-xs text-gray-500 font-black uppercase tracking-widest mb-1 leading-none">العائد الشهري</p>
+                                    <p className="text-3xl font-black text-emerald-400 leading-none">{fmt(src.monthlyAmount)} <span className="text-sm opacity-40">EGP</span></p>
+                                  </div>
+                                  <div className={`px-4 py-2 rounded-xl border text-xs font-black ${src.isActive ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'}`}>
+                                    {src.isActive ? 'نشط' : 'متوقف'}
+                                  </div>
+                                </div>
                               </div>
-                              <div className={`px-4 py-2 rounded-xl border text-xs font-black ${src.isActive ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'}`}>
-                                {src.isActive ? 'نشط' : 'متوقف'}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        {(!passiveSources || passiveSources.length === 0) && <div className="col-span-full p-24 text-center text-gray-600 text-3xl font-black grand-card border-dashed hover:border-white/20 transition-all cursor-pointer" onClick={() => setModal('passive_income')}>لا يوجد مصادر دخل سلبي مسجلة. اضغط هنا لإضافة أول مصدر.</div>}
+                            ))}
+                            {(!passiveSources || passiveSources.length === 0) && <div className="col-span-full p-24 text-center text-gray-600 text-3xl font-black grand-card border-dashed hover:border-white/20 transition-all cursor-pointer" onClick={() => setModal('passive_income')}>لا يوجد مصادر دخل سلبي مسجلة. اضغط هنا لإضافة أول مصدر.</div>}
+                        </div>
                     </motion.div>
                   )}
 

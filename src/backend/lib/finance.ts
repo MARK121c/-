@@ -75,6 +75,7 @@ export async function calculateNetWorth(
   let assetsTotal = 0;
   let totalLiquidAssets = 0;
   let investmentsTotal = 0;
+  let investmentsCapital = 0;
   let passiveIncomeMonthly = 0;
   let passiveIncomeData = 0;
 
@@ -90,7 +91,18 @@ export async function calculateNetWorth(
   allInvestments.forEach(inv => {
     const val = (inv.currentValue ?? 0);
     investmentsTotal += val;
+    investmentsCapital += (inv.initialValue ?? 0);
   });
+
+  const investmentsProfit = investmentsTotal - investmentsCapital;
+
+  // Calculate Asset Profits from Income table
+  const assetProfitRes = await db.select({ total: sql<number>`coalesce(sum(amount), 0)` })
+    .from(incomes)
+    .where(sql`source LIKE 'ربح أصل:%'`)
+    .catch(() => [{total:0}]);
+  const assetsProfit = Number(assetProfitRes[0]?.total || 0);
+  const assetsCapital = assetsTotal - assetsProfit;
 
   allPassive.forEach(src => {
     const monthly = (src.monthlyAmount ?? 0);
@@ -98,7 +110,7 @@ export async function calculateNetWorth(
   });
 
   const totalPassiveAnnual = (passiveIncomeMonthly + passiveIncomeData) * 12;
-  const totalEGP = assetsTotal + investmentsTotal; // Corrected: Assets + Investments only as per user request
+  const totalEGP = assetsTotal + investmentsTotal; 
 
   // New: Net Liquid Profit (Total Income - Total Expenses)
   const incomeRes = await db.select({ total: sql<number>`coalesce(sum(amount), 0)` }).from(incomes).catch(() => [{total:0}]);
@@ -108,8 +120,12 @@ export async function calculateNetWorth(
   return {
     totalEGP,
     assetsTotal,
+    assetsCapital,
+    assetsProfit,
     totalLiquidAssets,
     investmentsTotal,
+    investmentsCapital,
+    investmentsProfit,
     passiveIncomeMonthly: passiveIncomeMonthly + passiveIncomeData,
     passiveIncomeAnnual: totalPassiveAnnual,
     netLiquidProfit,
