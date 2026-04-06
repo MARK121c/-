@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft } from 'lucide-react';
+import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History } from 'lucide-react';
 
 interface Props {
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
@@ -16,8 +16,15 @@ const fmt = (n: number) => <span className="eng-num">{Number(n || 0).toLocaleStr
 
 export default function DashboardClient({ transactions, assets, incomes, wishlist, investments, passiveSources, wallets, workTracking, netWorth, forecast, hourlyRate, distributionSettings, settings }: Props) {
   const [mainTab, setMainTab] = useState('overview');
-  const [financeTab, setFinanceTab] = useState('networth'); // sub-tab for finance
+  const [financeTab, setFinanceTab] = useState('networth');
   const [mobileSidebar, setMobileSidebar] = useState(false);
+
+  // Financial Aggregations
+  const totalIncomeEGP = incomes?.filter(inc => inc.currency === 'EGP').reduce((acc, current) => acc + (current.amount || 0), 0) || 0;
+  const totalIncomeUSD = incomes?.filter(inc => inc.currency === 'USD').reduce((acc, current) => acc + (current.amount || 0), 0) || 0;
+  const totalSpentGiving = transactions?.filter(t => t.category === 'عطاء' || t.category === 'شخصي لله').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+  const totalSpentInvest = transactions?.filter(t => t.category === 'استثمار').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+
   const [modal, setModal] = useState<string|null>(null);
   const [panic, setPanic] = useState(settings.isPanic);
   const [notionUrl, setNotionUrl] = useState(settings.notionUrl);
@@ -59,7 +66,6 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full gap-8">
-      {/* Branding */}
       <div className="flex items-center gap-4 px-2">
         <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 neon-text-emerald shadow-[0_0_30px_rgba(16,185,129,0.3)]">
           <Shield size={30} />
@@ -70,7 +76,6 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
         </div>
       </div>
 
-      {/* Main Nav */}
       <nav className="flex flex-col gap-2">
         {mainNavItems.map(item => (
           <button 
@@ -85,7 +90,6 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
         ))}
       </nav>
 
-      {/* Quick Actions - Removed from Sidebar as per request */}
       <div className="mt-auto flex flex-col gap-2 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
         <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest text-center">محرك التجربة CORE V4</p>
       </div>
@@ -95,15 +99,12 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
   return (
     <div className="flex h-screen bg-super-dark text-white overflow-hidden font-sans font-bold" dir="rtl">
       
-      {/* BACKGROUND EFFECTS */}
       {panic && <div className="absolute inset-0 bg-red-500/10 z-0 pointer-events-none animate-pulse" />}
 
-      {/* DESKTOP SIDEBAR (RIGHT) */}
       <aside className="hidden lg:flex flex-col w-[320px] h-full bg-white/2 border-l border-white/10 p-8 backdrop-blur-3xl z-40">
         <SidebarContent />
       </aside>
 
-      {/* MOBILE HEADER (TOP) */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-20 bg-white/5 backdrop-blur-3xl border-b border-white/10 z-30 flex items-center px-6 justify-between">
         <div className="flex items-center gap-3">
            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
@@ -114,7 +115,6 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
         <button onClick={() => setMobileSidebar(true)} className="p-3 rounded-xl bg-white/5 border border-white/10"><Menu size={24} /></button>
       </header>
 
-      {/* MOBILE DRAWER SIDEBAR */}
       <AnimatePresence>
         {mobileSidebar && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/80 backdrop-blur-2xl z-50 flex justify-end">
@@ -129,11 +129,9 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
         )}
       </AnimatePresence>
 
-      {/* MAIN CONTENT AREA */}
       <main className="flex-1 h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth pt-28 lg:pt-16 px-6 md:px-12 pb-60">
         <AnimatePresence mode="wait">
 
-          {/* ===================== OVERVIEW / لوحة التحكم ===================== */}
           {mainTab === 'overview' && (
             <motion.div key="ov" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-10 max-w-7xl mx-auto">
               
@@ -144,7 +142,6 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 </div>
               </div>
 
-              {/* QUICK HIGHLIGHTS */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="grand-card p-10 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 group relative overflow-hidden">
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl transition-all group-hover:scale-150" />
@@ -166,7 +163,6 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 </div>
               </div>
 
-              {/* CHARTS ROW */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
                 <div className="grand-card p-10">
                   <h3 className="text-2xl font-black mb-8 text-gray-300 border-r-4 border-emerald-500 pr-5">الدخل والمصروفات (آخر 6 أشهر)</h3>
@@ -212,11 +208,9 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
             </motion.div>
           )}
 
-          {/* ===================== FINANCE / الإدارة المالية ===================== */}
           {mainTab === 'finance' && (
             <motion.div key="fi" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-10 max-w-[1400px] mx-auto flex flex-col h-full">
               
-              {/* FIXED FINANCE HEADER (TITLE + BUTTONS + TABS) */}
               <div className="sticky top-0 z-40 bg-super-dark pt-4 pb-2 space-y-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2 transition-all">
                   <div>
@@ -239,7 +233,6 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                   </div>
                 </div>
 
-                {/* HORIZONTAL FINANCE TABS */}
                 <div className="flex overflow-x-auto gap-4 scrollbar-hide py-4 w-full border-b border-white/5 bg-super-dark/50 backdrop-blur-md">
                   {financeTabs.map(tab => (
                     <button key={tab.id} onClick={() => setFinanceTab(tab.id)} className={`relative flex items-center gap-3 px-6 py-2 rounded-full text-lg font-black transition-all whitespace-nowrap ${financeTab === tab.id ? 'text-black' : 'text-gray-500 bg-white/2 hover:text-white hover:bg-white/5'}`}>
@@ -250,7 +243,6 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 </div>
               </div>
 
-              {/* FINANCE SUB-PAGES - ADDED MIN-HEIGHT TO PREVENT LAYOUT 'RUINING' */}
               <div className="flex-1 py-8 min-h-[1000px]">
                 <AnimatePresence mode="wait">
                   
@@ -333,6 +325,29 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
 
                   {financeTab === 'wallets' && (
                     <motion.div key="fw" initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="space-y-12 pb-20">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {[
+                          { label:'إجمالي الدخل (ج.م)', val: totalIncomeEGP, cur:'EGP', col:'emerald' },
+                          { label:'إجمالي الدخل ($)', val: totalIncomeUSD, cur:'USD', col:'blue' },
+                          { label:'ما خرج لله (عطاء)', val: totalSpentGiving, cur:'EGP', col:'amber' },
+                          { label:'إجمالي الاستثمارات', val: totalSpentInvest, cur:'EGP', col:'purple' },
+                        ].map((stat, idx) => {
+                           const colors: any = {
+                             emerald: 'border-emerald-500/10 bg-emerald-500/5 text-emerald-400',
+                             blue: 'border-blue-500/10 bg-blue-500/5 text-blue-400',
+                             amber: 'border-amber-500/10 bg-amber-500/5 text-amber-400',
+                             purple: 'border-purple-500/10 bg-purple-500/5 text-purple-400',
+                           };
+                           const activeCol = colors[stat.col];
+                           return (
+                             <div key={idx} className={`grand-card p-6 border ${activeCol}`}>
+                                <p className="text-[10px] font-black uppercase mb-2 opacity-70">{stat.label}</p>
+                                <p className="text-2xl font-black text-white">{fmt(stat.val)} <span className="text-[10px] opacity-40">{stat.cur}</span></p>
+                             </div>
+                           )
+                        })}
+                      </div>
+
                        <div className="grand-card p-10 relative overflow-hidden bg-white/2 border-white/10">
                           <div className="flex items-center justify-between mb-8">
                             <div>
@@ -393,6 +408,42 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                             </div>
                           );
                         })}
+                      </div>
+
+                      {/* INCOME HISTORY LOG */}
+                      <div className="grand-card p-12 bg-white/2 border-white/10 mt-12 relative overflow-hidden">
+                        <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/5 rounded-full blur-3xl" />
+                        <h3 className="text-2xl font-black text-emerald-400 mb-8 flex items-center gap-4"><History size={28}/> سجل تدفقات الدخل (Income History)</h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-lg">
+                            <thead>
+                              <tr className="text-gray-600 border-b border-white/5 uppercase font-black text-xs tracking-widest">
+                                <th className="py-6 text-right">التفاصيل والبيان</th>
+                                <th className="py-6 text-right">المصدر</th>
+                                <th className="py-6 text-left">المبلغ الوارد</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/2">
+                              {incomes.map((inc, idx) => (
+                                <tr key={idx} className="group hover:bg-white/[0.03] transition-all">
+                                  <td className="py-6">
+                                    <div className="flex flex-col text-right">
+                                      <span className="font-black text-white text-xl">{inc.description}</span>
+                                      <span className="text-sm text-gray-700 eng-num mt-1">{new Date(inc.date).toLocaleDateString('ar-EG')}</span>
+                                    </div>
+                                  </td>
+                                  <td className="py-6 text-right">
+                                    <span className="text-emerald-400 bg-emerald-500/10 px-4 py-1 rounded-full text-sm font-black border border-emerald-500/10">{inc.source}</span>
+                                  </td>
+                                  <td className="py-6 text-left">
+                                    <div className="font-black text-2xl text-emerald-300 eng-num">+{fmt(inc.amount)} <span className="text-sm opacity-40">{inc.currency}</span></div>
+                                  </td>
+                                </tr>
+                              ))}
+                              {incomes.length === 0 && <tr><td colSpan={3} className="py-24 text-center text-gray-700 font-bold italic text-2xl">لا يوجد سجل دخل مسجل حالياً.</td></tr>}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -615,7 +666,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                       <div className="relative">
                         <label className="text-base font-black text-gray-500 mb-3 block">التصنيف المالي</label>
                         <select className="w-full bg-[#111] border-2 border-white/10 focus:border-rose-500 rounded-2xl p-5 text-xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>
-                          {['شخصي','طعام','سكن','مواصلات','ترفيه','صحة','استثمار','تعليم','أخرى'].map(c=><option className="bg-[#111] text-white" key={c}>{c}</option>)}
+                          {['شخصي','طعام','سكن','مواصلات','ترفيه','صحة','عطاء','استثمار','تعليم','أخرى'].map(c=><option className="bg-[#111] text-white" key={c}>{c}</option>)}
                         </select>
                         <ChevronLeft className="absolute left-6 bottom-6 text-gray-500 pointer-events-none -rotate-90" />
                       </div>
