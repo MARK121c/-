@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History, Plus } from 'lucide-react';
+import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History, Plus, Trash2 } from 'lucide-react';
 
 interface Props {
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
@@ -64,6 +64,18 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
     setModal(null);
     setSelectedId(null);
     window.location.reload();
+  };
+
+  const remove = async (table: string, id: number) => {
+    if (!confirm('⚠️ هل أنت متأكد من حذف هذا السجل نهائياً؟')) return;
+    setSaving(true);
+    const res = await fetch('/api/finance/delete', { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table, id }) 
+    });
+    if (res.ok) window.location.reload();
+    else setSaving(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); post(modal!, form); };
@@ -318,9 +330,14 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {assets.map((a, i) => (
                               <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:border-emerald-500/50">
-                                <button onClick={() => { setSelectedId(a.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الأصل">
-                                  <Plus size={18} />
-                                </button>
+                                <div className="absolute top-4 left-4 flex gap-2 z-10">
+                                   <button onClick={() => { setSelectedId(a.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit'); }} className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 hover:scale-110 active:scale-95 transition-all shadow-lg" title="إضافة ربح لأساس هذا الأصل">
+                                     <Plus size={18} />
+                                   </button>
+                                   <button onClick={() => remove('assets', a.id)} className="w-10 h-10 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30 hover:bg-rose-500 hover:text-white hover:scale-110 active:scale-95 transition-all shadow-lg opacity-0 group-hover:opacity-100" title="حذف الأصل">
+                                     <Trash2 size={18} />
+                                   </button>
+                                </div>
                                 <div className="mb-6">
                                   <h3 className="text-xl font-black mb-2 group-hover:text-emerald-400 transition-colors uppercase">{a.name}</h3>
                                   <span className="px-3 py-1 rounded-lg bg-white/10 text-gray-400 text-xs font-bold border border-white/5 uppercase tracking-widest">{a.type} · {a.liquidType || 'مادي'}</span>
@@ -348,7 +365,10 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                                             <p className="text-sm text-gray-500 font-bold italic">{inc.description} · <span className="eng-num">{new Date(inc.date).toLocaleDateString('ar-EG')}</span></p>
                                          </div>
                                       </div>
-                                      <p className="text-2xl font-black text-emerald-400">+{fmt(inc.amount)} <span className="text-xs opacity-40">EGP</span></p>
+                                      <div className="flex items-center gap-6">
+                                         <p className="text-2xl font-black text-emerald-400">+{fmt(inc.amount)} <span className="text-xs opacity-40">EGP</span></p>
+                                         <button onClick={() => remove('incomes', inc.id)} className="p-2 text-gray-700 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={18}/></button>
+                                      </div>
                                    </div>
                                 )) : (
                                    <div className="p-12 text-center text-gray-700 font-black italic">لا يوجد سجل أرباح بعد.. ابدأ بإضافة أول ربح للأصل لإظهار البيانات هنا.</div>
@@ -382,9 +402,14 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                               const roi = inv.roiPercentage || 0;
                               return (
                                 <div key={inv.id || i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all border-white/5 hover:border-amber-500/30">
-                                  <button onClick={() => { setSelectedId(inv.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit_inv'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الاستثمار">
-                                    <Plus size={18} />
-                                  </button>
+                                  <div className="absolute top-4 left-4 flex gap-2 z-10">
+                                    <button onClick={() => { setSelectedId(inv.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit_inv'); }} className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 hover:scale-110 active:scale-95 transition-all shadow-lg" title="إضافة ربح لهذا الاستثمار">
+                                      <Plus size={18} />
+                                    </button>
+                                    <button onClick={() => remove('investments', inv.id)} className="w-10 h-10 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30 hover:bg-rose-500 hover:text-white hover:scale-110 active:scale-95 transition-all shadow-lg opacity-0 group-hover:opacity-100" title="حذف الاستثمار">
+                                      <Trash2 size={18} />
+                                    </button>
+                                  </div>
                                   <div className="mb-6">
                                     <h3 className="text-xl font-black mb-1 group-hover:text-amber-400 transition-colors">{inv.name}</h3>
                                     <p className="text-gray-500 text-sm font-bold bg-white/5 inline-block px-3 py-0.5 rounded-lg">{inv.platform}</p>
@@ -419,7 +444,10 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                                             <p className="text-sm text-gray-500 font-bold italic">{inc.description} · <span className="eng-num">{new Date(inc.date).toLocaleDateString('ar-EG')}</span></p>
                                          </div>
                                       </div>
-                                      <p className="text-2xl font-black text-emerald-400">+{fmt(inc.amount)} <span className="text-xs opacity-40">EGP</span></p>
+                                      <div className="flex items-center gap-6">
+                                         <p className="text-2xl font-black text-emerald-400">+{fmt(inc.amount)} <span className="text-xs opacity-40">EGP</span></p>
+                                         <button onClick={() => remove('incomes', inc.id)} className="p-2 text-gray-700 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={18}/></button>
+                                      </div>
                                    </div>
                                 )) : (
                                    <div className="p-12 text-center text-gray-700 font-black italic">لا يوجد سجل أرباح استثمارية حتى الآن.</div>
@@ -450,6 +478,9 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {Array.isArray(passiveSources) && passiveSources.map((src, i) => (
                               <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all border-white/5 hover:border-blue-500/30">
+                                <button onClick={() => remove('passiveIncomeSources', src.id)} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30 hover:bg-rose-500 hover:text-white hover:scale-110 active:scale-95 transition-all shadow-lg opacity-0 group-hover:opacity-100 z-10" title="حذف مصدر الدخل">
+                                  <Trash2 size={18} />
+                                </button>
                                 <div className="mb-6">
                                   <h3 className="text-xl font-black mb-1 group-hover:text-blue-400 transition-colors uppercase">{src.source}</h3>
                                   <p className="text-gray-500 text-sm font-bold bg-white/5 inline-block px-3 py-0.5 rounded-lg italic">{src.type || 'اشتراك'}</p>
@@ -672,7 +703,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                                      <span className="text-[10px] text-gray-600 font-bold eng-num">{new Date(t.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                                    </div>
                                  </td>
-                                 <td className="py-6 text-left font-black text-2xl text-rose-400 eng-num truncate">- {fmt(t.amount)}</td>
+                                 <td className="py-6 text-left font-black text-2xl text-rose-400 eng-num truncate flex items-center justify-end gap-3">- {fmt(t.amount)} <button onClick={() => remove('transactions', t.id)} className="p-2 text-gray-700 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100" title="حذف المعاملة"><Trash2 size={18}/></button></td>
                                </tr>
                              ))}
                              {transactions.length === 0 && <tr><td colSpan={4} className="py-24 text-center text-gray-600 font-black text-3xl italic">دفتر المعاملات نظيف تماماً...</td></tr>}
@@ -703,12 +734,13 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                   {wishlist.map((w, i) => {
                     const hours = w.hoursCost || 0;
                      return (
-                       <div key={i} className={`grand-card p-10 flex flex-col justify-between group ${w.isPurchased ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
+                       <div key={i} className={`grand-card p-10 flex flex-col justify-between group relative overflow-hidden ${w.isPurchased ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
                          <div className="flex justify-between items-start mb-8">
                            <h3 className="text-4xl font-black group-hover:text-amber-400 transition-colors uppercase leading-tight">{w.name}</h3>
                            <span className={`px-5 py-2.5 font-black text-sm rounded-2xl border uppercase tracking-widest ${w.priority === 1 ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : w.priority === 2 ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-gray-500/20 text-gray-300 border-gray-500/30'}`}>
                              {w.priority === 1 ? 'أولوية قصوى' : w.priority === 2 ? 'رغبة عامة' : 'ترفيه غير ملزِم'}
                            </span>
+                            <button onClick={() => remove('wishlist', w.id)} className="p-2 text-gray-600 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100" title="حذف الأمنية"><Trash2 size={24}/></button>
                          </div>
                          
                          <p className="text-5xl font-black text-white mb-10 bg-white/3 py-6 px-8 rounded-[2rem] border border-white/5 w-max eng-num">{fmt(w.price)} <span className="text-xl text-gray-500">EGP</span></p>
