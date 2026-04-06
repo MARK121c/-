@@ -431,7 +431,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                             <h3 className="text-xl font-black text-emerald-400 mb-8 flex items-center gap-4"><History size={24}/> سجل تدفقات الدخل</h3>
                             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 scrollbar-hide">
                                {incomes.map((inc, idx) => (
-                                  <div key={idx} className="flex items-center justify-between p-4 bg-white/2 rounded-2xl border border-white/5 hover:bg-white/5 transition-all">
+                               <div key={idx} className="bg-white/2 rounded-2xl border border-white/5 hover:bg-white/5 transition-all overflow-hidden">
+                                  <div className="flex items-center justify-between p-4 border-b border-white/5">
                                      <div className="text-right">
                                         <p className="font-black text-white text-lg">{inc.description}</p>
                                         <p className="text-[10px] text-gray-600 eng-num">{new Date(inc.date).toLocaleDateString('ar-EG')}</p>
@@ -441,6 +442,20 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                                         <p className="text-[10px] text-gray-700 font-bold uppercase">{inc.source}</p>
                                      </div>
                                   </div>
+                                  <div className="px-4 py-2 flex flex-wrap gap-x-4 gap-y-1 bg-emerald-500/5">
+                                    {[
+                                      { label: 'عطاء', val: (inc.amount * (distributionSettings?.givingPercentage || 0.1)), col: 'text-emerald-400' },
+                                      { label: 'التزامات', val: (inc.amount * (distributionSettings?.obligationsPercentage || 0.2)), col: 'text-blue-400' },
+                                      { label: 'شخصي', val: (inc.amount * (distributionSettings?.personalPercentage || 0.1)), col: 'text-amber-400' },
+                                      { label: 'استثمار', val: (inc.amount * (distributionSettings?.investmentPercentage || 0.6)), col: 'text-purple-400' },
+                                    ].map(s => (
+                                      <div key={s.label} className="flex items-center gap-1.5">
+                                        <span className="text-[9px] font-black uppercase opacity-40">{s.label}</span>
+                                        <span className={`text-[10px] font-black ${s.col} eng-num`}>{fmt(s.val)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                               </div>
                                ))}
                                {incomes.length === 0 && <p className="text-center text-gray-700 py-12 italic">لا يوجد دخل مسجل.</p>}
                             </div>
