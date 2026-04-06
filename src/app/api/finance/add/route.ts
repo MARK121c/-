@@ -116,6 +116,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, hoursCost });
     }
 
+    // --- INCOME DISTRIBUTION SETTINGS ---
+    if (type === 'dist_update') {
+      const { incomeDistribution } = await import('@/backend/db/schema');
+      const existing = await db.select().from(incomeDistribution).limit(1);
+      
+      const values = {
+        givingPercentage: parseFloat(data.giving),
+        obligationsPercentage: parseFloat(data.obs),
+        personalPercentage: parseFloat(data.pers),
+        investmentPercentage: parseFloat(data.inv),
+      };
+
+      if (existing.length > 0) {
+        await db.update(incomeDistribution).set(values).where(eq(incomeDistribution.id, existing[0].id));
+      } else {
+        await db.insert(incomeDistribution).values(values);
+      }
+      return NextResponse.json({ success: true });
+    }
+
     // --- SETTINGS ---
     if (type === 'setting') {
       await setSetting(data.key, data.value);

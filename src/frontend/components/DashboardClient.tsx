@@ -134,7 +134,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
       </AnimatePresence>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth pt-24 lg:pt-8 px-6 md:px-12 pb-12">
+      <main className="flex-1 h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth pt-28 lg:pt-12 px-6 md:px-12 pb-12">
         <AnimatePresence mode="wait">
 
           {/* ===================== OVERVIEW / لوحة التحكم ===================== */}
@@ -143,8 +143,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
               
               <div className="flex items-end justify-between">
                 <div>
-                  <h2 className="text-4xl md:text-6xl font-black mb-3 flex items-center gap-4">نظرة عامة <Sparkles className="text-amber-400 md:w-12 md:h-12" /></h2>
-                  <p className="text-xl text-gray-500 bg-white/5 px-4 py-1 rounded-xl inline-block">تحياتي يا مارك، إليك ملخص حي للنظام المالي.</p>
+                  <h2 className="text-3xl md:text-5xl font-black mb-2 flex items-center gap-4">نظرة عامة <Sparkles className="text-amber-400 md:w-10 md:h-10" /></h2>
+                  <p className="text-lg text-gray-400 bg-white/5 px-4 py-1.5 rounded-xl inline-block">تحياتي يا مارك، إليك ملخص حي للنظام المالي.</p>
                 </div>
               </div>
 
@@ -152,21 +152,21 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="grand-card p-10 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 group relative overflow-hidden">
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl transition-all group-hover:scale-150" />
-                  <p className="text-emerald-400 font-black text-xl mb-3 flex items-center gap-2"><Wallet size={24}/> صافي الثروة</p>
-                  <p className="text-5xl lg:text-6xl font-black leading-none">{fmt(netWorth.totalEGP)} <span className="text-2xl text-emerald-500/50">EGP</span></p>
+                  <p className="text-emerald-400 font-black text-lg mb-2 flex items-center gap-2"><Wallet size={20}/> صافي الثروة</p>
+                  <p className="text-4xl lg:text-5xl font-black leading-none">{fmt(netWorth.totalEGP)} <span className="text-xl text-emerald-500/50">EGP</span></p>
                 </div>
                 
                 <div className="grand-card p-10 bg-rose-500/5 hover:bg-rose-500/10 border-rose-500/20 group relative overflow-hidden">
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-rose-500/10 rounded-full blur-3xl transition-all group-hover:scale-150" />
-                  <p className="text-rose-400 font-black text-xl mb-3 flex items-center gap-2"><CreditCard size={24}/> التوقع الشهري</p>
-                  <p className="text-5xl lg:text-6xl font-black leading-none">{fmt(forecast.projectedEndMonthSpent)} <span className="text-2xl text-rose-500/50">EGP</span></p>
-                  {forecast.isBankruptcyRisk && <p className="text-sm font-bold text-rose-400 mt-4 bg-rose-500/20 p-3 rounded-xl inline-block border border-rose-500/30">تحذير نفاد سيولة وشيك ⚠️</p>}
+                  <p className="text-rose-400 font-black text-lg mb-2 flex items-center gap-2"><CreditCard size={20}/> التوقع الشهري</p>
+                  <p className="text-4xl lg:text-5xl font-black leading-none">{fmt(forecast.projectedEndMonthSpent)} <span className="text-xl text-rose-500/50">EGP</span></p>
+                  {forecast.isBankruptcyRisk && <p className="text-xs font-bold text-rose-400 mt-3 bg-rose-500/20 p-2 rounded-xl inline-block border border-rose-500/30">تحذير نفاد سيولة وشيك ⚠️</p>}
                 </div>
 
                 <div className="grand-card p-10 bg-blue-500/5 hover:bg-blue-500/10 border-blue-500/20 group relative overflow-hidden">
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-3xl transition-all group-hover:scale-150" />
-                  <p className="text-blue-400 font-black text-xl mb-3 flex items-center gap-2"><Briefcase size={24}/> سعر ساعة العمل</p>
-                  <p className="text-5xl lg:text-6xl font-black leading-none">{fmt(hourlyRate)} <span className="text-2xl text-blue-500/50">EGP/hr</span></p>
+                  <p className="text-blue-400 font-black text-lg mb-2 flex items-center gap-2"><Briefcase size={20}/> سعر ساعة العمل</p>
+                  <p className="text-4xl lg:text-5xl font-black leading-none">{fmt(hourlyRate)} <span className="text-xl text-blue-500/50">EGP/hr</span></p>
                 </div>
               </div>
 
@@ -222,8 +222,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
               
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-4">
                 <div>
-                  <h2 className="text-4xl md:text-6xl font-black mb-3">النظام المالي العميق</h2>
-                  <p className="text-xl text-gray-500">إدارة مركزية لكافة الأصول، الاستثمارات، والمحافظ بذكاء فائق.</p>
+                  <h2 className="text-3xl md:text-5xl font-black mb-2">النظام المالي العميق</h2>
+                  <p className="text-lg text-gray-500 mb-2">إدارة مركزية لكافة الأصول، الاستثمارات، والمحافظ بذكاء فائق.</p>
                 </div>
                 
                 <div className="flex flex-wrap gap-3">
@@ -235,9 +235,9 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
               {/* HORIZONTAL FINANCE TABS - INSIDE COMPONENT */}
               <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide py-4 w-full border-b border-white/5">
                 {financeTabs.map(tab => (
-                  <button key={tab.id} onClick={() => setFinanceTab(tab.id)} className={`relative flex items-center gap-4 px-10 py-5 rounded-[2.5rem] text-2xl font-black transition-all whitespace-nowrap ${financeTab === tab.id ? 'text-black' : 'text-gray-500 bg-white/2 hover:text-white hover:bg-white/5'}`}>
-                    {financeTab === tab.id && <motion.div layoutId="financeTabPill" className="absolute inset-0 bg-emerald-400 rounded-[2.5rem] shadow-[0_10px_40px_rgba(16,185,129,0.3)]" style={{ originY: "0px" }} />}
-                    <span className="relative z-10 flex items-center gap-3">{tab.icon} {tab.label}</span>
+                  <button key={tab.id} onClick={() => setFinanceTab(tab.id)} className={`relative flex items-center gap-3 px-8 py-3 rounded-[2rem] text-xl font-black transition-all whitespace-nowrap ${financeTab === tab.id ? 'text-black' : 'text-gray-500 bg-white/2 hover:text-white hover:bg-white/5'}`}>
+                    {financeTab === tab.id && <motion.div layoutId="financeTabPill" className="absolute inset-0 bg-emerald-400 rounded-[2rem] shadow-[0_10px_30px_rgba(16,185,129,0.3)]" style={{ originY: "0px" }} />}
+                    <span className="relative z-10 flex items-center gap-2">{tab.icon} {tab.label}</span>
                   </button>
                 ))}
               </div>
@@ -250,12 +250,12 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                     <motion.div key="fnw" initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                       <div className="lg:col-span-3 grand-card p-12 bg-gradient-to-br from-emerald-500/10 via-super-dark to-blue-500/10 border-emerald-500/20 flex flex-col md:flex-row items-center justify-between">
                         <div>
-                          <p className="text-emerald-400 font-black text-2xl uppercase tracking-widest mb-4">صافي الثروة المجمّعة</p>
-                          <p className="text-7xl md:text-8xl font-black text-white">{fmt(netWorth.totalEGP)} <span className="text-3xl text-white/30">EGP</span></p>
+                          <p className="text-emerald-400 font-black text-xl uppercase tracking-widest mb-3">صافي الثروة المجمّعة</p>
+                          <p className="text-6xl md:text-7xl font-black text-white">{fmt(netWorth.totalEGP)} <span className="text-2xl text-white/30">EGP</span></p>
                         </div>
-                        <div className="mt-10 md:mt-0 bg-black/40 p-8 rounded-[3rem] border border-white/10 text-center shadow-xl">
-                          <p className="text-gray-500 font-bold text-lg mb-3">القيمة المعادلة بالدولار</p>
-                          <p className="text-5xl font-black text-amber-400">{fmt(netWorth.totalUSD)} <span className="text-2xl text-amber-400/40">USD</span></p>
+                        <div className="mt-8 md:mt-0 bg-black/40 p-6 rounded-[2.5rem] border border-white/10 text-center shadow-xl">
+                          <p className="text-gray-500 font-bold text-base mb-2">القيمة المعادلة بالدولار</p>
+                          <p className="text-4xl font-black text-amber-400">{fmt(netWorth.totalUSD)} <span className="text-xl text-amber-400/40">USD</span></p>
                         </div>
                       </div>
 
@@ -428,37 +428,69 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
 
           {/* ===================== SETTINGS / الإعدادات ===================== */}
           {mainTab === 'settings' && (
-            <motion.div key="se" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-12 max-w-4wxl mx-auto pb-20">
-               <h2 className="text-4xl md:text-6xl font-black mb-12 flex items-center gap-4">إعدادات النواة المركزية <Settings className="text-blue-400 md:w-12 md:h-12" /></h2>
+            <motion.div key="se" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-12 max-w-5xl mx-auto pb-20">
+               <h2 className="text-3xl md:text-5xl font-black mb-10 flex items-center gap-4">إعدادات النواة المركزية <Settings className="text-blue-400 md:w-10 md:h-10" /></h2>
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="grand-card p-12 hover:border-emerald-500/30 transition-all">
-                    <h3 className="text-2xl font-black mb-8 text-emerald-400 flex items-center gap-3">سعر الصرف العالمي (EGP/USD)</h3>
+                  <div className="grand-card p-10 hover:border-emerald-500/30 transition-all">
+                    <h3 className="text-xl font-black mb-6 text-emerald-400 flex items-center gap-3">سعر الصرف العالمي (EGP/USD)</h3>
                     <div className="flex gap-4">
-                      <input type="number" className="flex-1 bg-black/40 border-2 border-white/10 rounded-[2rem] p-8 text-6xl font-black eng-num focus:border-emerald-500 outline-none transition-all" defaultValue={settings.usdRate} onBlur={e => post('setting', { key: 'usd_rate', value: e.target.value })} />
+                      <input type="number" className="flex-1 bg-black/40 border-2 border-white/10 rounded-2xl p-6 text-4xl font-black eng-num focus:border-emerald-500 outline-none transition-all" defaultValue={settings.usdRate} onBlur={e => post('setting', { key: 'usd_rate', value: e.target.value })} />
                     </div>
-                    <p className="mt-4 text-gray-500 font-bold">يؤثر هذا السعر على جميع الحسابات التقويمية بالنظام.</p>
                   </div>
 
-                  <div className="grand-card p-12 flex flex-col justify-between hover:border-rose-500/30 transition-all">
+                  <div className="grand-card p-10 flex flex-col justify-between hover:border-rose-500/30 transition-all">
                     <div>
-                      <h3 className="text-2xl font-black mb-3 text-rose-400 flex items-center gap-3"><AlertTriangle size={24}/> وضع الهياج المالي (Panic)</h3>
-                      <p className="text-gray-500 font-bold text-lg leading-relaxed">تفعيل وضع الطوارئ يغير الواجهة للتحذير من أي فاقد مالي ويقيد توقعات الثروة.</p>
+                      <h3 className="text-xl font-black mb-2 text-rose-400 flex items-center gap-3"><AlertTriangle size={20}/> وضع الهياج المالي (Panic)</h3>
+                      <p className="text-gray-500 font-bold text-sm leading-relaxed">تفعيل وضع الطوارئ يغير الواجهة للتحذير ويقيد التوقعات.</p>
                     </div>
-                    <div className="flex items-center gap-6 mt-10">
-                      <button onClick={() => { setPanic(!panic); post('setting', { key: 'is_panic', value: !panic ? '1' : '0' }); }} className={`shrink-0 w-32 h-16 rounded-full relative transition-all duration-500 shadow-2xl ${panic ? 'bg-rose-500 shadow-[0_0_50px_rgba(244,63,94,0.4)]' : 'bg-gray-800'}`}>
-                          <motion.div layout className={`absolute top-2 bottom-2 w-12 bg-white rounded-full ${panic ? 'right-2' : 'left-2'}`} />
+                    <div className="flex items-center gap-4 mt-8">
+                      <button onClick={() => { setPanic(!panic); post('setting', { key: 'is_panic', value: !panic ? '1' : '0' }); }} className={`shrink-0 w-20 h-10 rounded-full relative transition-all duration-500 shadow-2xl ${panic ? 'bg-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.4)]' : 'bg-gray-800'}`}>
+                          <motion.div layout className={`absolute top-1 bottom-1 w-8 bg-white rounded-full ${panic ? 'right-1' : 'left-1'}`} />
                       </button>
-                      <span className={`text-2xl font-black ${panic ? 'text-rose-400' : 'text-gray-600'}`}>{panic ? 'نشط - تقشف' : 'غير مفعّل'}</span>
+                      <span className={`text-xl font-black ${panic ? 'text-rose-400' : 'text-gray-600'}`}>{panic ? 'نشط' : 'غير مفعّل'}</span>
                     </div>
                   </div>
                </div>
 
-               <div className="grand-card p-12 border-blue-500/10 hover:border-blue-500/30 transition-all">
-                 <h3 className="text-2xl font-black mb-6 text-blue-400 flex items-center gap-3"><ExternalLink size={24}/> مستودع بيانات Notion</h3>
-                 <div className="flex flex-col md:flex-row gap-6">
-                   <input type="url" placeholder="https://notion.so/..." className="flex-1 bg-black/40 border-2 border-white/10 rounded-[2rem] p-8 text-xl font-bold focus:border-blue-500 outline-none transition-all eng-num" value={notionUrl} onChange={e => setNotionUrl(e.target.value)} />
-                   <button onClick={() => post('setting', { key: 'notion_url', value: notionUrl })} className="mega-action-btn bg-blue-500/20 text-blue-300 border border-blue-500/30 px-12 h-[88px] text-2xl"><Save size={28}/> حفظ المستودع</button>
+               {/* Wallet Distribution Control */}
+               <div className="grand-card p-10 border-purple-500/10 hover:border-purple-500/30 transition-all">
+                 <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="text-xl font-black text-purple-400 flex items-center gap-3"><Gem size={24}/> نسب توزيع الدخل (المحافظ)</h3>
+                      <p className="text-gray-500 font-bold text-base">تحكم في كيفية تقسيم الدخل القادم تلقائياً إلى محافظك.</p>
+                    </div>
+                    <button onClick={() => post('dist_update', {
+                        giving: (document.getElementById('dist-giving') as HTMLInputElement).value,
+                        obs: (document.getElementById('dist-obs') as HTMLInputElement).value,
+                        pers: (document.getElementById('dist-pers') as HTMLInputElement).value,
+                        inv: (document.getElementById('dist-inv') as HTMLInputElement).value,
+                    })} className="mega-action-btn bg-purple-500/20 text-purple-300 border border-purple-500/30 px-8 py-3 text-lg"><Save size={20}/> حفظ التوزيع</button>
+                 </div>
+                 
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    {[
+                      { id: 'dist-giving', label: 'عطاء (لله)', val: distributionSettings.givingPercentage, col: 'emerald' },
+                      { id: 'dist-obs', label: 'التزامات', val: distributionSettings.obligationsPercentage, col: 'blue' },
+                      { id: 'dist-pers', label: 'شخصي', val: distributionSettings.personalPercentage, col: 'amber' },
+                      { id: 'dist-inv', label: 'استثمار', val: distributionSettings.investmentPercentage, col: 'purple' },
+                    ].map(d => (
+                       <div key={d.id} className="bg-white/5 p-5 rounded-2xl border border-white/5">
+                         <label className={`block text-sm font-black text-${d.col}-400 mb-2`}>{d.label}</label>
+                         <div className="relative">
+                            <input id={d.id} type="number" step="0.01" className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-2xl font-black eng-num focus:border-white transition-all text-center" defaultValue={d.val} />
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 font-black">%</span>
+                         </div>
+                       </div>
+                    ))}
+                 </div>
+               </div>
+
+               <div className="grand-card p-10 border-blue-500/10 hover:border-blue-500/30 transition-all">
+                 <h3 className="text-xl font-black mb-6 text-blue-400 flex items-center gap-3"><ExternalLink size={20}/> مستودع بيانات Notion</h3>
+                 <div className="flex flex-col md:flex-row gap-4">
+                   <input type="url" placeholder="https://notion.so/..." className="flex-1 bg-black/40 border-2 border-white/10 rounded-2xl p-6 text-base font-bold focus:border-blue-500 outline-none transition-all eng-num" value={notionUrl} onChange={e => setNotionUrl(e.target.value)} />
+                   <button onClick={() => post('setting', { key: 'notion_url', value: notionUrl })} className="mega-action-btn bg-blue-500/20 text-blue-300 border border-blue-500/30 px-10 h-16 text-xl"><Save size={24}/> حفظ الرابط</button>
                  </div>
                </div>
 
@@ -501,6 +533,10 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 {/* Item Identity */}
                 {['asset','investment','wishlist','income','transaction'].includes(modal) && (
                   <div>
+                    <select className="w-full bg-super-dark border-2 border-white/10 focus:border-blue-500 rounded-3xl p-6 text-3xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.currency} onChange={e=>setForm({...form,currency:e.target.value})}>
+                      <option className="bg-super-dark" value="EGP">EGP - جنيه مصري</option>
+                      <option className="bg-super-dark" value="USD">USD - دولار أمريكي</option>
+                    </select>
                     <label className="text-2xl font-black text-gray-500 mb-4 block">{['transaction','income'].includes(modal) ? 'بيان المعاملة (السبب)' : 'اسم العنصر / الكيان'}</label>
                     <input required type="text" className="w-full bg-white/5 border-2 border-white/10 focus:border-emerald-500 rounded-[2.5rem] p-8 text-3xl font-black outline-none transition-all" value={['transaction','income'].includes(modal) ? form.description : form.name} onChange={e=>setForm({...form, [['transaction','income'].includes(modal)?'description':'name']:e.target.value})} placeholder="..." />
                   </div>
@@ -521,8 +557,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                     {modal==='transaction' && (
                       <div className="relative">
                         <label className="text-xl font-black text-gray-500 mb-4 block">التصنيف المالي</label>
-                        <select className="w-full bg-white/5 border-2 border-white/10 focus:border-rose-500 rounded-3xl p-6 text-3xl font-black outline-none transition-all appearance-none cursor-pointer" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>
-                          {['شخصي','طعام','سكن','مواصلات','ترفيه','صحة','استثمار','تعليم','أخرى'].map(c=><option key={c}>{c}</option>)}
+                        <select className="w-full bg-super-dark border-2 border-white/10 focus:border-rose-500 rounded-3xl p-6 text-3xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>
+                          {['شخصي','طعام','سكن','مواصلات','ترفيه','صحة','استثمار','تعليم','أخرى'].map(c=><option className="bg-super-dark" key={c}>{c}</option>)}
                         </select>
                         <ChevronLeft className="absolute left-6 bottom-8 text-gray-500 pointer-events-none -rotate-90" />
                       </div>
@@ -531,10 +567,10 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                     {modal==='asset' && (
                       <div className="relative">
                          <label className="text-xl font-black text-gray-500 mb-4 block">سيولة الأصل</label>
-                        <select className="w-full bg-white/5 border-2 border-white/10 focus:border-blue-500 rounded-3xl p-6 text-3xl font-black outline-none transition-all appearance-none cursor-pointer" value={form.liquidType} onChange={e=>setForm({...form,liquidType:e.target.value})}>
-                          <option value="سائل">كاش / بنك (سيولة)</option>
-                          <option value="مادي">أصل مادي (ذهب/عقار)</option>
-                          <option value="رقمي">أصول مشفرة (Crypto)</option>
+                        <select className="w-full bg-super-dark border-2 border-white/10 focus:border-blue-500 rounded-3xl p-6 text-3xl font-black outline-none transition-all appearance-none cursor-pointer text-white" value={form.liquidType} onChange={e=>setForm({...form,liquidType:e.target.value})}>
+                          <option className="bg-super-dark" value="سائل">كاش / بنك (سيولة)</option>
+                          <option className="bg-super-dark" value="مادي">أصل مادي (ذهب/عقار)</option>
+                          <option className="bg-super-dark" value="رقمي">أصول مشفرة (Crypto)</option>
                         </select>
                         <ChevronLeft className="absolute left-6 bottom-8 text-gray-500 pointer-events-none -rotate-90" />
                       </div>
