@@ -42,6 +42,23 @@ export async function distributeIncome(amount: number) {
   return splits;
 }
 
+// --- WALLET DEDUCTION ENGINE ---
+export async function deductFromWallet(amount: number, category: string) {
+  let walletId = 'obligations'; // Default
+  if (category === 'عطاء' || category === 'شخصي لله') walletId = 'giving';
+  if (category === 'استثمار') walletId = 'investment';
+  if (category === 'شخصي' || category === 'ترفيه') walletId = 'personal';
+
+  const wallet = await db.select().from(wallets).where(eq(wallets.id, walletId));
+  const currentBalance = wallet[0]?.balance ?? 0;
+  
+  await db.update(wallets)
+    .set({ balance: currentBalance - amount })
+    .where(eq(wallets.id, walletId));
+  
+  return { success: true, walletId, deducted: amount };
+}
+
 // --- NET WORTH CALCULATOR ---
 // Formula: Assets + Investments + (Passive Income * 12)
 export async function calculateNetWorth(
@@ -77,12 +94,18 @@ export async function calculateNetWorth(
   const totalPassiveAnnual = (passiveIncomeMonthly + passiveIncomeData) * 12;
   const totalEGP = assetsTotal + investmentsTotal + totalPassiveAnnual;
 
+  // New: Net Liquid Profit (Total Income - Total Expenses)
+  const incomeRes = await db.select({ total: sql<number>`coalesce(sum(amount), 0)` }).from(incomes);
+  const expenseRes = await db.select({ total: sql<number>`coalesce(sum(amount), 0)` }).from(transactions);
+  const netLiquidProfit = (incomeRes[0]?.total ?? 0) - (expenseRes[0]?.total ?? 0);
+
   return {
     totalEGP,
     assetsTotal,
     investmentsTotal,
     passiveIncomeMonthly: passiveIncomeMonthly + passiveIncomeData,
     passiveIncomeAnnual: totalPassiveAnnual,
+    netLiquidProfit,
   };
 }
 

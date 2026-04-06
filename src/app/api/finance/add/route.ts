@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/backend/db';
 import { transactions, assets, incomes, settings, investments, passiveIncomeSources, workTracking, wishlist } from '@/backend/db/schema';
-import { distributeIncome, calcHoursCost, calculateHourlyRate, setSetting } from '@/backend/lib/finance';
+import { distributeIncome, calcHoursCost, calculateHourlyRate, setSetting, deductFromWallet } from '@/backend/lib/finance';
 import { eq } from 'drizzle-orm';
 
 export async function POST(request: Request) {
@@ -11,16 +11,23 @@ export async function POST(request: Request) {
 
     // --- TRANSACTION ---
     if (type === 'transaction') {
+      const amount = parseFloat(data.amount);
+      const category = data.category || 'شخصي';
+      
       await db.insert(transactions).values({
-        amount: parseFloat(data.amount),
+        amount,
         currency: 'EGP',
-        category: data.category || 'شخصي',
+        category,
         description: data.description || '',
         method: data.method || 'كاش',
         status: data.status || 'تم الصرف',
         isEssential: data.isEssential !== false,
         date: new Date().toISOString(),
       });
+
+      // Deduct from wallet
+      await deductFromWallet(amount, category);
+
       return NextResponse.json({ success: true });
     }
 

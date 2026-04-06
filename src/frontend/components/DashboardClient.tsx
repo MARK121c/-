@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History } from 'lucide-react';
+import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History, Plus } from 'lucide-react';
 
 interface Props {
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
@@ -46,6 +46,15 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
   const [notionUrl, setNotionUrl] = useState(settings.notionUrl);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>({ amount:'', currency:'EGP', description:'', name:'', category:'شخصي', method:'كاش', source:'عام', hours:'', date: new Date().toISOString().split('T')[0], assetType:'كاش', liquidType:'سائل', initialValue:'', currentValue:'', platform:'', price:'', priority:'1', profitAmount:'', duration:'' });
+  
+  // Last Income Split Calculation
+  const lastIncome = incomes?.[0]; // incomes are desc by date
+  const lastSplits = lastIncome ? {
+    giving: lastIncome.amount * (distributionSettings?.givingPercentage || 0.1),
+    obligations: lastIncome.amount * (distributionSettings?.obligationsPercentage || 0.2),
+    personal: lastIncome.amount * (distributionSettings?.personalPercentage || 0.1),
+    investment: lastIncome.amount * (distributionSettings?.investmentPercentage || 0.6),
+  } : null;
   const [selectedId, setSelectedId] = useState<number|string|null>(null);
 
   const post = async (type: string, data: any) => {
@@ -174,8 +183,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
 
                 <div className="grand-card p-10 bg-blue-500/5 hover:bg-blue-500/10 border-blue-500/20 group relative overflow-hidden">
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-3xl transition-all group-hover:scale-150" />
-                  <p className="text-blue-400 font-black text-base mb-1 flex items-center gap-2"><Briefcase size={18}/> سعر ساعة العمل</p>
-                  <p className="text-3xl lg:text-4xl font-black leading-none">{fmt(hourlyRate)} <span className="text-lg text-blue-500/50">EGP/hr</span></p>
+                  <p className="text-blue-400 font-black text-base mb-1 flex items-center gap-2"><Briefcase size={18}/> صافي الربح السائل</p>
+                  <p className="text-3xl lg:text-4xl font-black leading-none">{fmt(netWorth.netLiquidProfit)} <span className="text-lg text-blue-500/50">EGP</span></p>
                 </div>
               </div>
 
@@ -291,7 +300,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                         {assets.map((a, i) => (
                           <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:border-emerald-500/50">
                             <button onClick={() => { setSelectedId(a.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الأصل">
-                              <Gem size={18} />
+                              <Plus size={18} />
                             </button>
                             <div className="mb-6">
                               <h3 className="text-xl font-black mb-2 group-hover:text-emerald-400 transition-colors uppercase">{a.name}</h3>
@@ -313,7 +322,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                           return (
                             <div key={i} className="grand-card p-8 flex flex-col justify-between group relative overflow-hidden hover:scale-[1.02] transition-all">
                               <button onClick={() => { setSelectedId(inv.id); setForm({ ...form, profitAmount: '', duration: '' }); setModal('profit_inv'); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 hover:scale-110 active:scale-95 transition-all z-10 shadow-lg" title="إضافة ربح لهذا الاستثمار">
-                                <Activity size={18} />
+                                <Plus size={18} />
                               </button>
                               <div className="mb-6">
                                 <h3 className="text-xl font-black mb-1">{inv.name}</h3>
@@ -412,13 +421,20 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                           ];
                           const col = cols[idx];
                           const wallet = wallets?.find((w:any) => w.id === wIds[idx]);
+                          const lastSplitVal = lastSplits ? (lastSplits as any)[wIds[idx]] : 0;
                           return (
                             <div key={idx} className={`grand-card p-6 border ${col.flat} transition-all hover:scale-[1.02]`}>
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${col.icon}`}>
-                                 <Gem size={20} />
+                              <div className="flex justify-between items-start mb-4">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${col.icon}`}>
+                                   <Gem size={20} />
+                                </div>
+                                <div className="text-left">
+                                  <p className="text-[10px] opacity-40 font-black uppercase">إجمالي الرصيد</p>
+                                  <p className="text-sm font-black text-white/60">{fmt(wallet?.balance || 0)}</p>
+                                </div>
                               </div>
-                              <h3 className="text-2xl font-black text-white mb-1">{fmt(wallet?.balance || 0)}</h3>
-                              <p className="text-xs font-bold uppercase tracking-widest opacity-60">{name}</p>
+                              <h3 className="text-3xl font-black text-white mb-1 group-hover:scale-110 transition-transform">+{fmt(lastSplitVal)}</h3>
+                              <p className="text-xs font-bold uppercase tracking-widest opacity-60">{name} (آخر إيداع)</p>
                             </div>
                           );
                         })}
