@@ -130,7 +130,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
       </AnimatePresence>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth pt-28 lg:pt-12 px-6 md:px-12 pb-12">
+      <main className="flex-1 h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth pt-28 lg:pt-16 px-6 md:px-12 pb-60">
         <AnimatePresence mode="wait">
 
           {/* ===================== OVERVIEW / لوحة التحكم ===================== */}
@@ -237,8 +237,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 </div>
               </div>
 
-              {/* HORIZONTAL FINANCE TABS - INSIDE COMPONENT */}
-              <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide py-4 w-full border-b border-white/5">
+              {/* HORIZONTAL FINANCE TABS - STICKY TO PREVENT DISAPPEARING */}
+              <div className="sticky top-0 z-30 bg-super-dark/80 backdrop-blur-xl flex overflow-x-auto gap-4 pb-4 scrollbar-hide py-6 w-full border-b border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
                 {financeTabs.map(tab => (
                   <button key={tab.id} onClick={() => setFinanceTab(tab.id)} className={`relative flex items-center gap-3 px-8 py-3 rounded-[2rem] text-xl font-black transition-all whitespace-nowrap ${financeTab === tab.id ? 'text-black' : 'text-gray-500 bg-white/2 hover:text-white hover:bg-white/5'}`}>
                     {financeTab === tab.id && <motion.div layoutId="financeTabPill" className="absolute inset-0 bg-emerald-400 rounded-[2rem] shadow-[0_10px_30px_rgba(16,185,129,0.3)]" style={{ originY: "0px" }} />}
@@ -247,8 +247,8 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 ))}
               </div>
 
-              {/* FINANCE SUB-PAGES */}
-              <div className="flex-1 py-8">
+              {/* FINANCE SUB-PAGES - ADDED MIN-HEIGHT TO PREVENT LAYOUT 'RUINING' */}
+              <div className="flex-1 py-8 min-h-[1000px]">
                 <AnimatePresence mode="wait">
                   
                   {financeTab === 'networth' && (
