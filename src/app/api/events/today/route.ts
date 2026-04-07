@@ -18,6 +18,7 @@ export async function GET() {
       SELECT e.*, p.name as person_name 
       FROM events e 
       LEFT JOIN people p ON e.person_id = p.id
+      ORDER BY e.date ASC, e.time ASC
     `);
 
     const payload = res.rows.map((r: any) => {
@@ -25,6 +26,10 @@ export async function GET() {
       const title = r.title;
       const type = r.type;
       const date = r.date;
+      const time = r.time;
+      const endTime = r.end_time;
+      const priority = r.priority || 'medium';
+      const status = r.status || 'upcoming';
       const repeat = r.repeat;
       const personName = r.person_name;
       const reminderBeforeDays = r.reminder_before_days;
@@ -38,7 +43,6 @@ export async function GET() {
 
       if (repeat === 'yearly') {
          isToday = (eventMonth === currentMonth && eventDay === currentDay);
-         // Calculate days until next occurrence
          const nextOccur = new Date(today.getFullYear(), eventMonth - 1, eventDay);
          if (nextOccur < today && !isToday) {
             nextOccur.setFullYear(today.getFullYear() + 1);
@@ -57,7 +61,7 @@ export async function GET() {
       }
 
       return {
-        id, title, type, date, repeat, personName, reminderBeforeDays,
+        id, title, type, date, time, endTime, priority, status, repeat, personName, reminderBeforeDays,
         isToday,
         daysUntil: daysUntil < 0 ? 0 : daysUntil
       };
@@ -66,7 +70,7 @@ export async function GET() {
     const todayEvents = payload.filter(e => e.isToday);
     const upcomingEvents = payload.filter(e => !e.isToday && e.daysUntil > 0 && e.daysUntil <= 30).sort((a,b) => a.daysUntil - b.daysUntil);
 
-    return NextResponse.json({ todayEvents, upcomingEvents });
+    return NextResponse.json({ todayEvents, upcomingEvents, allEvents: payload });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
