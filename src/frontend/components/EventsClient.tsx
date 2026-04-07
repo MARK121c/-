@@ -107,12 +107,13 @@ export default function EventsClient() {
     try {
       const pData = await api.getPeople();
       const eData = await api.getEvents();
+      console.log('Fetched data:', { people: pData.people, today: eData.todayEvents });
       setPeople(pData.people || []);
       setTodayEvents(eData.todayEvents || []);
       setUpcomingEvents(eData.upcomingEvents || []);
       setAllEvents(eData.allEvents || []);
     } catch (e) {
-      console.error(e);
+      console.error('Error loading data:', e);
     }
     setLoading(false);
   }, []);
@@ -123,17 +124,32 @@ export default function EventsClient() {
 
   const handleAddPerson = async (e: React.FormEvent) => {
     e.preventDefault();
-    await api.addPerson(personForm);
-    setShowAddPerson(false);
-    setPersonForm({ name: '', relationship: 'friend', notes: '', importanceLevel: 3 });
-    loadData();
+    console.log('Adding person:', personForm);
+    try {
+      const res = await api.addPerson(personForm);
+      if (!res.ok) throw new Error('Failed to add person');
+      setShowAddPerson(false);
+      setPersonForm({ name: '', relationship: 'friend', notes: '', importanceLevel: 3 });
+      loadData();
+    } catch (err) {
+      console.error('Error adding person:', err);
+      alert('خطأ في إضافة الشخص');
+    }
   };
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    await api.addEvent({ ...eventForm, personId: eventForm.personId ? parseInt(eventForm.personId) : null });
-    setShowAddEvent(false);
-    loadData();
+    console.log('Adding event:', eventForm);
+    try {
+      const payload = { ...eventForm, personId: eventForm.personId ? parseInt(eventForm.personId) : null };
+      const res = await api.addEvent(payload);
+      if (!res.ok) throw new Error('Failed to add event');
+      setShowAddEvent(false);
+      loadData();
+    } catch (err) {
+      console.error('Error adding event:', err);
+      alert('خطأ في إضافة الموعد');
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -186,9 +202,9 @@ export default function EventsClient() {
                <Timer size={120} />
             </div>
             
-            <div className="relative z-10">
-               <h2 className="text-4xl font-black mb-10 flex items-center gap-4">
-                  Live Timeline <span className="text-blue-400 eng-num text-xl opacity-60">Today's Pulse</span>
+            <div className="relative z-10 text-right" dir="rtl">
+               <h2 className="text-4xl font-black mb-10 flex items-center justify-end gap-4">
+                  <span className="text-blue-400 eng-num text-xl opacity-60">نبض اليوم</span> الجدول الزمني الحي
                </h2>
                
                <div className="flex flex-col gap-6">
@@ -244,17 +260,22 @@ export default function EventsClient() {
 
       {/* 🧭 NAVIGATION TABS */}
       <div className="flex items-center justify-between mb-8 px-4">
-         <div className="flex gap-2 p-2 bg-gray-900 border border-white/5 rounded-3xl">
-            <button onClick={() => setActiveTab('timeline')} className={`px-8 py-3 rounded-2xl font-black transition-all ${activeTab === 'timeline' ? 'bg-blue-500 text-black shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:text-white'}`}>Timeline</button>
-            <button onClick={() => setActiveTab('calendar')} className={`px-8 py-3 rounded-2xl font-black transition-all ${activeTab === 'calendar' ? 'bg-blue-500 text-black shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:text-white'}`}>Calendar</button>
+         <div className="flex gap-2 p-2 bg-gray-900 border border-white/5 rounded-3xl" dir="rtl">
+            <button onClick={() => setActiveTab('timeline')} className={`px-8 py-3 rounded-2xl font-black transition-all ${activeTab === 'timeline' ? 'bg-blue-500 text-black shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:text-white'}`}>الجدول الزمني</button>
+            <button onClick={() => setActiveTab('calendar')} className={`px-8 py-3 rounded-2xl font-black transition-all ${activeTab === 'calendar' ? 'bg-blue-500 text-black shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:text-white'}`}>التقويم</button>
          </div>
          
          {activeTab === 'timeline' && (
-           <div className="flex gap-4 items-center">
-              <span className="text-xs font-black text-gray-500 uppercase tracking-widest hidden md:block">Filter by type:</span>
+           <div className="flex gap-4 items-center" dir="rtl">
+              <span className="text-xs font-black text-gray-500 uppercase tracking-widest hidden md:block">تصفية حسب:</span>
               <div className="flex gap-2">
-                 {['all', 'meeting', 'personal', 'reminder'].map(f => (
-                   <button key={f} className="px-4 py-2 bg-gray-900 border border-white/5 rounded-xl text-xs font-black hover:border-blue-500 transition-all uppercase">{f}</button>
+                 {[
+                   { id: 'all', label: 'الكل' },
+                   { id: 'meeting', label: 'اجتماع' },
+                   { id: 'personal', label: 'شخصي' },
+                   { id: 'reminder', label: 'تذكير' }
+                 ].map(f => (
+                   <button key={f.id} className="px-4 py-2 bg-gray-900 border border-white/5 rounded-xl text-xs font-black hover:border-blue-500 transition-all uppercase">{f.label}</button>
                  ))}
               </div>
            </div>
@@ -266,13 +287,16 @@ export default function EventsClient() {
         {activeTab === 'timeline' && (
           <motion.div key="tm" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-12">
              {/* Dynamic Grouping by Date */}
-             {['Next 7 Days', 'Next 30 Days'].map(group => (
-               <div key={group} className="space-y-6">
-                  <h3 className="text-xl font-black text-gray-500 flex items-center gap-3 px-4">
-                    <History size={18}/> {group}
+             {[
+               { id: '7', label: 'الـ 7 أيام القادمة', days: 7 },
+               { id: '30', label: 'الـ 30 يوماً القادمة', days: 30 }
+             ].map(group => (
+               <div key={group.id} className="space-y-6" dir="rtl">
+                  <h3 className="text-xl font-black text-gray-500 flex items-center justify-start gap-3 px-4">
+                    <History size={18}/> {group.label}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {upcomingEvents.filter(e => group === 'Next 7 Days' ? e.daysUntil! <= 7 : e.daysUntil! > 7).map(e => (
+                    {upcomingEvents.filter(e => group.days === 7 ? e.daysUntil! <= 7 : e.daysUntil! > 7).map(e => (
                       <div key={e.id} className="grand-card p-8 bg-gray-950/40 border-white/5 hover:border-blue-500/40 group transition-all">
                          <div className="flex justify-between mb-6">
                             <div className="p-3 bg-gray-900 rounded-xl text-blue-400"><CalendarIcon size={20}/></div>
@@ -302,9 +326,9 @@ export default function EventsClient() {
         )}
 
         {activeTab === 'calendar' && (
-           <motion.div key="cal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grand-card bg-gray-950/50 border-white/10 p-12 overflow-hidden relative">
+           <motion.div key="cal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grand-card bg-gray-950/50 border-white/10 p-12 overflow-hidden relative" dir="rtl">
               <div className="flex justify-between items-center mb-10">
-                 <h2 className="text-3xl font-black">Calendar View</h2>
+                 <h2 className="text-3xl font-black">عرض التقويم</h2>
                  <div className="flex gap-2">
                     <button onClick={() => setCalendarView('monthly')} className={`p-3 rounded-xl transition-all ${calendarView === 'monthly' ? 'bg-blue-500 text-black' : 'bg-gray-900 text-gray-500'}`}><Grid size={20}/></button>
                     <button onClick={() => setCalendarView('weekly')} className={`p-3 rounded-xl transition-all ${calendarView === 'weekly' ? 'bg-blue-500 text-black' : 'bg-gray-900 text-gray-500'}`}><List size={20}/></button>
@@ -312,7 +336,7 @@ export default function EventsClient() {
               </div>
               
               <div className="grid grid-cols-7 gap-4">
-                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="text-center text-xs font-black text-gray-600 uppercase mb-4">{d}</div>)}
+                 {['أحد', 'ثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'].map(d => <div key={d} className="text-center text-xs font-black text-gray-600 uppercase mb-4">{d}</div>)}
                  {[...Array(35)].map((_, i) => {
                     const day = i - 4; // Mock logic for simplicity
                     const isToday = day === new Date().getDate();
@@ -327,7 +351,7 @@ export default function EventsClient() {
               </div>
               
               <div className="absolute inset-0 flex items-center justify-center bg-gray-950/40 backdrop-blur-[2px]">
-                 <div className="bg-gray-900 px-8 py-3 rounded-2xl border border-white/10 font-black text-gray-500 shadow-2xl">Calendar Engine Coming Soon...</div>
+                 <div className="bg-gray-900 px-8 py-3 rounded-2xl border border-white/10 font-black text-gray-500 shadow-2xl">محرك التقويم قيد التطوير...</div>
               </div>
            </motion.div>
         )}
@@ -388,9 +412,9 @@ export default function EventsClient() {
                        <div>
                           <label className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3 block">الأهمية</label>
                           <select value={eventForm.priority} onChange={e => setEventForm({...eventForm, priority: e.target.value as any})} className="w-full bg-white/5 border border-white/5 p-4 rounded-2xl font-black text-lg">
-                             <option value="low">Low</option>
-                             <option value="medium">Medium</option>
-                             <option value="high">Critical</option>
+                             <option value="low">منخفضة</option>
+                             <option value="medium">متوسطة</option>
+                             <option value="high">حرج</option>
                           </select>
                        </div>
                     </div>
