@@ -29,6 +29,13 @@ export async function ensureTables() {
     await client.execute(`CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, status TEXT DEFAULT 'pending', type TEXT DEFAULT 'inbox', priority TEXT DEFAULT 'medium', estimated_time INTEGER DEFAULT 30, day_of_week INTEGER, position INTEGER DEFAULT 0, is_sub_task INTEGER DEFAULT 0, date TEXT NOT NULL, completed_at TEXT)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS daily_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL UNIQUE, completed_tasks INTEGER DEFAULT 0, total_tasks INTEGER DEFAULT 0, completed_core INTEGER DEFAULT 0, focus_score INTEGER DEFAULT 0, streak_day INTEGER DEFAULT 0, closed_at TEXT)`);
 
+    // 6. Routine & Lifestyle OS tables
+    await client.execute(`CREATE TABLE IF NOT EXISTS routines (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, type TEXT DEFAULT 'daily', category TEXT DEFAULT 'health', is_active INTEGER DEFAULT 1, days_of_week TEXT, created_at TEXT NOT NULL)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS routine_steps (id INTEGER PRIMARY KEY AUTOINCREMENT, routine_id INTEGER NOT NULL, step_name TEXT NOT NULL, step_order INTEGER DEFAULT 0, estimated_time INTEGER DEFAULT 5, is_required INTEGER DEFAULT 1, product_id INTEGER)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS routine_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL UNIQUE, daily_score INTEGER DEFAULT 0, streak INTEGER DEFAULT 0)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS routine_step_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, routine_id INTEGER NOT NULL, step_id INTEGER NOT NULL, date TEXT NOT NULL, completed INTEGER DEFAULT 0)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS grooming_products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, category TEXT DEFAULT 'Skincare', quantity INTEGER DEFAULT 1, start_date TEXT, expiry_date TEXT, estimated_duration_days INTEGER DEFAULT 30, usage_per_day REAL DEFAULT 1.0, reminder_days_before INTEGER DEFAULT 10, linked_routines TEXT, status TEXT DEFAULT 'active')`);
+
     // 4. Seed default wallets if missing
     const walletCheck = await client.execute(`SELECT id FROM wallets LIMIT 1`);
     if (walletCheck.rows.length === 0) {
