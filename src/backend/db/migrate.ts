@@ -91,6 +91,11 @@ export async function ensureTables() {
     await addIfMissing('wishlist', 'hours_cost', `ALTER TABLE wishlist ADD COLUMN hours_cost REAL DEFAULT 0`);
     await addIfMissing('wishlist', 'is_purchased', `ALTER TABLE wishlist ADD COLUMN is_purchased INTEGER DEFAULT 0`);
 
+    await addIfMissing('events', 'time', `ALTER TABLE events ADD COLUMN time TEXT`);
+    await addIfMissing('events', 'end_time', `ALTER TABLE events ADD COLUMN end_time TEXT`);
+    await addIfMissing('events', 'priority', `ALTER TABLE events ADD COLUMN priority TEXT DEFAULT 'medium'`);
+    await addIfMissing('events', 'status', `ALTER TABLE events ADD COLUMN status TEXT DEFAULT 'upcoming'`);
+
     logs.push('DONE: All tables verified');
     return { success: true, logs };
   } catch (error: any) {
