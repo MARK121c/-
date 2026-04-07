@@ -9,7 +9,7 @@ const getClient = () => createClient({ url: process.env.DATABASE_URL || 'file:./
 export async function GET() {
   const client = getClient();
   try {
-    const res = await client.execute(`SELECT * FROM events ORDER BY date ASC`);
+    const res = await client.execute(`SELECT * FROM events ORDER BY date ASC, time ASC`);
     return NextResponse.json({ events: res.rows });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -19,12 +19,30 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const client = getClient();
   const body = await req.json();
-  const { title, type, date, repeat, personId, reminderBeforeDays, notes } = body;
+  const { title, type, date, time, endTime, repeat, priority = 'medium', personId, reminderBeforeDays, notes } = body;
 
   try {
     await client.execute({
-      sql: `INSERT INTO events (title, type, date, repeat, person_id, reminder_before_days, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      args: [title, type, date, repeat, personId, reminderBeforeDays, notes]
+      sql: `INSERT INTO events (title, type, date, time, end_time, repeat, priority, status, person_id, reminder_before_days, notes) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'upcoming', ?, ?, ?)`,
+      args: [title, type, date, time, endTime, repeat, priority, personId, reminderBeforeDays, notes]
+    });
+    return NextResponse.json({ success: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  const client = getClient();
+  const body = await req.json();
+  const { id, status } = body;
+  if (!id || !status) return NextResponse.json({ error: 'id and status required' }, { status: 400 });
+
+  try {
+    await client.execute({
+      sql: `UPDATE events SET status = ? WHERE id = ?`,
+      args: [status, id]
     });
     return NextResponse.json({ success: true });
   } catch (e: any) {
