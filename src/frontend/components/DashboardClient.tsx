@@ -6,7 +6,7 @@ import {
   Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Target, 
   Gem, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, 
   Banknote, Sparkles, Users, BookOpen, Wrench, Video, Brain, Link as LinkIcon,
-  Plus, Trash2, History, Clock, AlertTriangle, Save, Check, ChevronLeft, Coffee
+  Plus, Trash2, History, Clock, AlertTriangle, Save, Check, ChevronLeft, Coffee, Compass
 } from 'lucide-react';
 import TaskClient from './TaskClient';
 import RoutineClient from './RoutineClient';
@@ -113,7 +113,7 @@ export default function DashboardClient({
     { id: 'overview', icon: <LayoutDashboard size={24} />, label: 'لوحة التحكم' },
     { id: 'finance', icon: <Wallet size={24} />, label: 'الإدارة المالية' },
     { id: 'wishlist', icon: <Target size={24} />, label: 'الأمنيات' },
-    { id: 'tasks', icon: <ListTodo size={24} />, label: 'المهام' },
+    { id: 'goals', icon: <Compass size={24} />, label: 'أهداف ١٠ سنوات', url: 'https://www.notion.so/10-Year-Goals-3feb87a2d4d34b8e9cc30589206e9867' },
     { id: 'routines', icon: <HeartPulse size={24} />, label: 'الروتين' },
     { id: 'subscriptions', icon: <CreditCard size={24} />, label: 'الاشتراكات' },
     { id: 'library', icon: <BookOpen size={24} />, label: 'مكتبة المعرفة' },
@@ -138,7 +138,7 @@ export default function DashboardClient({
         </div>
         <div>
           <h1 className="text-2xl font-black tracking-tight eng-num">MARK OS</h1>
-          <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest leading-none">V 4.0 Core</p>
+          <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest leading-none">الإصدار ٤.٠ الأساسي</p>
         </div>
       </div>
 
@@ -146,7 +146,14 @@ export default function DashboardClient({
         {mainNavItems.map(item => (
           <button 
             key={item.id} 
-            onClick={() => { setMainTab(item.id); setMobileSidebar(false); }} 
+            onClick={() => { 
+              if ('url' in item && item.url) {
+                window.open(item.url, '_blank');
+              } else {
+                setMainTab(item.id); 
+              }
+              setMobileSidebar(false); 
+            }} 
             className={`flex items-center gap-4 p-5 rounded-3xl text-xl font-bold transition-all group ${mainTab === item.id ? 'bg-white/10 text-white border border-white/20 shadow-xl' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
           >
             <div className={`transition-transform duration-300 ${mainTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`}>{item.icon}</div>
@@ -157,7 +164,7 @@ export default function DashboardClient({
       </nav>
 
       <div className="mt-auto flex flex-col gap-2 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
-        <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest text-center">محرك التجربة CORE V4</p>
+        <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest text-center">محرك التجربة الأساسي ٤.٠</p>
       </div>
     </div>
   );
@@ -176,7 +183,7 @@ export default function DashboardClient({
            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
               <Shield size={20} />
            </div>
-           <h1 className="text-xl font-black eng-num">MARK OS</h1>
+           <h1 className="text-xl font-black eng-num tracking-tight">نظام مارك الذكي</h1>
         </div>
         <button onClick={() => setMobileSidebar(true)} className="p-3 rounded-xl bg-white/5 border border-white/10"><Menu size={24} /></button>
       </header>
@@ -225,7 +232,7 @@ export default function DashboardClient({
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 {/* 1. TODAY'S FOCUS (TASKS) */}
-                <div className="grand-card p-10 bg-white/[0.03] border-white/10 flex flex-col h-full ring-1 ring-white/5">
+                <div className="grand-card p-6 md:p-10 bg-white/[0.03] border-white/10 flex flex-col h-full ring-1 ring-white/5">
                    <div className="flex justify-between items-center mb-8">
                       <h3 className="text-2xl font-black flex items-center gap-3 text-emerald-400"><Target size={24}/> تركيز اليوم</h3>
                       <button onClick={() => setMainTab('tasks')} className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"><ExternalLink size={18}/></button>
@@ -251,20 +258,20 @@ export default function DashboardClient({
                 {/* 2. NOTION HUB (THE USER REQUESTED ITEM) */}
                 <div className="lg:col-span-2 grand-card p-0 bg-blue-500/5 border-blue-500/10 overflow-hidden relative group">
                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent opacity-50" />
-                   <div className="relative p-10 flex flex-col md:flex-row gap-10 h-full">
+                   <div className="relative p-6 md:p-10 flex flex-col md:flex-row gap-10 h-full">
                       <div className="flex-1 space-y-6">
                          <div className="flex items-center gap-4 text-blue-400">
                             <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
                                <Activity size={28}/>
                             </div>
-                            <h3 className="text-3xl font-black">Notion Workspace</h3>
+                            <h3 className="text-3xl font-black">بيئة عمل نوشن</h3>
                          </div>
                          <p className="text-gray-400 text-lg leading-relaxed max-w-md">إدارة مركزية متقدمة عبر Notion. يمكنك الوصول السريع لقواعد البيانات الأساسية والتعديل الفوري.</p>
                          <div className="flex flex-wrap gap-3">
                             {[
                                { label: 'المالية', url: 'https://www.notion.so/Personal-finances-685797555bc5459b9e437cb1a60d402a' },
-                               { label: 'المهام', url: 'https://www.notion.so/TASKS-e3a2ec77ffc540789162476c555b8442' },
-                               { label: 'الشركة', url: 'https://www.notion.so/Creziax-Team-538747555bc5459b9e437cb1a60d402a' }
+                               { label: 'أهداف ١٠ سنوات', url: 'https://www.notion.so/10-Year-Goals-3feb87a2d4d34b8e9cc30589206e9867' },
+                               { label: 'فدان القراءة', url: 'https://www.notion.so/2025-Reading-List-b146fe1c063443a090fb2bcc20472141' }
                             ].map(link => (
                                <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm font-black hover:bg-blue-500/20 transition-all flex items-center gap-2">
                                   <ExternalLink size={14}/> {link.label}
@@ -289,7 +296,7 @@ export default function DashboardClient({
                 </div>
 
                 {/* 3. LIFESTYLE & ROUTINE */}
-                <div className="grand-card p-10 bg-amber-500/5 border-amber-500/10 h-full">
+                <div className="grand-card p-6 md:p-10 bg-amber-500/5 border-amber-500/10 h-full">
                     <div className="flex justify-between items-center mb-8">
                        <h3 className="text-2xl font-black flex items-center gap-3 text-amber-400"><HeartPulse size={24}/> الروتين والعناية</h3>
                        <button onClick={() => setMainTab('routines')} className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"><ExternalLink size={18}/></button>
@@ -316,7 +323,7 @@ export default function DashboardClient({
                 </div>
 
                 {/* 4. UPCOMING EVENTS - PREMIUM REDESIGN */}
-                <div className="grand-card p-10 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent border-purple-500/20 h-full relative group overflow-hidden">
+                <div className="grand-card p-6 md:p-10 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent border-purple-500/20 h-full relative group overflow-hidden">
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl group-hover:scale-150 transition-all duration-700" />
                     <div className="flex justify-between items-center mb-8 relative z-10">
                        <h3 className="text-2xl font-black flex items-center gap-3 text-purple-400"><Users size={24}/> الأجندة القادمة</h3>
@@ -348,7 +355,7 @@ export default function DashboardClient({
                 </div>
 
                 {/* 5. SOCIAL CONNECTION REMINDER */}
-                <div className="grand-card p-10 bg-gradient-to-br from-rose-500/10 via-transparent to-transparent border-rose-500/20 flex flex-col relative group overflow-hidden">
+                <div className="grand-card p-6 md:p-10 bg-gradient-to-br from-rose-500/10 via-transparent to-transparent border-rose-500/20 flex flex-col relative group overflow-hidden">
                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl group-hover:scale-150 transition-all duration-700" />
                    <h3 className="text-2xl font-black flex items-center gap-3 text-rose-400 mb-8 relative z-10"><HeartPulse size={24}/> تواصل إنساني</h3>
                    <div className="flex-1 flex flex-col justify-center items-center text-center space-y-6 relative z-10 py-4">
@@ -364,7 +371,7 @@ export default function DashboardClient({
                 </div>
 
                 {/* 6. SMART FINANCIAL ALERTS */}
-                <div className="grand-card p-10 bg-rose-500/5 border-rose-500/10 flex flex-col">
+                <div className="grand-card p-6 md:p-10 bg-rose-500/5 border-rose-500/10 flex flex-col">
                    <h3 className="text-2xl font-black flex items-center gap-3 text-rose-400 mb-8"><AlertTriangle size={24}/> تنبيهات ذكية</h3>
                    <div className="space-y-4 flex-1">
                       {forecast.isBankruptcyRisk && (
@@ -395,7 +402,7 @@ export default function DashboardClient({
               </div>
 
               {/* --- KNOWLEDGE STREAM --- */}
-              <div className="grand-card p-10 bg-white/[0.02] border-white/5">
+              <div className="grand-card p-6 md:p-10 bg-white/[0.02] border-white/5">
                  <div className="flex justify-between items-center mb-10">
                     <h3 className="text-2xl font-black flex items-center gap-4 text-white"><BookOpen className="text-emerald-400" size={28}/> من أحدث إضافات المعمل</h3>
                     <button onClick={() => setMainTab('library')} className="mega-action-btn bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-6 py-2 text-sm">عرض المكتبة</button>
