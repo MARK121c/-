@@ -188,3 +188,27 @@ export const groomingProducts = sqliteTable('grooming_products', {
   linkedRoutines: text('linked_routines'), // JSON array of routine IDs
   status: text('status').default('active'), // active | warning | finished
 });
+
+// --- RECURRING SUBSCRIPTIONS OS ---
+export const subscriptions = sqliteTable('subscriptions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  category: text('category').default('business'), // business | personal | tools | health
+  amount: real('amount').notNull(),
+  currency: text('currency').default('EGP'),
+  billingCycle: text('billing_cycle').default('monthly'), // monthly | yearly | custom
+  billingInterval: integer('billing_interval').default(1),
+  startDate: text('start_date').notNull(),
+  nextPaymentDate: text('next_payment_date').notNull(),
+  status: text('status').default('active'), // active | upcoming | due | paid | paused | canceled
+  isEssential: integer('is_essential', { mode: 'boolean' }).default(true),
+  linkedAccount: text('linked_account').default('cash'), // cash | visa | instapay
+});
+
+export const subscriptionPayments = sqliteTable('subscription_payments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  subscriptionId: integer('subscription_id').notNull(),
+  amount: real('amount').notNull(),
+  currency: text('currency').default('EGP'),
+  paymentDate: text('payment_date').notNull(),
+});
