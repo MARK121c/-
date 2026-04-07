@@ -44,8 +44,8 @@ const PRIORITY_CONFIG = {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const api = {
-  getTasks: (type?: string) => fetch(`/api/tasks${type ? `?type=${type}` : ''}`).then(r => r.json()),
-  getToday: () => fetch('/api/tasks/today').then(r => r.json()),
+  getTasks: (type?: string) => fetch(`/api/tasks${type ? `?type=${type}` : ''}`, { cache: 'no-store' }).then(r => r.json()),
+  getToday: () => fetch('/api/tasks/today', { cache: 'no-store' }).then(r => r.json()),
   addTask:  (data: any) => fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   updateTask: (data: any) => fetch('/api/tasks', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   deleteTask: (id: number) => fetch(`/api/tasks?id=${id}`, { method: 'DELETE' }),
@@ -249,7 +249,7 @@ export default function TaskClient() {
       const [tasksRes, todayRes, logsRes] = await Promise.all([
         api.getTasks(),
         api.getToday(),
-        fetch('/api/tasks?type=all').then(r => r.json()),
+        fetch('/api/tasks?type=all', { cache: 'no-store' }).then(r => r.json()),
       ]);
       setAllTasks(tasksRes.tasks || []);
       if (todayRes.todayStats) setTodayStats(todayRes.todayStats);
@@ -260,7 +260,7 @@ export default function TaskClient() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const r = await fetch('/api/tasks/today');
+      const r = await fetch('/api/tasks/today', { cache: 'no-store' });
       const data = await r.json();
       if (data.log) setDayLogs(prev => [data.log, ...prev.slice(0, 6)]);
     } catch (_) {}

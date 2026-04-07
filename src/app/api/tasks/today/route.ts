@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@libsql/client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 const getClient = () => createClient({ url: process.env.DATABASE_URL || 'file:./data/sqlite.db' });
 
 // GET /api/tasks/today — get today's log + streak info
