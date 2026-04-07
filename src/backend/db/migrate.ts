@@ -25,6 +25,10 @@ export async function ensureTables() {
     await client.execute(`CREATE TABLE IF NOT EXISTS income_distribution (id INTEGER PRIMARY KEY AUTOINCREMENT, giving_percentage REAL DEFAULT 0.1, obligations_percentage REAL DEFAULT 0.2, personal_percentage REAL DEFAULT 0.1, investment_percentage REAL DEFAULT 0.6)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS work_tracking (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, hours_worked REAL NOT NULL, note TEXT DEFAULT '')`);
 
+    // 5. Task Management Matrix tables
+    await client.execute(`CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, status TEXT DEFAULT 'pending', type TEXT DEFAULT 'inbox', priority TEXT DEFAULT 'medium', estimated_time INTEGER DEFAULT 30, day_of_week INTEGER, position INTEGER DEFAULT 0, is_sub_task INTEGER DEFAULT 0, date TEXT NOT NULL, completed_at TEXT)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS daily_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL UNIQUE, completed_tasks INTEGER DEFAULT 0, total_tasks INTEGER DEFAULT 0, completed_core INTEGER DEFAULT 0, focus_score INTEGER DEFAULT 0, streak_day INTEGER DEFAULT 0, closed_at TEXT)`);
+
     // 4. Seed default wallets if missing
     const walletCheck = await client.execute(`SELECT id FROM wallets LIMIT 1`);
     if (walletCheck.rows.length === 0) {

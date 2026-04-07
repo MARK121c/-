@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History, Plus, Trash2 } from 'lucide-react';
+import TaskClient from './TaskClient';
 
 interface Props {
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
@@ -90,6 +91,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
     { id: 'overview', icon: <LayoutDashboard size={24} />, label: 'لوحة التحكم' },
     { id: 'finance', icon: <Wallet size={24} />, label: 'الإدارة المالية' },
     { id: 'wishlist', icon: <Target size={24} />, label: 'الأمنيات' },
+    { id: 'tasks', icon: <ListTodo size={24} />, label: 'المهام' },
     { id: 'settings', icon: <Settings size={24} />, label: 'الإعدادات' },
   ];
 
@@ -716,6 +718,13 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
                 </AnimatePresence>
               </div>
 
+            </motion.div>
+          )}
+
+          {/* ===================== TASKS / المهام ===================== */}
+          {mainTab === 'tasks' && (
+            <motion.div key="tasks" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+              <TaskClient />
             </motion.div>
           )}
 

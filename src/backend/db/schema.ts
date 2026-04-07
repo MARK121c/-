@@ -111,3 +111,29 @@ export const wishlist = sqliteTable('wishlist', {
   isPurchased: integer('is_purchased', { mode: 'boolean' }).default(false),
   date: text('date').notNull(),
 });
+
+// --- TASK MANAGEMENT MATRIX ---
+export const tasks = sqliteTable('tasks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  status: text('status').default('pending'), // pending | done
+  type: text('type').default('inbox'),       // inbox | today | weekly
+  priority: text('priority').default('medium'), // low | medium | high | critical
+  estimatedTime: integer('estimated_time').default(30), // in minutes
+  dayOfWeek: integer('day_of_week'),         // 0=Sun ... 6=Sat (for weekly)
+  position: integer('position').default(0),   // ordering within type
+  isSubTask: integer('is_sub_task', { mode: 'boolean' }).default(false),
+  date: text('date').notNull(),
+  completedAt: text('completed_at'),
+});
+
+export const dailyLogs = sqliteTable('daily_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  date: text('date').notNull().unique(),
+  completedTasks: integer('completed_tasks').default(0),
+  totalTasks: integer('total_tasks').default(0),
+  completedCore: integer('completed_core').default(0), // how many of the 3 core were done
+  focusScore: integer('focus_score').default(0), // 0-100
+  streakDay: integer('streak_day').default(0),
+  closedAt: text('closed_at'),
+});
