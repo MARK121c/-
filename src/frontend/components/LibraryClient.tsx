@@ -37,6 +37,9 @@ export default function LibraryClient() {
   const [urlInput, setUrlInput] = useState('');
   const [fetchingMetadata, setFetchingMetadata] = useState(false);
   const [search, setSearch] = useState('');
+  const [manualType, setManualType] = useState<'video' | 'tool' | 'idea'>('video');
+  const [manualThumbnail, setManualThumbnail] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -59,26 +62,33 @@ export default function LibraryClient() {
 
     setFetchingMetadata(true);
     try {
+      // Auto-fetch metadata
       const meta = await api.getMetadata(urlInput);
+      
+      // Merge: Manual overrides auto
       await api.addResource({
-        title: meta.title,
+        title: meta.title || urlInput,
         url: urlInput,
-        thumbnail: meta.thumbnail,
-        type: meta.type,
+        thumbnail: manualThumbnail.trim() || meta.thumbnail,
+        type: manualType, // ALWAYS use manual type if specified
         category: 'learning',
         notes: ''
       });
+      
       setUrlInput('');
+      setManualThumbnail('');
       loadData();
     } catch (e) {
       // Fallback if metadata fails
       await api.addResource({
         title: urlInput,
         url: urlInput,
-        type: 'link',
+        thumbnail: manualThumbnail.trim() || null,
+        type: manualType,
         category: 'learning'
       });
       setUrlInput('');
+      setManualThumbnail('');
       loadData();
     }
     setFetchingMetadata(false);
@@ -106,25 +116,58 @@ export default function LibraryClient() {
   return (
     <div className="text-gray-100 min-h-screen pb-20">
       {/* 🚀 QUICK ADD SEARCH SECTION */}
-      <div className="max-w-4xl mx-auto mb-16 text-center">
-         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="grand-card p-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 border-white/10 shadow-2xl shadow-blue-500/5">
-            <form onSubmit={handleQuickAdd} className="flex items-center gap-2 p-2">
-               <div className="p-4 text-blue-400"><Plus size={28} /></div>
-               <input 
-                 value={urlInput}
-                 onChange={e => setUrlInput(e.target.value)}
-                 placeholder="أضف رابط فيديو، أداة، أو فكرة جديدة بسرعة..." 
-                 className="flex-1 bg-transparent border-none outline-none text-2xl font-black text-white placeholder-gray-600 px-4" 
-               />
-               <button 
-                 disabled={fetchingMetadata || !urlInput.trim()}
-                 className={`px-10 py-5 rounded-2.5xl font-black text-xl transition-all ${fetchingMetadata ? 'bg-gray-800 text-gray-500' : 'bg-blue-500 text-black hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/20'}`}
-               >
-                 {fetchingMetadata ? <Loader2 className="animate-spin" /> : 'حفظ'}
-               </button>
+      <div className="max-w-4xl mx-auto mb-16">
+         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="grand-card p-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 border-white/10 shadow-2xl shadow-blue-500/5 overflow-hidden">
+            <form onSubmit={handleQuickAdd} className="p-2 space-y-4">
+               {/* Main Input Row */}
+               <div className="flex items-center gap-2">
+                  <div className="p-4 text-blue-400"><Plus size={28} /></div>
+                  <input 
+                    value={urlInput}
+                    onChange={e => setUrlInput(e.target.value)}
+                    placeholder="أضف رابط فيديو، أداة، أو فكرة جديدة بسرعة..." 
+                    className="flex-1 bg-transparent border-none outline-none text-2xl font-black text-white placeholder-gray-600 px-4" 
+                  />
+                  <button 
+                    disabled={fetchingMetadata || !urlInput.trim()}
+                    className={`px-10 py-5 rounded-2.5xl font-black text-xl transition-all ${fetchingMetadata ? 'bg-gray-800 text-gray-500' : 'bg-blue-500 text-black hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/20'}`}
+                  >
+                    {fetchingMetadata ? <Loader2 className="animate-spin" /> : 'حفظ'}
+                  </button>
+               </div>
+
+               {/* Manual Controls */}
+               <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4 pb-4 pt-2 border-t border-white/5">
+                  <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/5 w-full md:w-auto">
+                     {[
+                        { id: 'video', label: '🎬 فيديو', col: 'text-blue-400' },
+                        { id: 'tool', label: '🛠️ أداة', col: 'text-emerald-400' },
+                        { id: 'idea', label: '💡 فكرة', col: 'text-purple-400' }
+                     ].map(t => (
+                        <button 
+                          key={t.id}
+                          type="button"
+                          onClick={() => setManualType(t.id as any)}
+                          className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-black transition-all ${manualType === t.id ? 'bg-white/10 text-white border border-white/10' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                           {t.label}
+                        </button>
+                     ))}
+                  </div>
+
+                  <div className="relative group w-full md:w-80">
+                     <LinkIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600" size={16}/>
+                     <input 
+                        value={manualThumbnail}
+                        onChange={e => setManualThumbnail(e.target.value)}
+                        placeholder="رابط صورة مخصص (اختياري)..." 
+                        className="w-full bg-black/30 border border-white/10 rounded-xl pr-12 pl-4 py-2 text-sm text-white focus:border-blue-500/50 outline-none font-bold placeholder:text-gray-700" 
+                     />
+                  </div>
+               </div>
             </form>
          </motion.div>
-         <p className="mt-4 text-gray-500 font-bold uppercase tracking-widest text-[10px]">نظام المخزن الذكي: أضف الروابط وسأقوم بالباقي</p>
+         <p className="mt-4 text-center text-gray-500 font-bold uppercase tracking-widest text-[10px]">نظام المخزن المتقدم: حدد النوع والبيانات يدوياً للتحكم الكامل</p>
       </div>
 
       {/* 🧭 NAVIGATION TABS */}
