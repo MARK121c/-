@@ -18,6 +18,7 @@ interface Props {
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
   investments: any[]; passiveSources: any[]; wallets: any[]; workTracking: any[];
   resources: any[];
+  tasksToday: any[]; activeRoutines: any[]; upcomingEvents: any[]; activeSubscriptions: any[];
   netWorth: any; forecast: any; hourlyRate: number; distributionSettings: any;
   settings: { isPanic: boolean; notionUrl: string };
 }
@@ -25,7 +26,12 @@ interface Props {
 const COLORS = ['var(--color-emerald-glow)', 'var(--color-blue-glow)', 'var(--color-amber-glow)', 'var(--color-purple-glow)', 'var(--color-rose-glow)', '#06b6d4'];
 const fmt = (n: number) => <span className="eng-num">{Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>;
 
-export default function DashboardClient({ transactions, assets, incomes, wishlist, investments, passiveSources, wallets, workTracking, resources, netWorth, forecast, hourlyRate, distributionSettings, settings }: Props) {
+export default function DashboardClient({ 
+  transactions, assets, incomes, wishlist, investments, 
+  passiveSources, wallets, workTracking, resources, 
+  tasksToday, activeRoutines, upcomingEvents, activeSubscriptions,
+  netWorth, forecast, hourlyRate, distributionSettings, settings 
+}: Props) {
   const [mainTab, setMainTab] = useState('overview');
   const [financeTab, setFinanceTab] = useState('networth'); // sub-tab for finance
 
@@ -193,78 +199,201 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
         <AnimatePresence mode="wait">
 
           {mainTab === 'overview' && (
-            <motion.div key="ov" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-10 max-w-7xl mx-auto">
+            <motion.div key="ov" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-12 max-w-7xl mx-auto pb-20">
               
-              <div className="flex items-end justify-between">
+              {/* --- HERO SECTION --- */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                  <h2 className="text-2xl md:text-4xl font-black mb-1 flex items-center gap-3">نظرة عامة <Sparkles className="text-amber-400 md:w-8 md:h-8" /></h2>
-                  <p className="text-base text-gray-400 bg-white/5 px-3 py-1 rounded-lg inline-block">تحياتي يا مارك، إليك ملخص حي للنظام المالي.</p>
+                  <h2 className="text-3xl md:text-5xl font-black mb-3 flex items-center gap-4">مركز القيادة <Sparkles className="text-amber-400 w-10 h-10 animate-pulse" /></h2>
+                  <p className="text-lg text-gray-400 bg-white/5 border border-white/10 px-4 py-1.5 rounded-2xl inline-block backdrop-blur-md">
+                    مرحباً مارك، إليك حالة النظام الحالية وتوقعاتك المالية.
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                   <div className="bg-emerald-500/10 border border-emerald-500/20 px-6 py-3 rounded-2xl">
+                      <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest mb-1">صافي الثروة</p>
+                      <p className="text-2xl font-black eng-num">{fmt(netWorth.totalEGP)} <span className="text-sm opacity-50">EGP</span></p>
+                   </div>
+                   <div className="bg-amber-500/10 border border-amber-500/20 px-6 py-3 rounded-2xl">
+                      <p className="text-[10px] text-amber-400 font-black uppercase tracking-widest mb-1">معدل الساعة</p>
+                      <p className="text-2xl font-black eng-num">{fmt(hourlyRate)} <span className="text-sm opacity-50">EGP</span></p>
+                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="grand-card p-10 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 group relative overflow-hidden">
-                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl transition-all group-hover:scale-150" />
-                  <p className="text-emerald-400 font-black text-lg mb-2 flex items-center gap-2"><Wallet size={20}/> صافي الثروة</p>
-                  <p className="text-4xl lg:text-5xl font-black leading-none">{fmt(netWorth.totalEGP)} <span className="text-xl text-emerald-500/50">EGP</span></p>
-                </div>
+              {/* --- MAIN DASHBOARD MATRIX --- */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                <div className="grand-card p-10 bg-rose-500/5 hover:bg-rose-500/10 border-rose-500/20 group relative overflow-hidden">
-                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-rose-500/10 rounded-full blur-3xl transition-all group-hover:scale-150" />
-                  <p className="text-rose-400 font-black text-lg mb-2 flex items-center gap-2"><CreditCard size={20}/> التوقع الشهري</p>
-                  <p className="text-4xl lg:text-5xl font-black leading-none">{fmt(forecast.projectedEndMonthSpent)} <span className="text-xl text-rose-500/50">EGP</span></p>
-                  {forecast.isBankruptcyRisk && <p className="text-xs font-bold text-rose-400 mt-3 bg-rose-500/20 p-2 rounded-xl inline-block border border-rose-500/30">تحذير نفاد سيولة وشيك ⚠️</p>}
-                </div>
-
-                <div className="grand-card p-10 bg-blue-500/5 hover:bg-blue-500/10 border-blue-500/20 group relative overflow-hidden">
-                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-3xl transition-all group-hover:scale-150" />
-                  <p className="text-blue-400 font-black text-base mb-1 flex items-center gap-2"><Briefcase size={18}/> صافي الربح السائل</p>
-                  <p className="text-3xl lg:text-4xl font-black leading-none">{fmt(netWorth.netLiquidProfit)} <span className="text-lg text-blue-500/50">EGP</span></p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
-                <div className="grand-card p-10">
-                  <h3 className="text-2xl font-black mb-8 text-gray-300 border-r-4 border-emerald-500 pr-5">الدخل والمصروفات (آخر 6 أشهر)</h3>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={barData}>
-                        <XAxis dataKey="name" stroke="#666" tick={{fill:'#999', fontSize: 14, fontWeight: 'bold', fontFamily: 'Cairo'}} />
-                        <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #333', borderRadius: '16px', fontWeight: 'bold' }} />
-                        <Bar dataKey="الدخل" fill="#10b981" radius={[12,12,0,0]} />
-                        <Bar dataKey="المصروفات" fill="#f43f5e" radius={[12,12,0,0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div className="grand-card p-10">
-                  <h3 className="text-2xl font-black mb-8 text-gray-300 border-r-4 border-rose-500 pr-5">تحليل فئات الصرف</h3>
-                  <div className="h-80 flex flex-col md:flex-row items-center gap-10">
-                    <div className="w-full h-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={pieData.length ? pieData : [{name:'لا يوجد', value:1}]} innerRadius={85} outerRadius={120} dataKey="value" paddingAngle={5}>
-                            {(pieData.length?pieData:[{name:'لا يوجد',value:1}]).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                          </Pie>
-                          <Tooltip contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #333', borderRadius: '16px', fontWeight: 'bold' }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="w-full flex flex-col justify-center gap-4">
-                      {pieData.slice(0, 5).map((p, i) => (
-                        <div key={p.name} className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5 hover:border-white/20 transition-all">
-                          <div className="flex items-center gap-4">
-                            <span className="w-5 h-5 rounded-full shadow-[0_0_10px] shadow-current" style={{ backgroundColor: COLORS[i % COLORS.length], color: COLORS[i % COLORS.length] }} />
-                            <span className="font-bold text-lg">{p.name}</span>
-                          </div>
-                          <span className="font-black text-xl eng-num">{fmt(p.value)}</span>
+                {/* 1. TODAY'S FOCUS (TASKS) */}
+                <div className="grand-card p-10 bg-white/[0.03] border-white/10 flex flex-col h-full ring-1 ring-white/5">
+                   <div className="flex justify-between items-center mb-8">
+                      <h3 className="text-2xl font-black flex items-center gap-3 text-emerald-400"><Target size={24}/> تركيز اليوم</h3>
+                      <button onClick={() => setMainTab('tasks')} className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"><ExternalLink size={18}/></button>
+                   </div>
+                   <div className="space-y-4 flex-1">
+                      {tasksToday?.filter(t => t.status === 'pending').slice(0, 3).map((task, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 hover:bg-emerald-500/10 transition-all group">
+                           <div className={`w-3 h-3 rounded-full ${task.priority === 'critical' ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]' : 'bg-emerald-400'}`} />
+                           <span className="font-bold text-lg flex-1 truncate">{task.title}</span>
+                           <span className="text-[10px] text-gray-500 font-black eng-num bg-black/20 px-2 py-1 rounded-lg">{task.estimatedTime}m</span>
                         </div>
                       ))}
-                    </div>
-                  </div>
+                      {(!tasksToday || tasksToday.filter(t => t.status === 'pending').length === 0) && (
+                        <div className="p-12 text-center text-gray-600 font-bold italic bg-black/20 rounded-2xl border border-dashed border-white/5">لا يوجد مهام محددة لليوم حالياً.</div>
+                      )}
+                   </div>
+                   <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
+                      <p className="text-sm text-gray-500">المهام المنجزة</p>
+                      <p className="text-xl font-black text-emerald-400 eng-num">{tasksToday?.filter(t => t.status === 'done').length} / {tasksToday?.length}</p>
+                   </div>
                 </div>
+
+                {/* 2. NOTION HUB (THE USER REQUESTED ITEM) */}
+                <div className="lg:col-span-2 grand-card p-0 bg-blue-500/5 border-blue-500/10 overflow-hidden relative group">
+                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent opacity-50" />
+                   <div className="relative p-10 flex flex-col md:flex-row gap-10 h-full">
+                      <div className="flex-1 space-y-6">
+                         <div className="flex items-center gap-4 text-blue-400">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                               <Activity size={28}/>
+                            </div>
+                            <h3 className="text-3xl font-black">Notion Workspace</h3>
+                         </div>
+                         <p className="text-gray-400 text-lg leading-relaxed max-w-md">إدارة مركزية متقدمة عبر Notion. يمكنك الوصول السريع لقواعد البيانات الأساسية والتعديل الفوري.</p>
+                         <div className="flex flex-wrap gap-3">
+                            {[
+                               { label: 'المالية', url: 'https://www.notion.so/Personal-finances-685797555bc5459b9e437cb1a60d402a' },
+                               { label: 'المهام', url: 'https://www.notion.so/TASKS-e3a2ec77ffc540789162476c555b8442' },
+                               { label: 'الشركة', url: 'https://www.notion.so/Creziax-Team-538747555bc5459b9e437cb1a60d402a' }
+                            ].map(link => (
+                               <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm font-black hover:bg-blue-500/20 transition-all flex items-center gap-2">
+                                  <ExternalLink size={14}/> {link.label}
+                               </a>
+                            ))}
+                         </div>
+                         <a href={settings.notionUrl || 'https://www.notion.so/HOME-PAGE-e3a2ec77ffc540789162476c555b8442'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-2xl font-black text-xl hover:bg-amber-400 transition-all active:scale-95 shadow-[0_10px_40px_rgba(255,255,255,0.2)]">
+                            فتح لوحة Notion الكاملة <ChevronLeft size={24}/>
+                         </a>
+                      </div>
+                      <div className="md:w-64 flex flex-col gap-4">
+                         <div className="flex-1 bg-black/40 rounded-3xl border border-white/5 p-6 flex flex-col justify-center text-center">
+                            <p className="text-4xl font-black text-white mb-1 eng-num">{assets?.length + investments?.length}</p>
+                            <p className="text-xs text-gray-500 uppercase font-black tracking-widest">أصول واستثمارات</p>
+                         </div>
+                         <div className="flex-1 bg-black/40 rounded-3xl border border-white/5 p-6 flex flex-col justify-center text-center">
+                            <p className="text-4xl font-black text-blue-400 mb-1 eng-num">{resources?.length}</p>
+                            <p className="text-xs text-gray-500 uppercase font-black tracking-widest">معرفة محفوظة</p>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* 3. LIFESTYLE & ROUTINE */}
+                <div className="grand-card p-10 bg-amber-500/5 border-amber-500/10 h-full">
+                    <div className="flex justify-between items-center mb-8">
+                       <h3 className="text-2xl font-black flex items-center gap-3 text-amber-400"><HeartPulse size={24}/> الروتين والعناية</h3>
+                       <button onClick={() => setMainTab('routines')} className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"><ExternalLink size={18}/></button>
+                    </div>
+                    <div className="space-y-6">
+                       <div className="p-6 bg-black/30 rounded-2xl border border-white/5">
+                          <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3">الروتينات النشطة</p>
+                          <div className="flex items-center justify-between">
+                             <p className="text-3xl font-black text-white eng-num">{activeRoutines?.length}</p>
+                             <div className="flex gap-1">
+                                {[1,2,3,4,5].map(i => <div key={i} className={`w-2 h-6 rounded-full ${i <= 3 ? 'bg-amber-400' : 'bg-white/10'}`} />)}
+                             </div>
+                          </div>
+                       </div>
+                       <div className="space-y-3">
+                          {activeRoutines?.slice(0, 2).map((r, i) => (
+                             <div key={i} className="flex items-center justify-between p-4 bg-white/2 rounded-2xl border border-white/5 group hover:border-amber-500/30 transition-all">
+                                <span className="font-bold text-lg">{r.name}</span>
+                                <span className="text-[10px] text-amber-400 font-black uppercase px-2 py-1 bg-amber-400/10 rounded-lg">{r.category}</span>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+                </div>
+
+                {/* 4. UPCOMING EVENTS */}
+                <div className="grand-card p-10 bg-purple-500/5 border-purple-500/10 h-full">
+                    <div className="flex justify-between items-center mb-8">
+                       <h3 className="text-2xl font-black flex items-center gap-3 text-purple-400"><Users size={24}/> المواعيد القادمة</h3>
+                       <button onClick={() => setMainTab('events')} className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"><ExternalLink size={18}/></button>
+                    </div>
+                    <div className="space-y-4">
+                       {upcomingEvents?.slice(0, 3).map((ev, i) => (
+                         <div key={i} className="flex items-center gap-5 p-5 bg-purple-500/5 border border-purple-500/10 rounded-2xl">
+                            <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex flex-col items-center justify-center font-black">
+                               <span className="text-xs eng-num">{new Date(ev.date).toLocaleString('ar-EG', { month: 'short' })}</span>
+                               <span className="text-xl eng-num">{new Date(ev.date).getDate()}</span>
+                            </div>
+                            <div className="flex-1">
+                               <p className="font-bold text-lg text-white leading-tight mb-0.5">{ev.title}</p>
+                               <p className="text-xs text-gray-500 font-black uppercase">{ev.type} · <span className="eng-num">{ev.time || 'All Day'}</span></p>
+                            </div>
+                         </div>
+                       ))}
+                       {(!upcomingEvents || upcomingEvents.length === 0) && (
+                         <div className="p-12 text-center text-gray-600 font-bold italic">لا توجد مواعيد قريبة.</div>
+                       )}
+                    </div>
+                </div>
+
+                {/* 5. SMART FINANCIAL ALERTS */}
+                <div className="grand-card p-10 bg-rose-500/5 border-rose-500/10 flex flex-col">
+                   <h3 className="text-2xl font-black flex items-center gap-3 text-rose-400 mb-8"><AlertTriangle size={24}/> تنبيهات ذكية</h3>
+                   <div className="space-y-4 flex-1">
+                      {forecast.isBankruptcyRisk && (
+                        <div className="p-5 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-pulse">
+                           <p className="text-rose-400 font-black mb-1">تحذير سيولة!</p>
+                           <p className="text-xs text-rose-400/70 font-bold">توقعات الصرف بنهاية الشهر تتخطى الرصيد الحالي المتاح.</p>
+                        </div>
+                      )}
+                      {activeSubscriptions?.filter(s => s.status === 'due').map((sub, i) => (
+                        <div key={i} className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+                           <p className="text-amber-400 font-black mb-1">تجديد اشتراك: {sub.name}</p>
+                           <p className="text-xs text-amber-400/70 font-bold">تاريخ الاستحقاق: <span className="eng-num">{sub.nextPaymentDate}</span></p>
+                        </div>
+                      ))}
+                      {!forecast.isBankruptcyRisk && activeSubscriptions?.filter(s => s.status === 'due').length === 0 && (
+                        <div className="p-12 flex flex-col items-center justify-center text-center">
+                           <Check className="text-emerald-400 mb-4" size={48}/>
+                           <p className="text-gray-500 font-bold">النظام المالي مستقر تماماً.</p>
+                        </div>
+                      )}
+                   </div>
+                   <div className="mt-8 pt-6 border-t border-white/5">
+                      <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest mb-2">التوقع المالي النهائي</p>
+                      <p className="text-4xl font-black eng-num">{fmt(forecast.projectedEndMonthSpent)} <span className="text-sm opacity-40">EGP</span></p>
+                   </div>
+                </div>
+
               </div>
+
+              {/* --- KNOWLEDGE STREAM --- */}
+              <div className="grand-card p-10 bg-white/[0.02] border-white/5">
+                 <div className="flex justify-between items-center mb-10">
+                    <h3 className="text-2xl font-black flex items-center gap-4 text-white"><BookOpen className="text-emerald-400" size={28}/> من أحدث إضافات المعمل</h3>
+                    <button onClick={() => setMainTab('library')} className="mega-action-btn bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-6 py-2 text-sm">عرض المكتبة</button>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {resources?.slice(0, 4).map((res, i) => (
+                      <div key={i} className="bg-white/5 p-6 rounded-3xl border border-white/10 hover:border-emerald-500/30 transition-all group cursor-pointer overflow-hidden relative">
+                         <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-3xl group-hover:scale-150 transition-all" />
+                         <div className="flex justify-between items-start mb-6 relative">
+                            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-emerald-400 border border-white/10">
+                               {getTypeIcon(res.type)}
+                            </div>
+                            <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{res.category}</span>
+                         </div>
+                         <p className="font-black text-xl text-white group-hover:text-emerald-400 transition-colors line-clamp-2 leading-tight mb-2 relative">{res.title}</p>
+                         <p className="text-xs text-gray-600 font-bold italic relative eng-num">{new Date(res.createdAt).toLocaleDateString('ar-EG')}</p>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+
             </motion.div>
           )}
 

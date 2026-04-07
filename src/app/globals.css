@@ -63,6 +63,26 @@
   .neon-text-emerald { text-shadow: 0 0 15px rgba(16, 185, 129, 0.6); }
   .neon-text-blue { text-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
   .neon-text-amber { text-shadow: 0 0 15px rgba(245, 158, 11, 0.6); }
+  .neon-text-purple { text-shadow: 0 0 15px rgba(168, 85, 247, 0.6); }
+  .neon-text-rose { text-shadow: 0 0 15px rgba(244, 63, 94, 0.6); }
+
+  .glass-hub {
+    @apply relative overflow-hidden bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] shadow-2xl;
+  }
+  
+  .glass-hub::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none;
+  }
+  
+  .glow-pulse {
+    animation: glow-pulse 3s ease-in-out infinite;
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; filter: blur(20px); }
+  50% { opacity: 0.8; filter: blur(40px); }
 }
 
 /* Scrollbar styling for a premium feel */

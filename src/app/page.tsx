@@ -1,7 +1,11 @@
 import DashboardClient from '@/frontend/components/DashboardClient';
 import { db } from '@/backend/db';
 import { createClient } from '@libsql/client';
-import { transactions, assets, incomes, wishlist, investments, passiveIncomeSources, wallets, workTracking, resources } from '@/backend/db/schema';
+import { 
+  transactions, assets, incomes, wishlist, investments, 
+  passiveIncomeSources, wallets, workTracking, resources,
+  tasks, routines, events, subscriptions
+} from '@/backend/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { ShieldAlert } from 'lucide-react';
 import { 
@@ -39,11 +43,15 @@ export default async function Home() {
     const passiveSourcesData = await db.select().from(passiveIncomeSources).where(eq(passiveIncomeSources.isActive, true)).catch(() => []);
 
     // Always-safe queries
-    const [transactionData, incomeData, wishlistData, resourceData, netWorth, forecast, hourlyRate, panicMode, notionUrl, distSettings] = await Promise.all([
+    const results = await Promise.all([
       db.select().from(transactions).orderBy(desc(transactions.id)).limit(50),
       db.select().from(incomes).orderBy(desc(incomes.id)).limit(20),
       db.select().from(wishlist).orderBy(desc(wishlist.id)),
-      db.select().from(resources).orderBy(desc(resources.createdAt)),
+      db.select().from(resources).orderBy(desc(resources.createdAt)).limit(10),
+      db.select().from(tasks).where(eq(tasks.type, 'today')).orderBy(desc(tasks.priority)),
+      db.select().from(routines).where(eq(routines.isActive, true)),
+      db.select().from(events).orderBy(desc(events.date)).limit(10),
+      db.select().from(subscriptions).where(eq(subscriptions.status, 'active')),
       calculateNetWorth(assetData, investmentData, passiveSourcesData),
       getForecasting(assetData),
       calculateHourlyRate(),
@@ -51,6 +59,12 @@ export default async function Home() {
       getSetting('notion_url', ''),
       getDistributionSettings(),
     ]);
+
+    const [
+      transactionData, incomeData, wishlistData, resourceData, 
+      tasksToday, activeRoutines, upcomingEvents, activeSubscriptions,
+      netWorth, forecast, hourlyRate, panicMode, notionUrl, distSettings
+    ] = results;
 
     const walletsData = await getWallets().catch(() => []);
     const workData = await db.select().from(workTracking).orderBy(desc(workTracking.id)).limit(30).catch(() => []);
@@ -66,6 +80,10 @@ export default async function Home() {
         wallets={walletsData}
         workTracking={workData}
         resources={resourceData}
+        tasksToday={tasksToday}
+        activeRoutines={activeRoutines}
+        upcomingEvents={upcomingEvents}
+        activeSubscriptions={activeSubscriptions}
         netWorth={netWorth}
         forecast={forecast}
         hourlyRate={hourlyRate}
