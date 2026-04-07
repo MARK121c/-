@@ -131,13 +131,13 @@ export default function DashboardClient({
   ];
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full gap-6">
-      <div className="flex items-center gap-3 px-1">
-        <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 neon-text-emerald shadow-[0_0_30px_rgba(16,185,129,0.3)] shrink-0">
+    <div className="flex flex-col h-full gap-5 overflow-y-auto">
+      <div className="flex items-center gap-3 px-1 shrink-0">
+        <div className="w-10 h-10 shrink-0 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 neon-text-emerald">
           <Shield size={22} />
         </div>
         <div>
-          <h1 className="text-lg md:text-2xl font-black tracking-tight">نظام مارك الذكي</h1>
+          <h1 className="text-lg font-black tracking-tight">نظام مارك الذكي</h1>
           <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest leading-none">الإصدار ٤.٠</p>
         </div>
       </div>
@@ -154,16 +154,16 @@ export default function DashboardClient({
               }
               setMobileSidebar(false); 
             }} 
-            className={`flex items-center gap-3 p-3.5 md:p-5 rounded-2xl md:rounded-3xl text-base md:text-xl font-bold transition-all group ${mainTab === item.id ? 'bg-white/10 text-white border border-white/20 shadow-xl' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+            className={`flex items-center gap-3 p-3 rounded-2xl text-base font-bold transition-all group ${mainTab === item.id ? 'bg-white/10 text-white border border-white/20 shadow-xl' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
           >
-            <div className={`transition-transform duration-300 shrink-0 ${mainTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`}>{item.icon}</div>
+            <div className={`shrink-0 transition-transform duration-300 ${mainTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`}>{item.icon}</div>
             <span className="truncate">{item.label}</span>
-            {mainTab === item.id && <motion.div layoutId="sidebarPill" className="mr-auto w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.8)] shrink-0" />}
+            {mainTab === item.id && <motion.div layoutId="sidebarPill" className="mr-auto w-2 h-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.8)]" />}
           </button>
         ))}
       </nav>
 
-      <div className="mt-auto flex flex-col gap-2 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10">
+      <div className="mt-auto shrink-0 flex flex-col gap-2 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10">
         <p className="text-[9px] text-emerald-400 font-black uppercase tracking-widest text-center">نظام مارك ٤.٠</p>
       </div>
     </div>
@@ -202,130 +202,150 @@ export default function DashboardClient({
         )}
       </AnimatePresence>
 
-      <main className="flex-1 h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth pt-24 lg:pt-16 px-4 md:px-12 pb-32">
+      <main className="flex-1 h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth pt-[72px] lg:pt-12 px-3 sm:px-6 md:px-12 pb-24">
         <AnimatePresence mode="wait">
 
           {mainTab === 'overview' && (
-            <motion.div key="ov" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-12 max-w-7xl mx-auto pb-20">
+            <motion.div key="ov" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-5 md:space-y-12 max-w-7xl mx-auto pb-10">
               
               {/* --- HERO SECTION --- */}
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 <div>
                   <h2 className="text-2xl md:text-5xl font-black mb-2 flex items-center gap-3">مركز القيادة <Sparkles className="text-amber-400 w-7 h-7 md:w-10 md:h-10 animate-pulse shrink-0" /></h2>
                   <p className="text-sm md:text-lg text-gray-400 bg-white/5 border border-white/10 px-3 py-1 md:px-4 md:py-1.5 rounded-xl md:rounded-2xl inline-block backdrop-blur-md">
                     مرحباً مارك، إليك حالة النظام.
                   </p>
                 </div>
-                <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-                   <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2.5 md:px-6 md:py-3 rounded-xl md:rounded-2xl shrink-0">
+                <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                   <div className="shrink-0 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2.5 rounded-xl">
                       <p className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mb-0.5">صافي الثروة</p>
-                      <p className="text-lg md:text-2xl font-black eng-num whitespace-nowrap">{fmt(netWorth.totalEGP)} <span className="text-[10px] md:text-sm opacity-50">EGP</span></p>
-                <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                   <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl shrink-0">
-                      <p className="text-[8px] text-emerald-400 font-black uppercase tracking-widest mb-0.5">صافي الثروة</p>
-                      <p className="text-base md:text-xl font-black eng-num whitespace-nowrap">{fmt(netWorth.totalEGP)} <span className="text-[9px] opacity-50">EGP</span></p>
+                      <p className="text-lg md:text-2xl font-black eng-num whitespace-nowrap">{fmt(netWorth.totalEGP)} <span className="text-xs opacity-50">EGP</span></p>
                    </div>
-                   <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl shrink-0">
-                      <p className="text-[8px] text-amber-400 font-black uppercase tracking-widest mb-0.5">معدل الساعة</p>
-                      <p className="text-base md:text-xl font-black eng-num whitespace-nowrap">{fmt(hourlyRate)} <span className="text-[9px] opacity-50">EGP</span></p>
+                   <div className="shrink-0 bg-amber-500/10 border border-amber-500/20 px-4 py-2.5 rounded-xl">
+                      <p className="text-[9px] text-amber-400 font-black uppercase tracking-widest mb-0.5">معدل الساعة</p>
+                      <p className="text-lg md:text-2xl font-black eng-num whitespace-nowrap">{fmt(hourlyRate)} <span className="text-xs opacity-50">EGP</span></p>
                    </div>
                 </div>
               </div>
 
               {/* --- MAIN DASHBOARD MATRIX --- */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-8">
                 
                 {/* 1. TODAY'S FOCUS (TASKS) */}
-                <div className="grand-card p-5 md:p-8 bg-white/[0.03] border-white/10 flex flex-col h-full ring-1 ring-white/5">
-                   <div className="flex justify-between items-center mb-5 md:mb-8">
-                       <h3 className="text-lg md:text-2xl font-black flex items-center gap-2 md:gap-3 text-emerald-400"><Target size={20}/> تركيز اليوم</h3>
-                       <button onClick={() => setMainTab('tasks')} className="p-1.5 md:p-2 bg-white/5 rounded-lg md:rounded-xl hover:bg-white/10 transition-colors"><ExternalLink size={16}/></button>
-                    </div>
-                    <div className="space-y-3 flex-1">
-                       {tasksToday?.filter(t => t.status === 'pending').slice(0, 3).map((task, i) => (
-                         <div key={i} className="flex items-center gap-3 p-3 md:p-4 bg-emerald-500/5 rounded-xl md:rounded-2xl border border-emerald-500/10 hover:bg-emerald-500/10 transition-all group">
-                            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${task.priority === 'critical' ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]' : 'bg-emerald-400'}`} />
-                            <span className="font-bold text-sm md:text-lg flex-1 truncate">{task.title}</span>
-                            <span className="text-[9px] text-gray-500 font-black eng-num bg-black/20 px-1.5 py-0.5 rounded-md shrink-0">{task.estimatedTime}m</span>
-                         </div>
-                       ))}
-                       {(!tasksToday || tasksToday.filter(t => t.status === 'pending').length === 0) && (
-                         <div className="p-8 text-center text-gray-600 font-bold italic bg-black/20 rounded-xl border border-dashed border-white/5">لا يوجد مهام محددة لليوم حالياً.</div>
-                       )}
-                    </div>
-                    <div className="mt-5 md:mt-8 pt-4 md:pt-6 border-t border-white/5 flex items-center justify-between">
-                       <p className="text-xs md:text-sm text-gray-500">المهام المنجزة</p>
-                       <p className="text-lg md:text-xl font-black text-emerald-400 eng-num">{tasksToday?.filter(t => t.status === 'done').length} / {tasksToday?.length}</p>
-                    </div>
+                <div className="grand-card p-4 md:p-10 bg-white/[0.03] border-white/10 flex flex-col h-full ring-1 ring-white/5">
+                   <div className="flex justify-between items-center mb-8">
+                      <h3 className="text-2xl font-black flex items-center gap-3 text-emerald-400"><Target size={24}/> تركيز اليوم</h3>
+                      <button onClick={() => setMainTab('tasks')} className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"><ExternalLink size={18}/></button>
+                   </div>
+                   <div className="space-y-4 flex-1">
+                      {tasksToday?.filter(t => t.status === 'pending').slice(0, 3).map((task, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 hover:bg-emerald-500/10 transition-all group">
+                           <div className={`w-3 h-3 rounded-full ${task.priority === 'critical' ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]' : 'bg-emerald-400'}`} />
+                           <span className="font-bold text-lg flex-1 truncate">{task.title}</span>
+                           <span className="text-[10px] text-gray-500 font-black eng-num bg-black/20 px-2 py-1 rounded-lg">{task.estimatedTime}m</span>
+                        </div>
+                      ))}
+                      {(!tasksToday || tasksToday.filter(t => t.status === 'pending').length === 0) && (
+                        <div className="p-12 text-center text-gray-600 font-bold italic bg-black/20 rounded-2xl border border-dashed border-white/5">لا يوجد مهام محددة لليوم حالياً.</div>
+                      )}
+                   </div>
+                   <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
+                      <p className="text-sm text-gray-500">المهام المنجزة</p>
+                      <p className="text-xl font-black text-emerald-400 eng-num">{tasksToday?.filter(t => t.status === 'done').length} / {tasksToday?.length}</p>
+                   </div>
                 </div>
 
-                {/* 2. NOTION HUB */}
+                {/* 2. NOTION HUB (THE USER REQUESTED ITEM) */}
                 <div className="lg:col-span-2 grand-card p-0 bg-blue-500/5 border-blue-500/10 overflow-hidden relative group">
                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent opacity-50" />
-                   <div className="relative p-4 md:p-10 flex flex-col md:flex-row gap-5 md:gap-10 h-full">
-                       <div className="flex-1 space-y-4 md:space-y-6">
-                          <div className="flex items-center gap-3 md:gap-4 text-blue-400">
-                             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30 shrink-0">
-                                <Activity size={22}/>
-                             </div>
-                             <h3 className="text-xl md:text-3xl font-black">بيئة عمل نوشن</h3>
-                          </div>
-                          <p className="text-gray-400 text-sm md:text-lg leading-relaxed max-w-md">إدارة مركزية متقدمة عبر Notion. وصول سريع للقواعد الأساسية.</p>
-                          <div className="flex flex-wrap gap-2 md:gap-3">
-                             {[
-                                { label: 'المالية', url: 'https://www.notion.so/Personal-finances-685797555bc5459b9e437cb1a60d402a' },
-                                { label: 'أهداف ١٠ سنوات', url: 'https://www.notion.so/10-Year-Goals-3feb87a2d4d34b8e9cc30589206e9867' },
-                                { label: 'فدان القراءة', url: 'https://www.notion.so/2025-Reading-List-b146fe1c063443a090fb2bcc20472141' }
-                             ].map(link => (
-                                <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer" className="px-3 py-2 md:px-5 md:py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-lg md:rounded-xl text-xs md:text-sm font-black hover:bg-blue-500/20 transition-all flex items-center gap-1.5 md:gap-2">
-                                   <ExternalLink size={12}/> {link.label}
-                                </a>
-                             ))}
-                          </div>
-                          <a href={settings.notionUrl || 'https://www.notion.so/HOME-PAGE-e3a2ec77ffc540789162476c555b8442'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 md:gap-3 px-5 py-3 md:px-8 md:py-4 bg-white text-black rounded-xl md:rounded-2xl font-black text-base md:text-xl hover:bg-amber-400 transition-all active:scale-95 shadow-lg">
-                             فتح لوحة Notion الكاملة <ChevronLeft size={20}/>
-                          </a>
-                       </div>
-                       <div className="flex md:w-64 md:flex-col flex-row gap-3 md:gap-4">
-                          <div className="flex-1 bg-black/40 rounded-2xl md:rounded-3xl border border-white/5 p-3 md:p-6 flex flex-col justify-center text-center">
-                             <p className="text-2xl md:text-4xl font-black text-white mb-0.5 md:mb-1 eng-num">{assets?.length + investments?.length}</p>
-                             <p className="text-[8px] md:text-xs text-gray-500 uppercase font-black tracking-widest">أصول واستثمارات</p>
-                          </div>
-                          <div className="flex-1 bg-black/40 rounded-2xl md:rounded-3xl border border-white/5 p-3 md:p-6 flex flex-col justify-center text-center">
-                             <p className="text-2xl md:text-4xl font-black text-blue-400 mb-0.5 md:mb-1 eng-num">{resources?.length}</p>
-                             <p className="text-[8px] md:text-xs text-gray-500 uppercase font-black tracking-widest">معرفة محفوظة</p>
-                          </div>
-                       </div>
-                    </div>
+                   <div className="relative p-4 md:p-10 flex flex-col md:flex-row gap-4 md:gap-10 h-full">
+                      <div className="flex-1 space-y-6">
+                         <div className="flex items-center gap-4 text-blue-400">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                               <Activity size={28}/>
+                            </div>
+                            <h3 className="text-3xl font-black">بيئة عمل نوشن</h3>
+                         </div>
+                         <p className="text-gray-400 text-lg leading-relaxed max-w-md">إدارة مركزية متقدمة عبر Notion. يمكنك الوصول السريع لقواعد البيانات الأساسية والتعديل الفوري.</p>
+                         <div className="flex flex-wrap gap-3">
+                            {[
+                               { label: 'المالية', url: 'https://www.notion.so/Personal-finances-685797555bc5459b9e437cb1a60d402a' },
+                               { label: 'أهداف ١٠ سنوات', url: 'https://www.notion.so/10-Year-Goals-3feb87a2d4d34b8e9cc30589206e9867' },
+                               { label: 'فدان القراءة', url: 'https://www.notion.so/2025-Reading-List-b146fe1c063443a090fb2bcc20472141' }
+                            ].map(link => (
+                               <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm font-black hover:bg-blue-500/20 transition-all flex items-center gap-2">
+                                  <ExternalLink size={14}/> {link.label}
+                               </a>
+                            ))}
+                         </div>
+                         <a href={settings.notionUrl || 'https://www.notion.so/HOME-PAGE-e3a2ec77ffc540789162476c555b8442'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-2xl font-black text-xl hover:bg-amber-400 transition-all active:scale-95 shadow-[0_10px_40px_rgba(255,255,255,0.2)]">
+                            فتح لوحة Notion الكاملة <ChevronLeft size={24}/>
+                         </a>
+                      </div>
+                      <div className="flex flex-row md:flex-col md:w-64 gap-3 md:gap-4">
+                         <div className="flex-1 bg-black/40 rounded-2xl md:rounded-3xl border border-white/5 p-3 md:p-6 flex flex-col justify-center text-center">
+                            <p className="text-4xl font-black text-white mb-1 eng-num">{assets?.length + investments?.length}</p>
+                            <p className="text-xs text-gray-500 uppercase font-black tracking-widest">أصول واستثمارات</p>
+                         </div>
+                         <div className="flex-1 bg-black/40 rounded-2xl md:rounded-3xl border border-white/5 p-3 md:p-6 flex flex-col justify-center text-center">
+                            <p className="text-4xl font-black text-blue-400 mb-1 eng-num">{resources?.length}</p>
+                            <p className="text-xs text-gray-500 uppercase font-black tracking-widest">معرفة محفوظة</p>
+                         </div>
+                      </div>
+                   </div>
                 </div>
 
                 {/* 3. LIFESTYLE & ROUTINE */}
-                <div className="grand-card p-5 md:p-8 bg-amber-500/5 border-amber-500/10 h-full">
-                    <div className="flex justify-between items-center mb-5 md:mb-8">
-                       <h3 className="text-lg md:text-2xl font-black flex items-center gap-2 md:gap-3 text-amber-400"><HeartPulse size={20}/> الروتين والعناية</h3>
-                       <button onClick={() => setMainTab('routines')} className="p-1.5 md:p-2 bg-white/5 rounded-lg md:rounded-xl hover:bg-white/10 transition-colors"><ExternalLink size={16}/></button>
+                <div className="grand-card p-4 md:p-10 bg-amber-500/5 border-amber-500/10 h-full">
+                    <div className="flex justify-between items-center mb-8">
+                       <h3 className="text-2xl font-black flex items-center gap-3 text-amber-400"><HeartPulse size={24}/> الروتين والعناية</h3>
+                       <button onClick={() => setMainTab('routines')} className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"><ExternalLink size={18}/></button>
                     </div>
-                    <div className="space-y-4">
-                       <div className="p-4 md:p-6 bg-black/30 rounded-xl md:rounded-2xl border border-white/5">
-                          <p className="text-[8px] md:text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2">الروتينات النشطة</p>
+                    <div className="space-y-6">
+                       <div className="p-6 bg-black/30 rounded-2xl border border-white/5">
+                          <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-3">الروتينات النشطة</p>
                           <div className="flex items-center justify-between">
-                             <p className="text-2xl md:text-3xl font-black text-white eng-num">{activeRoutines?.length}</p>
+                             <p className="text-3xl font-black text-white eng-num">{activeRoutines?.length}</p>
                              <div className="flex gap-1">
-                                {[1,2,3,4,5].map(i => <div key={i} className={`w-1.5 h-4 md:w-2 md:h-6 rounded-full ${i <= 3 ? 'bg-amber-400' : 'bg-white/10'}`} />)}
+                                {[1,2,3,4,5].map(i => <div key={i} className={`w-2 h-6 rounded-full ${i <= 3 ? 'bg-amber-400' : 'bg-white/10'}`} />)}
                              </div>
                           </div>
                        </div>
-                       <div className="space-y-2">
+                       <div className="space-y-3">
                           {activeRoutines?.slice(0, 2).map((r, i) => (
-                             <div key={i} className="flex items-center justify-between p-3 md:p-4 bg-white/2 rounded-xl md:rounded-2xl border border-white/5 group hover:border-amber-500/30 transition-all">
-                                <span className="font-bold text-sm md:text-lg">{r.name}</span>
-                                <span className="text-[8px] md:text-[10px] text-amber-400 font-black uppercase px-2 py-0.5 bg-amber-400/10 rounded-lg">{r.category}</span>
+                             <div key={i} className="flex items-center justify-between p-4 bg-white/2 rounded-2xl border border-white/5 group hover:border-amber-500/30 transition-all">
+                                <span className="font-bold text-lg">{r.name}</span>
+                                <span className="text-[10px] text-amber-400 font-black uppercase px-2 py-1 bg-amber-400/10 rounded-lg">{r.category}</span>
                              </div>
                           ))}
                        </div>
                     </div>
                 </div>
 
+                {/* 4. UPCOMING EVENTS - PREMIUM REDESIGN */}
+                <div className="grand-card p-4 md:p-10 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent border-purple-500/20 h-full relative group overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl group-hover:scale-150 transition-all duration-700" />
+                    <div className="flex justify-between items-center mb-8 relative z-10">
+                       <h3 className="text-2xl font-black flex items-center gap-3 text-purple-400"><Users size={24}/> الأجندة القادمة</h3>
+                       <button onClick={() => setMainTab('events')} className="p-3 bg-white/5 rounded-2xl hover:bg-purple-500 hover:text-black transition-all border border-white/5 group/btn"><ExternalLink size={18} className="group-hover/btn:scale-110 transition-transform"/></button>
+                    </div>
+                    <div className="space-y-4 relative z-10">
+                       {upcomingEvents?.slice(0, 3).map((ev, i) => (
+                         <div key={i} className="flex items-center gap-5 p-5 bg-white/5 border border-white/5 rounded-3xl hover:border-purple-500/40 transition-all cursor-pointer group/item">
+                            <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-400 flex flex-col items-center justify-center font-black border border-purple-500/20 group-hover/item:scale-105 transition-transform">
+                               <span className="text-[10px] eng-num opacity-60 font-black uppercase">{new Date(ev.date).toLocaleString('ar-EG', { month: 'short' })}</span>
+                               <span className="text-2xl eng-num leading-none">{new Date(ev.date).getDate()}</span>
+                            </div>
+                            <div className="flex-1">
+                               <p className="font-black text-lg text-white leading-tight mb-1 group-hover/item:text-purple-300 transition-colors">{ev.title}</p>
+                               <div className="flex items-center gap-3">
+                                  <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-md">{ev.type}</span>
+                                  <span className="w-1 h-1 rounded-full bg-gray-800" />
+                                  <span className="text-[10px] text-gray-500 font-black eng-num">{ev.time || 'إخطار'}</span>
+                               </div>
+                            </div>
+                         </div>
+                       ))}
                        {(!upcomingEvents || upcomingEvents.length === 0) && (
                          <div className="p-16 text-center text-gray-600 font-bold italic bg-black/20 rounded-[2.5rem] border border-dashed border-white/10">
                             لا توجد تحركات قريبة مجدولة..
@@ -335,7 +355,7 @@ export default function DashboardClient({
                 </div>
 
                 {/* 5. SOCIAL CONNECTION REMINDER */}
-                <div className="grand-card p-6 md:p-10 bg-gradient-to-br from-rose-500/10 via-transparent to-transparent border-rose-500/20 flex flex-col relative group overflow-hidden">
+                <div className="grand-card p-4 md:p-10 bg-gradient-to-br from-rose-500/10 via-transparent to-transparent border-rose-500/20 flex flex-col relative group overflow-hidden">
                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl group-hover:scale-150 transition-all duration-700" />
                    <h3 className="text-2xl font-black flex items-center gap-3 text-rose-400 mb-8 relative z-10"><HeartPulse size={24}/> تواصل إنساني</h3>
                    <div className="flex-1 flex flex-col justify-center items-center text-center space-y-6 relative z-10 py-4">
@@ -351,7 +371,7 @@ export default function DashboardClient({
                 </div>
 
                 {/* 6. SMART FINANCIAL ALERTS */}
-                <div className="grand-card p-6 md:p-10 bg-rose-500/5 border-rose-500/10 flex flex-col">
+                <div className="grand-card p-4 md:p-10 bg-rose-500/5 border-rose-500/10 flex flex-col">
                    <h3 className="text-2xl font-black flex items-center gap-3 text-rose-400 mb-8"><AlertTriangle size={24}/> تنبيهات ذكية</h3>
                    <div className="space-y-4 flex-1">
                       {forecast.isBankruptcyRisk && (
@@ -382,23 +402,23 @@ export default function DashboardClient({
               </div>
 
               {/* --- KNOWLEDGE STREAM --- */}
-              <div className="grand-card p-6 md:p-10 bg-white/[0.02] border-white/5">
-                 <div className="flex justify-between items-center mb-10">
-                    <h3 className="text-2xl font-black flex items-center gap-4 text-white"><BookOpen className="text-emerald-400" size={28}/> من أحدث إضافات المعمل</h3>
-                    <button onClick={() => setMainTab('library')} className="mega-action-btn bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-6 py-2 text-sm">عرض المكتبة</button>
+              <div className="grand-card p-4 md:p-10 bg-white/[0.02] border-white/5">
+                 <div className="flex justify-between items-center mb-5 md:mb-10">
+                    <h3 className="text-lg md:text-2xl font-black flex items-center gap-2 md:gap-4 text-white"><BookOpen className="text-emerald-400" size={22}/> أحدث إضافات المعمل</h3>
+                    <button onClick={() => setMainTab('library')} className="mega-action-btn bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-3 py-1.5 md:px-6 md:py-2 text-xs md:text-sm">عرض المكتبة</button>
                  </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                     {resources?.slice(0, 4).map((res, i) => (
-                      <div key={i} className="bg-white/5 p-6 rounded-3xl border border-white/10 hover:border-emerald-500/30 transition-all group cursor-pointer overflow-hidden relative">
-                         <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-3xl group-hover:scale-150 transition-all" />
-                         <div className="flex justify-between items-start mb-6 relative">
-                            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-emerald-400 border border-white/10">
+                      <div key={i} className="bg-white/5 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-white/10 hover:border-emerald-500/30 transition-all group cursor-pointer overflow-hidden relative">
+                         <div className="absolute top-0 right-0 w-16 h-16 md:w-24 md:h-24 bg-emerald-500/5 rounded-full blur-3xl group-hover:scale-150 transition-all" />
+                         <div className="flex justify-between items-start mb-3 md:mb-6 relative">
+                            <div className="w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-white/5 flex items-center justify-center text-emerald-400 border border-white/10">
                                {getTypeIcon(res.type)}
                             </div>
-                            <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{res.category}</span>
+                            <span className="text-[8px] md:text-[10px] text-gray-500 font-black uppercase tracking-widest">{res.category}</span>
                          </div>
-                         <p className="font-black text-xl text-white group-hover:text-emerald-400 transition-colors line-clamp-2 leading-tight mb-2 relative">{res.title}</p>
-                         <p className="text-xs text-gray-600 font-bold italic relative eng-num">{new Date(res.createdAt).toLocaleDateString('ar-EG')}</p>
+                         <p className="font-black text-sm md:text-xl text-white group-hover:text-emerald-400 transition-colors line-clamp-2 leading-tight mb-1 md:mb-2 relative">{res.title}</p>
+                         <p className="text-[9px] md:text-xs text-gray-600 font-bold italic relative eng-num">{new Date(res.createdAt).toLocaleDateString('ar-EG')}</p>
                       </div>
                     ))}
                  </div>
