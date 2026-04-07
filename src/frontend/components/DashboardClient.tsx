@@ -6,7 +6,7 @@ import {
   Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Target, 
   Gem, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, 
   Banknote, Sparkles, Users, BookOpen, Wrench, Video, Brain, Link as LinkIcon,
-  Plus, Trash2, History, Clock, AlertTriangle, Save, Check, ChevronLeft
+  Plus, Trash2, History, Clock, AlertTriangle, Save, Check, ChevronLeft, Coffee
 } from 'lucide-react';
 import TaskClient from './TaskClient';
 import RoutineClient from './RoutineClient';
@@ -315,32 +315,55 @@ export default function DashboardClient({
                     </div>
                 </div>
 
-                {/* 4. UPCOMING EVENTS */}
-                <div className="grand-card p-10 bg-purple-500/5 border-purple-500/10 h-full">
-                    <div className="flex justify-between items-center mb-8">
-                       <h3 className="text-2xl font-black flex items-center gap-3 text-purple-400"><Users size={24}/> المواعيد القادمة</h3>
-                       <button onClick={() => setMainTab('events')} className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"><ExternalLink size={18}/></button>
+                {/* 4. UPCOMING EVENTS - PREMIUM REDESIGN */}
+                <div className="grand-card p-10 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent border-purple-500/20 h-full relative group overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl group-hover:scale-150 transition-all duration-700" />
+                    <div className="flex justify-between items-center mb-8 relative z-10">
+                       <h3 className="text-2xl font-black flex items-center gap-3 text-purple-400"><Users size={24}/> الأجندة القادمة</h3>
+                       <button onClick={() => setMainTab('events')} className="p-3 bg-white/5 rounded-2xl hover:bg-purple-500 hover:text-black transition-all border border-white/5 group/btn"><ExternalLink size={18} className="group-hover/btn:scale-110 transition-transform"/></button>
                     </div>
-                    <div className="space-y-4">
+                    <div className="space-y-4 relative z-10">
                        {upcomingEvents?.slice(0, 3).map((ev, i) => (
-                         <div key={i} className="flex items-center gap-5 p-5 bg-purple-500/5 border border-purple-500/10 rounded-2xl">
-                            <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex flex-col items-center justify-center font-black">
-                               <span className="text-xs eng-num">{new Date(ev.date).toLocaleString('ar-EG', { month: 'short' })}</span>
-                               <span className="text-xl eng-num">{new Date(ev.date).getDate()}</span>
+                         <div key={i} className="flex items-center gap-5 p-5 bg-white/5 border border-white/5 rounded-3xl hover:border-purple-500/40 transition-all cursor-pointer group/item">
+                            <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-400 flex flex-col items-center justify-center font-black border border-purple-500/20 group-hover/item:scale-105 transition-transform">
+                               <span className="text-[10px] eng-num opacity-60 font-black uppercase">{new Date(ev.date).toLocaleString('ar-EG', { month: 'short' })}</span>
+                               <span className="text-2xl eng-num leading-none">{new Date(ev.date).getDate()}</span>
                             </div>
                             <div className="flex-1">
-                               <p className="font-bold text-lg text-white leading-tight mb-0.5">{ev.title}</p>
-                               <p className="text-xs text-gray-500 font-black uppercase">{ev.type} · <span className="eng-num">{ev.time || 'All Day'}</span></p>
+                               <p className="font-black text-lg text-white leading-tight mb-1 group-hover/item:text-purple-300 transition-colors">{ev.title}</p>
+                               <div className="flex items-center gap-3">
+                                  <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-md">{ev.type}</span>
+                                  <span className="w-1 h-1 rounded-full bg-gray-800" />
+                                  <span className="text-[10px] text-gray-500 font-black eng-num">{ev.time || 'إخطار'}</span>
+                               </div>
                             </div>
                          </div>
                        ))}
                        {(!upcomingEvents || upcomingEvents.length === 0) && (
-                         <div className="p-12 text-center text-gray-600 font-bold italic">لا توجد مواعيد قريبة.</div>
+                         <div className="p-16 text-center text-gray-600 font-bold italic bg-black/20 rounded-[2.5rem] border border-dashed border-white/10">
+                            لا توجد تحركات قريبة مجدولة..
+                         </div>
                        )}
                     </div>
                 </div>
 
-                {/* 5. SMART FINANCIAL ALERTS */}
+                {/* 5. SOCIAL CONNECTION REMINDER */}
+                <div className="grand-card p-10 bg-gradient-to-br from-rose-500/10 via-transparent to-transparent border-rose-500/20 flex flex-col relative group overflow-hidden">
+                   <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl group-hover:scale-150 transition-all duration-700" />
+                   <h3 className="text-2xl font-black flex items-center gap-3 text-rose-400 mb-8 relative z-10"><HeartPulse size={24}/> تواصل إنساني</h3>
+                   <div className="flex-1 flex flex-col justify-center items-center text-center space-y-6 relative z-10 py-4">
+                      <div className="w-20 h-20 bg-rose-500/20 rounded-[2rem] flex items-center justify-center text-rose-500 border border-rose-500/30 animate-pulse">
+                         <Coffee size={40} />
+                      </div>
+                      <div>
+                         <p className="text-white font-black text-xl mb-1">هل تواصلت مع أصدقائك اليوم؟</p>
+                         <p className="text-gray-500 text-sm font-bold">العلاقات القوية هي أساس النجاح الحقيقي.</p>
+                      </div>
+                      <button onClick={() => setMainTab('events')} className="px-8 py-3 bg-rose-500 text-black rounded-2xl font-black text-sm hover:scale-105 active:scale-95 transition-all shadow-xl shadow-rose-500/20">فتح دليل الأبطال</button>
+                   </div>
+                </div>
+
+                {/* 6. SMART FINANCIAL ALERTS */}
                 <div className="grand-card p-10 bg-rose-500/5 border-rose-500/10 flex flex-col">
                    <h3 className="text-2xl font-black flex items-center gap-3 text-rose-400 mb-8"><AlertTriangle size={24}/> تنبيهات ذكية</h3>
                    <div className="space-y-4 flex-1">

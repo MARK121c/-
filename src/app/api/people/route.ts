@@ -45,3 +45,21 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  const client = getClient();
+  const body = await req.json();
+  const { id, lastInteraction } = body;
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+
+  try {
+    const interactionDate = lastInteraction || new Date().toISOString();
+    await client.execute({
+      sql: `UPDATE people SET last_interaction = ? WHERE id = ?`,
+      args: [interactionDate, id]
+    });
+    return NextResponse.json({ success: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
