@@ -40,6 +40,11 @@ export async function ensureTables() {
     await client.execute(`CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, category TEXT DEFAULT 'business', amount REAL NOT NULL, currency TEXT DEFAULT 'EGP', billing_cycle TEXT DEFAULT 'monthly', billing_interval INTEGER DEFAULT 1, start_date TEXT NOT NULL, next_payment_date TEXT NOT NULL, status TEXT DEFAULT 'active', is_essential INTEGER DEFAULT 1, linked_account TEXT DEFAULT 'cash')`);
     await client.execute(`CREATE TABLE IF NOT EXISTS subscription_payments (id INTEGER PRIMARY KEY AUTOINCREMENT, subscription_id INTEGER NOT NULL, amount REAL NOT NULL, currency TEXT DEFAULT 'EGP', payment_date TEXT NOT NULL)`);
 
+    // 8. People & Events OS tables
+    await client.execute(`CREATE TABLE IF NOT EXISTS people (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, relationship TEXT DEFAULT 'friend', notes TEXT, importance_level INTEGER DEFAULT 3, last_interaction TEXT, created_at TEXT NOT NULL)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, type TEXT DEFAULT 'reminder', date TEXT NOT NULL, repeat TEXT DEFAULT 'none', person_id INTEGER, reminder_before_days INTEGER DEFAULT 1, notes TEXT)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS event_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL, status TEXT DEFAULT 'done', date TEXT NOT NULL)`);
+
     // 4. Seed default wallets if missing
     const walletCheck = await client.execute(`SELECT id FROM wallets LIMIT 1`);
     if (walletCheck.rows.length === 0) {
