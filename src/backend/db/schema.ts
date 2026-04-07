@@ -270,3 +270,10 @@ export const resourceTags = sqliteTable('resource_tags', {
   resourceId: integer('resource_id').notNull(),
   tagId: integer('tag_id').notNull(),
 });
+
+export const resourceCategories = sqliteTable('resource_categories', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique(),
+  color: text('color').default('#3b82f6'), // Default blue
+  icon: text('icon').default('Layers'),
+});
