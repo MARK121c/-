@@ -54,7 +54,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
   const [panic, setPanic] = useState(settings.isPanic);
   const [notionUrl, setNotionUrl] = useState(settings.notionUrl);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<any>({ amount:'', currency:'EGP', description:'', name:'', category:'شخصي', method:'كاش', source:'عام', hours:'', date: new Date().toISOString().split('T')[0], assetType:'كاش', liquidType:'سائل', initialValue:'', currentValue:'', platform:'', price:'', priority:'1', profitAmount:'', duration:'', monthlyAmount:'', type: 'اشتراك' });
+  const [form, setForm] = useState<any>({ amount:'', currency:'EGP', description:'', name:'', category:'شخصي', method:'كاش', status:'تم الصرف', source:'عام', hours:'', date: new Date().toISOString().split('T')[0], assetType:'كاش', liquidType:'سائل', initialValue:'', currentValue:'', platform:'', price:'', priority:'1', notes: '', profitAmount:'', duration:'', monthlyAmount:'', type: 'اشتراك' });
   
   // Last Income Split Calculation
   const lastIncome = incomes?.[0]; // incomes are desc by date
@@ -901,12 +901,12 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 {/* Visual Impact Number Input */}
-                {!['hours','wishlist','profit','profit_inv'].includes(modal) && (
+                {!['hours','profit','profit_inv'].includes(modal) && (
                   <div>
                     <label className="text-lg font-black text-gray-500 mb-4 block uppercase tracking-widest text-center">
-                      {modal==='investment'?'قائمة التكلفة الأولية': modal==='passive_income'?'العائد الشهري المتوقع' : 'المبلغ المالي الصافي'}
+                      {modal==='investment'?'قائمة التكلفة الأولية': modal==='passive_income'?'العائد الشهري المتوقع' : modal === 'wishlist' ? 'سعر المنتج المرغوب' : 'المبلغ المالي الصافي'}
                     </label>
-                    <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-6 text-4xl font-black text-center eng-num outline-none transition-all placeholder-gray-800 shadow-inner" value={modal==='investment'?form.initialValue : modal==='passive_income' ? form.monthlyAmount : form.amount} onChange={e=>setForm({...form,[modal==='investment'?'initialValue': modal==='passive_income' ? 'monthlyAmount' : 'amount']:e.target.value})} placeholder="0.00" />
+                    <input required type="number" step="0.01" autoFocus className="w-full bg-white/2 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-6 text-4xl font-black text-center eng-num outline-none transition-all placeholder-gray-800 shadow-inner" value={modal==='investment'?form.initialValue : modal==='passive_income' ? form.monthlyAmount : modal === 'wishlist' ? form.price : form.amount} onChange={e=>setForm({...form,[modal==='investment'?'initialValue': modal==='passive_income' ? 'monthlyAmount' : modal === 'wishlist' ? 'price' : 'amount']:e.target.value})} placeholder="0.00" />
                   </div>
                 )}
 
@@ -972,9 +972,32 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
 
                 {/* Item Identity */}
                 {['asset','investment','wishlist','income','transaction'].includes(modal!) && (
-                  <div>
-                    <label className="text-lg font-black text-gray-500 mb-3 block">{['transaction','income'].includes(modal!) ? 'بيان المعاملة (السبب)' : 'اسم العنصر / الكيان'}</label>
-                    <input required type="text" className="w-full bg-white/5 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-5 text-xl font-black outline-none transition-all" value={['transaction','income'].includes(modal!) ? form.description : form.name} onChange={e=>setForm({...form, [['transaction','income'].includes(modal!)?'description':'name']:e.target.value})} placeholder="..." />
+                  <div className="space-y-6">
+                    <div>
+                      <label className="text-lg font-black text-gray-500 mb-3 block">{['transaction','income'].includes(modal!) ? 'بيان المعاملة (السبب)' : 'اسم العنصر / الكيان'}</label>
+                      <input required type="text" className="w-full bg-white/5 border-2 border-white/10 focus:border-emerald-500 rounded-2xl p-5 text-xl font-black outline-none transition-all" value={['transaction','income'].includes(modal!) ? form.description : form.name} onChange={e=>setForm({...form, [['transaction','income'].includes(modal!)?'description':'name']:e.target.value})} placeholder="..." />
+                    </div>
+
+                    {modal === 'wishlist' && (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-black text-gray-500 mb-3 block">الأولوية (1-5)</label>
+                            <select className="w-full bg-[#111] border-2 border-white/10 focus:border-amber-500 rounded-xl p-4 text-xl font-black outline-none text-white appearance-none cursor-pointer" value={form.priority} onChange={e=>setForm({...form, priority: e.target.value})}>
+                              {[1,2,3,4,5].map(v => <option key={v} value={v}>{v} - {v === 5 ? 'رغبة بعيدة' : v === 1 ? 'أولوية قصوى' : 'درجة ' + v}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-black text-gray-500 mb-3 block">رابط المنتج (اختياري)</label>
+                            <input type="url" className="w-full bg-white/5 border-2 border-white/10 rounded-xl p-4 text-xl font-bold" value={form.link} onChange={e=>setForm({...form, link: e.target.value})} placeholder="https://..." />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-black text-gray-500 mb-3 block">تفاصيل / خطة التنفيذ</label>
+                          <textarea className="w-full bg-white/5 border-2 border-white/10 focus:border-emerald-500 rounded-xl p-4 text-xl font-bold outline-none h-24" value={form.notes} onChange={e=>setForm({...form, notes: e.target.value})} placeholder="اكتب تفاصيلك للفترة الجاية هنا..." />
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 

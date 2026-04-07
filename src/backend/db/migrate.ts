@@ -94,6 +94,7 @@ export async function ensureTables() {
     await addIfMissing('incomes', 'distributed', `ALTER TABLE incomes ADD COLUMN distributed INTEGER DEFAULT 0`);
     await addIfMissing('wishlist', 'hours_cost', `ALTER TABLE wishlist ADD COLUMN hours_cost REAL DEFAULT 0`);
     await addIfMissing('wishlist', 'is_purchased', `ALTER TABLE wishlist ADD COLUMN is_purchased INTEGER DEFAULT 0`);
+    await addIfMissing('wishlist', 'notes', `ALTER TABLE wishlist ADD COLUMN notes TEXT`);
 
     await addIfMissing('events', 'time', `ALTER TABLE events ADD COLUMN time TEXT`);
     await addIfMissing('events', 'end_time', `ALTER TABLE events ADD COLUMN end_time TEXT`);

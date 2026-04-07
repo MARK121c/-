@@ -109,6 +109,7 @@ export const wishlist = sqliteTable('wishlist', {
   hoursCost: real('hours_cost').default(0),
   priority: integer('priority').default(1),
   isPurchased: integer('is_purchased', { mode: 'boolean' }).default(false),
+  notes: text('notes'),
   date: text('date').notNull(),
 });
 

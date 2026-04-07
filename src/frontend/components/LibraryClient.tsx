@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Search, Link as LinkIcon, Video, Wrench, Rocket, Bookmark, ExternalLink, 
   Trash2, PlusCircle, CheckCircle2, PlayCircle, Loader2, Zap, Brain, 
-  ChevronRight, ArrowRight, BookOpen, Layers, Filter
+  ChevronRight, ArrowRight, BookOpen, Layers, Filter, Settings
 } from 'lucide-react';
 
 interface Resource {
@@ -39,6 +39,7 @@ export default function LibraryClient() {
   const [search, setSearch] = useState('');
   const [manualType, setManualType] = useState<'video' | 'tool' | 'idea'>('video');
   const [manualThumbnail, setManualThumbnail] = useState('');
+  const [manualCategory, setManualCategory] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -71,12 +72,13 @@ export default function LibraryClient() {
         url: urlInput,
         thumbnail: manualThumbnail.trim() || meta.thumbnail,
         type: manualType, // ALWAYS use manual type if specified
-        category: 'learning',
+        category: manualCategory.trim() || 'learning',
         notes: ''
       });
       
       setUrlInput('');
       setManualThumbnail('');
+      setManualCategory('');
       loadData();
     } catch (e) {
       // Fallback if metadata fails
@@ -85,10 +87,11 @@ export default function LibraryClient() {
         url: urlInput,
         thumbnail: manualThumbnail.trim() || null,
         type: manualType,
-        category: 'learning'
+        category: manualCategory.trim() || 'learning'
       });
       setUrlInput('');
       setManualThumbnail('');
+      setManualCategory('');
       loadData();
     }
     setFetchingMetadata(false);
@@ -155,14 +158,25 @@ export default function LibraryClient() {
                      ))}
                   </div>
 
-                  <div className="relative group w-full md:w-80">
-                     <LinkIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600" size={16}/>
-                     <input 
-                        value={manualThumbnail}
-                        onChange={e => setManualThumbnail(e.target.value)}
-                        placeholder="رابط صورة مخصص (اختياري)..." 
-                        className="w-full bg-black/30 border border-white/10 rounded-xl pr-12 pl-4 py-2 text-sm text-white focus:border-blue-500/50 outline-none font-bold placeholder:text-gray-700" 
-                     />
+                  <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                    <div className="relative group w-full md:w-60">
+                       <LinkIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600" size={16}/>
+                       <input 
+                          value={manualThumbnail}
+                          onChange={e => setManualThumbnail(e.target.value)}
+                          placeholder="رابط صورة مخصص..." 
+                          className="w-full bg-black/30 border border-white/10 rounded-xl pr-12 pl-4 py-2 text-sm text-white focus:border-blue-500/50 outline-none font-bold placeholder:text-gray-700" 
+                       />
+                    </div>
+                    <div className="relative group w-full md:w-48">
+                       <Settings className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600" size={16}/>
+                       <input 
+                          value={manualCategory}
+                          onChange={e => setManualCategory(e.target.value)}
+                          placeholder="التصنيف (تصميم، برمجة...)" 
+                          className="w-full bg-black/30 border border-white/10 rounded-xl pr-12 pl-4 py-2 text-sm text-white focus:border-emerald-500/50 outline-none font-bold placeholder:text-gray-700" 
+                       />
+                    </div>
                   </div>
                </div>
             </form>

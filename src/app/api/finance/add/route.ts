@@ -117,6 +117,7 @@ export async function POST(request: Request) {
         hoursCost,
         priority: parseInt(data.priority || '1'),
         isPurchased: false,
+        notes: data.notes || '',
         date: new Date().toISOString(),
       });
       return NextResponse.json({ success: true, hoursCost });
