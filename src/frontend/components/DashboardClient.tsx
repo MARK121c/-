@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History, Plus, Trash2 } from 'lucide-react';
+import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History, Plus, Trash2, Users } from 'lucide-react';
 import TaskClient from './TaskClient';
 import RoutineClient from './RoutineClient';
 import SubscriptionClient from './SubscriptionClient';
+import EventsClient from './EventsClient';
 
 interface Props {
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
@@ -96,6 +97,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
     { id: 'tasks', icon: <ListTodo size={24} />, label: 'المهام' },
     { id: 'routines', icon: <HeartPulse size={24} />, label: 'الروتين' },
     { id: 'subscriptions', icon: <CreditCard size={24} />, label: 'الاشتراكات' },
+    { id: 'events', icon: <Users size={24} />, label: 'المواعيد والأصدقاء' },
     { id: 'settings', icon: <Settings size={24} />, label: 'الإعدادات' },
   ];
 
@@ -743,6 +745,13 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
           {mainTab === 'subscriptions' && (
             <motion.div key="subs" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
               <SubscriptionClient />
+            </motion.div>
+          )}
+
+          {/* ===================== EVENTS / المواعيد والأصدقاء ===================== */}
+          {mainTab === 'events' && (
+            <motion.div key="events" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+              <EventsClient />
             </motion.div>
           )}
 
