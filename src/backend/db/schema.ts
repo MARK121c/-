@@ -206,7 +206,11 @@ export const events = sqliteTable('events', {
   title: text('title').notNull(),
   type: text('type').default('reminder'), // birthday | meeting | reminder | holiday
   date: text('date').notNull(), // Format: YYYY-MM-DD
+  time: text('time'), // Format: HH:mm
+  endTime: text('end_time'), // Format: HH:mm
   repeat: text('repeat').default('none'), // none | yearly | monthly
+  priority: text('priority').default('medium'), // low | medium | high
+  status: text('status').default('upcoming'), // upcoming | done | missed
   personId: integer('person_id'), // optional link to people
   reminderBeforeDays: integer('reminder_before_days').default(1),
   notes: text('notes'),
