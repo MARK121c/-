@@ -137,3 +137,54 @@ export const dailyLogs = sqliteTable('daily_logs', {
   streakDay: integer('streak_day').default(0),
   closedAt: text('closed_at'),
 });
+
+// --- ROUTINES & LIFESTYLE OS ---
+export const routines = sqliteTable('routines', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  type: text('type').default('daily'), // daily | weekly | monthly
+  category: text('category').default('health'), // health | hygiene | productivity | relax
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  daysOfWeek: text('days_of_week'), // JSON array like "[1,3,5]"
+  createdAt: text('created_at').notNull(),
+});
+
+export const routineSteps = sqliteTable('routine_steps', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  routineId: integer('routine_id').notNull(),
+  stepName: text('step_name').notNull(),
+  stepOrder: integer('step_order').default(0),
+  estimatedTime: integer('estimated_time').default(5), // minutes
+  isRequired: integer('is_required', { mode: 'boolean' }).default(true),
+  productId: integer('product_id'), // linked to grooming_products
+});
+
+export const routineLogs = sqliteTable('routine_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  date: text('date').notNull().unique(), // daily log
+  dailyScore: integer('daily_score').default(0), // percentage
+  streak: integer('streak').default(0),
+});
+
+export const routineStepLogs = sqliteTable('routine_step_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  routineId: integer('routine_id').notNull(),
+  stepId: integer('step_id').notNull(),
+  date: text('date').notNull(),
+  completed: integer('completed', { mode: 'boolean' }).default(false),
+});
+
+// --- GROOMING & PERSONAL CARE ---
+export const groomingProducts = sqliteTable('grooming_products', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  category: text('category').default('Skincare'), // Skincare | Hair | Perfume | Supplements
+  quantity: integer('quantity').default(1),
+  startDate: text('start_date'),
+  expiryDate: text('expiry_date'), 
+  estimatedDurationDays: integer('estimated_duration_days').default(30),
+  usagePerDay: real('usage_per_day').default(1.0), // frequency matching
+  reminderDaysBefore: integer('reminder_days_before').default(10),
+  linkedRoutines: text('linked_routines'), // JSON array of routine IDs
+  status: text('status').default('active'), // active | warning | finished
+});
