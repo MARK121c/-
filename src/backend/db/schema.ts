@@ -189,6 +189,36 @@ export const groomingProducts = sqliteTable('grooming_products', {
   status: text('status').default('active'), // active | warning | finished
 });
 
+// --- PEOPLE & RELATIONSHIPS ---
+export const people = sqliteTable('people', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  relationship: text('relationship').default('friend'), // friend | family | business | other
+  notes: text('notes'),
+  importanceLevel: integer('importance_level').default(3), // 1-5
+  lastInteraction: text('last_interaction'), // date
+  createdAt: text('created_at').notNull(),
+});
+
+// --- EVENTS & REMINDERS ---
+export const events = sqliteTable('events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  type: text('type').default('reminder'), // birthday | meeting | reminder | holiday
+  date: text('date').notNull(), // Format: YYYY-MM-DD
+  repeat: text('repeat').default('none'), // none | yearly | monthly
+  personId: integer('person_id'), // optional link to people
+  reminderBeforeDays: integer('reminder_before_days').default(1),
+  notes: text('notes'),
+});
+
+export const eventLogs = sqliteTable('event_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  eventId: integer('event_id').notNull(),
+  status: text('status').default('done'), // done | missed
+  date: text('date').notNull(), // Actual date it happened (useful for recurring)
+});
+
 // --- RECURRING SUBSCRIPTIONS OS ---
 export const subscriptions = sqliteTable('subscriptions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
