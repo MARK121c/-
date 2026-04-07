@@ -45,13 +45,48 @@ export async function GET() {
 
     const coreTasks = tasks.filter((t: any) => !t.isSubTask);
     const subTasks = tasks.filter((t: any) => t.isSubTask);
-    const completedCore = coreTasks.filter((t: any) => t.status === 'done').length;
-    const completedTotal = tasks.filter((t: any) => t.status === 'done').length;
-    const totalTasks = tasks.length;
+
+    // VIRTUAL INJECTION: Add today's events as tasks
+    const eventsRes = await client.execute(`SELECT e.*, p.name as person_name FROM events e LEFT JOIN people p ON e.person_id = p.id`);
+    const currentMonth = todayObj.getMonth() + 1;
+    const currentDay = todayObj.getDate();
+    
+    const virtualEvents = eventsRes.rows.map((r: any) => {
+       const eventDate = new Date(r.date ?? r[3]);
+       const m = eventDate.getMonth() + 1;
+       const d = eventDate.getDate();
+       const repeat = r.repeat ?? r[4];
+       const type = r.type ?? r[2];
+       let isToday = false;
+       if (repeat === 'yearly') isToday = (m === currentMonth && d === currentDay);
+       else if (repeat === 'monthly') isToday = (d === currentDay);
+       else isToday = (r.date === today);
+
+       if (isToday) {
+          return {
+             id: `event-${r.id}`,
+             title: `${type === 'birthday' ? '🎂 عيد ميلاد' : '📅 موعد'}: ${r.title}${r.person_name ? ` (${r.person_name})` : ''}`,
+             status: 'pending', // Events are always pending unless logged
+             type: 'today',
+             priority: 'critical',
+             estimatedTime: 15,
+             isSubTask: false,
+             isEvent: true
+          };
+       }
+       return null;
+    }).filter(e => e !== null);
+
+    const tasksWithEvents = [...coreTasks, ...virtualEvents];
+
+    const completedCore = tasksWithEvents.filter((t: any) => t.status === 'done').length;
+    const completedTotal = [...tasksWithEvents, ...subTasks].filter((t: any) => t.status === 'done').length;
+    const totalTasks = tasksWithEvents.length + subTasks.length;
+    
     const focusScore = totalTasks > 0
       ? Math.min(100, Math.round(
           (completedTotal / totalTasks) * 70 +
-          (completedCore >= 3 ? 30 : (completedCore / 3) * 30)
+          (completedCore >= (tasksWithEvents.length) ? 30 : (completedCore / tasksWithEvents.length) * 30)
         ))
       : 0;
 
@@ -62,7 +97,7 @@ export async function GET() {
         focusScore: log.focus_score ?? log[5], streakDay: log.streak_day ?? log[6],
       } : null,
       streak,
-      todayStats: { coreTasks, subTasks, tasks, completedCore, completedTotal, totalTasks, focusScore },
+      todayStats: { coreTasks: tasksWithEvents, subTasks, tasks: [...tasksWithEvents, ...subTasks], completedCore, completedTotal, totalTasks, focusScore },
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
