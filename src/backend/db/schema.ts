@@ -246,3 +246,26 @@ export const subscriptionPayments = sqliteTable('subscription_payments', {
   currency: text('currency').default('EGP'),
   paymentDate: text('payment_date').notNull(),
 });
+
+// --- KNOWLEDGE & EXECUTION LIBRARY (Makhzan OS) ---
+export const resources = sqliteTable('resources', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  type: text('type').notNull(), // video | tool | idea | link
+  url: text('url'),
+  thumbnail: text('thumbnail'),
+  category: text('category').default('learning'), // learning | business | personal
+  status: text('status').default('pending'), // pending | in_progress | done
+  notes: text('notes'),
+  createdAt: text('created_at').notNull(),
+});
+
+export const tags = sqliteTable('tags', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique(),
+});
+
+export const resourceTags = sqliteTable('resource_tags', {
+  resourceId: integer('resource_id').notNull(),
+  tagId: integer('tag_id').notNull(),
+});

@@ -2,15 +2,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History, Plus, Trash2, Users } from 'lucide-react';
+import { 
+  Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Target, 
+  Gem, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, 
+  Banknote, Sparkles, Users, BookOpen, Wrench, Video, Brain, Link as LinkIcon,
+  Plus, Trash2, History, Clock, AlertTriangle, Save, Check, ChevronLeft
+} from 'lucide-react';
 import TaskClient from './TaskClient';
 import RoutineClient from './RoutineClient';
 import SubscriptionClient from './SubscriptionClient';
 import EventsClient from './EventsClient';
+import LibraryClient from './LibraryClient';
 
 interface Props {
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
   investments: any[]; passiveSources: any[]; wallets: any[]; workTracking: any[];
+  resources: any[];
   netWorth: any; forecast: any; hourlyRate: number; distributionSettings: any;
   settings: { isPanic: boolean; notionUrl: string };
 }
@@ -18,7 +25,7 @@ interface Props {
 const COLORS = ['var(--color-emerald-glow)', 'var(--color-blue-glow)', 'var(--color-amber-glow)', 'var(--color-purple-glow)', 'var(--color-rose-glow)', '#06b6d4'];
 const fmt = (n: number) => <span className="eng-num">{Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>;
 
-export default function DashboardClient({ transactions, assets, incomes, wishlist, investments, passiveSources, wallets, workTracking, netWorth, forecast, hourlyRate, distributionSettings, settings }: Props) {
+export default function DashboardClient({ transactions, assets, incomes, wishlist, investments, passiveSources, wallets, workTracking, resources, netWorth, forecast, hourlyRate, distributionSettings, settings }: Props) {
   const [mainTab, setMainTab] = useState('overview');
   const [financeTab, setFinanceTab] = useState('networth'); // sub-tab for finance
 
@@ -38,9 +45,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
   const [mobileSidebar, setMobileSidebar] = useState(false);
 
   // Financial Aggregations
-  // Now simpler: just sum all amounts (assuming all are EGP or legacy USD will be treated as value)
   const totalIncome = incomes?.reduce((acc, current) => acc + (current.amount || 0), 0) || 0;
-  
   const totalSpentGiving = transactions?.filter(t => t.category === 'عطاء' || t.category === 'شخصي لله').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
   const totalSpentInvest = transactions?.filter(t => t.category === 'استثمار').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
   const totalSpentPersonal = transactions?.filter(t => t.category === 'شخصي').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
@@ -59,6 +64,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
     personal: lastIncome.amount * (distributionSettings?.personalPercentage || 0.1),
     investment: lastIncome.amount * (distributionSettings?.investmentPercentage || 0.6),
   } : null;
+  
   const [selectedId, setSelectedId] = useState<number|string|null>(null);
 
   const post = async (type: string, data: any) => {
@@ -90,6 +96,13 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
 
   const pieData = Object.entries(transactions.reduce((acc: any, t: any) => { acc[t.category] = (acc[t.category] || 0) + t.amount; return acc; }, {})).map(([name, val]) => ({ name, value: val as number }));
 
+  const getTypeIcon = (type: string) => {
+    if (type === 'video') return <Video size={20} />;
+    if (type === 'tool') return <Wrench size={20} />;
+    if (type === 'idea') return <Brain size={20} />;
+    return <LinkIcon size={20} />;
+  };
+
   const mainNavItems = [
     { id: 'overview', icon: <LayoutDashboard size={24} />, label: 'لوحة التحكم' },
     { id: 'finance', icon: <Wallet size={24} />, label: 'الإدارة المالية' },
@@ -97,6 +110,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
     { id: 'tasks', icon: <ListTodo size={24} />, label: 'المهام' },
     { id: 'routines', icon: <HeartPulse size={24} />, label: 'الروتين' },
     { id: 'subscriptions', icon: <CreditCard size={24} />, label: 'الاشتراكات' },
+    { id: 'library', icon: <BookOpen size={24} />, label: 'مكتبة المعرفة' },
     { id: 'events', icon: <Users size={24} />, label: 'المواعيد والأصدقاء' },
     { id: 'settings', icon: <Settings size={24} />, label: 'الإعدادات' },
   ];
@@ -755,6 +769,12 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
             </motion.div>
           )}
 
+          {/* ===================== LIBRARY / مكتبة المعرفة ===================== */}
+          {mainTab === 'library' && (
+            <motion.div key="library" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+              <LibraryClient />
+            </motion.div>
+          )}
           {/* ===================== WISHLIST / الأمنيات ===================== */}
           {mainTab === 'wishlist' && (
              <motion.div key="wl" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-12 max-w-7xl mx-auto">

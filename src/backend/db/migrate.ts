@@ -45,6 +45,10 @@ export async function ensureTables() {
     await client.execute(`CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, type TEXT DEFAULT 'reminder', date TEXT NOT NULL, repeat TEXT DEFAULT 'none', person_id INTEGER, reminder_before_days INTEGER DEFAULT 1, notes TEXT)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS event_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL, status TEXT DEFAULT 'done', date TEXT NOT NULL)`);
 
+    // 9. Knowledge & Execution Library (Makhzan OS) tables
+    await client.execute(`CREATE TABLE IF NOT EXISTS resources (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, type TEXT NOT NULL, url TEXT, thumbnail TEXT, category TEXT DEFAULT 'learning', status TEXT DEFAULT 'pending', notes TEXT, created_at TEXT NOT NULL)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS resource_tags (resource_id INTEGER NOT NULL, tag_id INTEGER NOT NULL)`);
     // 4. Seed default wallets if missing
     const walletCheck = await client.execute(`SELECT id FROM wallets LIMIT 1`);
     if (walletCheck.rows.length === 0) {

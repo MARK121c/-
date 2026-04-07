@@ -1,7 +1,7 @@
 import DashboardClient from '@/frontend/components/DashboardClient';
 import { db } from '@/backend/db';
 import { createClient } from '@libsql/client';
-import { transactions, assets, incomes, wishlist, investments, passiveIncomeSources, wallets, workTracking } from '@/backend/db/schema';
+import { transactions, assets, incomes, wishlist, investments, passiveIncomeSources, wallets, workTracking, resources } from '@/backend/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { ShieldAlert } from 'lucide-react';
 import { 
@@ -39,10 +39,11 @@ export default async function Home() {
     const passiveSourcesData = await db.select().from(passiveIncomeSources).where(eq(passiveIncomeSources.isActive, true)).catch(() => []);
 
     // Always-safe queries
-    const [transactionData, incomeData, wishlistData, netWorth, forecast, hourlyRate, panicMode, notionUrl, distSettings] = await Promise.all([
+    const [transactionData, incomeData, wishlistData, resourceData, netWorth, forecast, hourlyRate, panicMode, notionUrl, distSettings] = await Promise.all([
       db.select().from(transactions).orderBy(desc(transactions.id)).limit(50),
       db.select().from(incomes).orderBy(desc(incomes.id)).limit(20),
       db.select().from(wishlist).orderBy(desc(wishlist.id)),
+      db.select().from(resources).orderBy(desc(resources.createdAt)),
       calculateNetWorth(assetData, investmentData, passiveSourcesData),
       getForecasting(assetData),
       calculateHourlyRate(),
@@ -64,6 +65,7 @@ export default async function Home() {
         passiveSources={passiveSourcesData}
         wallets={walletsData}
         workTracking={workData}
+        resources={resourceData}
         netWorth={netWorth}
         forecast={forecast}
         hourlyRate={hourlyRate}
