@@ -5,6 +5,7 @@ import { ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Ba
 import { Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Save, Target, Clock, AlertTriangle, Gem, Check, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, Banknote, Sparkles, ChevronLeft, History, Plus, Trash2 } from 'lucide-react';
 import TaskClient from './TaskClient';
 import RoutineClient from './RoutineClient';
+import SubscriptionClient from './SubscriptionClient';
 
 interface Props {
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
@@ -94,6 +95,7 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
     { id: 'wishlist', icon: <Target size={24} />, label: 'الأمنيات' },
     { id: 'tasks', icon: <ListTodo size={24} />, label: 'المهام' },
     { id: 'routines', icon: <HeartPulse size={24} />, label: 'الروتين' },
+    { id: 'subscriptions', icon: <CreditCard size={24} />, label: 'الاشتراكات' },
     { id: 'settings', icon: <Settings size={24} />, label: 'الإعدادات' },
   ];
 
@@ -734,6 +736,13 @@ export default function DashboardClient({ transactions, assets, incomes, wishlis
           {mainTab === 'routines' && (
             <motion.div key="routines" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
               <RoutineClient />
+            </motion.div>
+          )}
+
+          {/* ===================== SUBSCRIPTIONS / الاشتراكات ===================== */}
+          {mainTab === 'subscriptions' && (
+            <motion.div key="subs" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+              <SubscriptionClient />
             </motion.div>
           )}
 
