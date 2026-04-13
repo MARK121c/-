@@ -147,6 +147,7 @@ export default function DashboardClient({
 
   const mainNavItems = [
     { id: 'overview', icon: <LayoutDashboard size={24} />, label: 'لوحة التحكم' },
+    { id: 'tasks', icon: <ListTodo size={24} />, label: 'المهام الذكية' },
     { id: 'finance', icon: <Wallet size={24} />, label: 'الإدارة المالية' },
     { id: 'wishlist', icon: <Target size={24} />, label: 'الأمنيات' },
     { id: 'goals', icon: <Compass size={24} />, label: 'أهداف ١٠ سنوات', url: 'https://www.notion.so/10-Year-Goals-3feb87a2d4d34b8e9cc30589206e9867' },
