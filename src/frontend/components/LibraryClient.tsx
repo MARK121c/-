@@ -123,6 +123,15 @@ export default function LibraryClient() {
 
   return (
     <div className="text-gray-100 min-h-screen pb-20">
+      {/* Hero Title */}
+      <div className="max-w-4xl mx-auto mb-8 md:mb-12 text-center md:text-right px-4">
+         <h1 className="text-3xl md:text-5xl font-black flex flex-wrap items-center justify-center md:justify-start gap-3 mb-3">
+           <BookOpen className="text-emerald-400 w-8 h-8 md:w-12 md:h-12" />
+           مكتبة المعرفة
+         </h1>
+         <p className="text-gray-400 text-sm md:text-lg">فيديوهات، أدوات، أفكار وكل ما يثري عقلك.</p>
+      </div>
+
       {/* 🚀 QUICK ADD SEARCH SECTION */}
       <div className="max-w-4xl mx-auto mb-16">
          <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="grand-card p-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 border-white/10 shadow-2xl shadow-blue-500/5 overflow-hidden">
@@ -201,30 +210,30 @@ export default function LibraryClient() {
       </div>
 
       {/* 🧭 NAVIGATION & SIDEBAR LAYOUT */}
-      <div className="flex flex-col lg:flex-row gap-8 mb-12 px-4 items-start">
-         {/* Categories Sidebar */}
-         <div className="w-full lg:w-64 flex-shrink-0 bg-gray-900/30 p-6 rounded-[2.5rem] border border-white/5 backdrop-blur-sm sticky top-8">
-            <h3 className="text-gray-500 font-black text-xs uppercase tracking-[0.2em] mb-6 px-2">مكتباتك المتخصصة</h3>
-            <div className="flex flex-col gap-2">
+      <div className="flex flex-col lg:flex-row gap-6 mb-8 items-start">
+         {/* Categories - horizontal scroll on mobile, vertical sidebar on desktop */}
+         <div className="w-full lg:w-64 flex-shrink-0 lg:sticky lg:top-8">
+            <p className="text-gray-500 font-black text-xs uppercase tracking-[0.2em] mb-2 px-1 hidden lg:block">مكتباتك المتخصصة</p>
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 lg:flex-col lg:bg-gray-900/30 lg:p-4 lg:rounded-[2.5rem] lg:border lg:border-white/5 lg:backdrop-blur-sm lg:gap-2">
                <button 
                  onClick={() => setActiveCategory('all')}
-                 className={`flex items-center justify-between w-full px-5 py-3.5 rounded-2xl font-black transition-all ${activeCategory === 'all' ? 'bg-blue-500 text-black shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'}`}
+                 className={`flex items-center gap-2 px-4 py-2 rounded-2xl font-black transition-all whitespace-nowrap text-sm ${activeCategory === 'all' ? 'bg-blue-500 text-black shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:bg-white/5 hover:text-gray-300 bg-white/5 lg:bg-transparent'}`}
                >
-                  <div className="flex items-center gap-3"><Layers size={18} /> الكل</div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-lg ${activeCategory === 'all' ? 'bg-black/20' : 'bg-white/5'}`}>{resources.length}</span>
+                  <span className="flex items-center gap-2"><Layers size={14} /> الكل</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-lg ${activeCategory === 'all' ? 'bg-black/20' : 'bg-white/5'}`}>{resources.length}</span>
                </button>
                
                {categories.map(cat => (
                  <button 
                    key={cat.id}
                    onClick={() => setActiveCategory(cat.name)}
-                   className={`flex items-center justify-between w-full px-5 py-3.5 rounded-2xl font-black transition-all ${activeCategory === cat.name ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'}`}
+                   className={`flex items-center gap-2 px-4 py-2 rounded-2xl font-black transition-all whitespace-nowrap text-sm ${activeCategory === cat.name ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-gray-500 hover:bg-white/5 hover:text-gray-300 bg-white/5 lg:bg-transparent'}`}
                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
                       {cat.name}
                     </div>
-                    <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-lg">
+                    <span className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded-lg">
                       {resources.filter(r => r.category === cat.name).length}
                     </span>
                  </button>
@@ -232,27 +241,27 @@ export default function LibraryClient() {
 
                <button 
                  onClick={() => setShowCatManager(true)}
-                 className="flex items-center gap-3 w-full px-5 py-3.5 rounded-2xl font-black text-blue-400/50 hover:text-blue-400 transition-all border border-blue-500/10 border-dashed mt-4 text-sm"
+                 className="flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-blue-400/50 hover:text-blue-400 transition-all border border-blue-500/10 border-dashed whitespace-nowrap text-sm bg-white/2"
                >
-                  <PlusCircle size={18} /> إدارة التصنيفات
+                  <PlusCircle size={14} /> إدارة
                </button>
             </div>
          </div>
 
          {/* Main Content Area */}
          <div className="flex-1 w-full space-y-10">
-            <div className="flex flex-col md:flex-row gap-6 items-center justify-between bg-black/20 p-4 rounded-[2.5rem] border border-white/5">
-               <div className="flex gap-2 p-1 bg-gray-900 rounded-[2rem] border border-white/5">
+            <div className="flex flex-col gap-4 bg-black/20 p-3 md:p-4 rounded-[2rem] md:rounded-[2.5rem] border border-white/5">
+               <div className="flex gap-1 p-1 bg-gray-900 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 overflow-x-auto scrollbar-hide">
                   {[
-                    { id: 'all', label: 'الكل', icon: <Layers size={16} /> },
-                    { id: 'video', label: 'فيديوهات', icon: <Video size={16} /> },
-                    { id: 'tool', label: 'أدوات', icon: <Zap size={16} /> },
-                    { id: 'idea', label: 'أفكار', icon: <Brain size={16} /> }
+                    { id: 'all', label: 'الكل', icon: <Layers size={14} /> },
+                    { id: 'video', label: 'فيديوهات', icon: <Video size={14} /> },
+                    { id: 'tool', label: 'أدوات', icon: <Zap size={14} /> },
+                    { id: 'idea', label: 'أفكار', icon: <Brain size={14} /> }
                   ].map(tab => (
                     <button 
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex items-center gap-2 px-6 py-3 rounded-[1.5rem] font-black text-sm transition-all ${activeTab === tab.id ? 'bg-white/10 text-white border border-white/10' : 'text-gray-500 hover:text-white'}`}
+                      className={`flex items-center gap-2 px-5 py-3 md:px-8 md:py-4 rounded-[1rem] md:rounded-[1.5rem] font-black text-base md:text-lg transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white/10 text-white border border-white/10' : 'text-gray-500 hover:text-white'}`}
                     >
                       {tab.icon} {tab.label}
                     </button>

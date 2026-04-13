@@ -140,24 +140,24 @@ export default function SubscriptionClient() {
     <div className="text-gray-100 min-h-screen pb-20">
       {/* Header & Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="md:col-span-2 bg-gray-900 border border-gray-800 rounded-3xl p-8 flex flex-col justify-between relative overflow-hidden">
+        <div className="md:col-span-2 bg-gray-900 border border-gray-800 rounded-3xl p-5 md:p-8 flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full -mr-20 -mt-20" />
           <div className="relative z-10">
-            <h1 className="text-4xl font-black mb-2 flex items-center gap-3">
-              <CreditCard className="text-emerald-400" size={32} />
+            <h1 className="text-2xl md:text-4xl font-black mb-2 flex items-center gap-3">
+              <CreditCard className="text-emerald-400 shrink-0" size={24} />
               نظام الاشتراكات الذكي
             </h1>
-            <p className="text-gray-400 text-lg">تحكم كامل في مدفوعاتك الدورية واكتشف الهدر المالي.</p>
+            <p className="text-gray-400 text-sm md:text-lg">تحكم كامل في مدفوعاتك الدورية واكتشف الهدر المالي.</p>
           </div>
-          <div className="flex gap-8 mt-8 border-t border-gray-800 pt-8 relative z-10">
+          <div className="flex flex-wrap gap-5 md:gap-8 mt-6 md:mt-8 border-t border-gray-800 pt-5 md:pt-8 relative z-10">
             <div>
               <p className="text-xs text-gray-500 uppercase font-black tracking-widest mb-1">العبء الشهري الحقيقي</p>
-              <p className="text-3xl font-black text-white">{monthlyTotal.toLocaleString()} <span className="text-sm opacity-40">EGP</span></p>
+              <p className="text-xl md:text-3xl font-black text-white">{monthlyTotal.toLocaleString()} <span className="text-sm opacity-40">EGP</span></p>
             </div>
-            <div className="w-px h-12 bg-gray-800" />
+            <div className="w-px h-10 bg-gray-800 hidden sm:block" />
             <div>
               <p className="text-xs text-gray-500 uppercase font-black tracking-widest mb-1">الاشتراكات النشطة</p>
-              <p className="text-3xl font-black text-emerald-400">{subscriptions.length}</p>
+              <p className="text-xl md:text-3xl font-black text-emerald-400">{subscriptions.length}</p>
             </div>
           </div>
         </div>

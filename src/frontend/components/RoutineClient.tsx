@@ -103,37 +103,37 @@ export default function RoutineClient() {
     <div className="text-gray-100 min-h-screen relative pb-20">
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6">
-        <div>
-          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 mb-2 flex items-center gap-2">
-            <HeartPulse size={30} className="text-emerald-500" />
-            نظام الحياة - Lifestyle OS
+      <div className="flex items-start justify-between gap-3 bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 mb-1 flex items-center gap-2">
+            <HeartPulse size={20} className="text-emerald-500 shrink-0" />
+            نظام الحياة
           </h1>
-          <p className="text-gray-400">إدارة الروتين، العناية الشخصية، والحفاظ على الانضباط.</p>
+          <p className="text-gray-400 text-xs md:text-sm">روتين، عناية، انضباط.</p>
         </div>
-        <div className="flex gap-4">
-          <div className="bg-gray-800/60 p-4 rounded-xl border border-emerald-500/20 w-32 flex flex-col items-center">
-            <Flame size={24} className="text-orange-500 mb-1" />
-            <span className="text-2xl font-bold">{streak}</span>
-            <span className="text-xs text-gray-400">أيام الانضباط</span>
+        <div className="flex gap-2 shrink-0">
+          <div className="bg-gray-800/60 px-3 py-2 rounded-xl border border-emerald-500/20 flex flex-col items-center min-w-[52px]">
+            <Flame size={16} className="text-orange-500 mb-0.5" />
+            <span className="text-lg font-bold leading-none">{streak}</span>
+            <span className="text-[9px] text-gray-400">أيام</span>
           </div>
-          <div className="bg-gray-800/60 p-4 rounded-xl border border-cyan-500/20 w-32 flex flex-col items-center">
-            <Sparkles size={24} className="text-cyan-500 mb-1" />
-            <span className="text-2xl font-bold">{score}%</span>
-            <span className="text-xs text-gray-400">نقاط اليوم</span>
+          <div className="bg-gray-800/60 px-3 py-2 rounded-xl border border-cyan-500/20 flex flex-col items-center min-w-[52px]">
+            <Sparkles size={16} className="text-cyan-500 mb-0.5" />
+            <span className="text-lg font-bold leading-none">{score}%</span>
+            <span className="text-[9px] text-gray-400">اليوم</span>
           </div>
         </div>
       </div>
 
       {/* Main Tabs */}
-      <div className="flex gap-2 mb-6 bg-gray-900/50 p-2 rounded-xl w-fit border border-gray-800">
+      <div className="flex gap-1 mb-6 bg-gray-900/50 p-1.5 rounded-xl border border-gray-800 overflow-x-auto scrollbar-hide">
         {[
-          { id: 'today', icon: <Sparkles size={18}/>, label: 'روتين اليوم' },
-          { id: 'library', icon: <Library size={18}/>, label: 'مكتبة الروتينات' },
-          { id: 'grooming', icon: <ShoppingCart size={18}/>, label: 'خزانة العناية' }
+          { id: 'today', icon: <Sparkles size={16}/>, label: 'روتين اليوم' },
+          { id: 'library', icon: <Library size={16}/>, label: 'مكتبة الروتينات' },
+          { id: 'grooming', icon: <ShoppingCart size={16}/>, label: 'خزانة العناية' }
         ].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id as Tab)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold transition-all ${
+            className={`flex items-center gap-2 px-5 py-3 rounded-lg font-black transition-all whitespace-nowrap text-base md:text-lg ${
               activeTab === t.id ? 'bg-gray-800 text-white shadow-lg border border-gray-700' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
             }`}>
             {t.icon} {t.label}

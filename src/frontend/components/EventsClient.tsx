@@ -199,23 +199,23 @@ export default function EventsClient() {
       <AnimatePresence mode="wait">
         {nextEvent && (
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative grand-card overflow-hidden p-1 p-[2px] bg-gradient-to-br from-blue-500/40 via-purple-500/20 to-transparent">
-             <div className="grand-card bg-gray-950/90 backdrop-blur-3xl p-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                <div className="space-y-4 text-right">
+             <div className="grand-card bg-gray-950/90 backdrop-blur-3xl p-5 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 md:gap-10">
+                <div className="space-y-2 md:space-y-4 text-right w-full md:w-auto">
                    <div className="flex items-center gap-3 text-blue-400 font-black uppercase tracking-[0.2em] text-xs">
                       <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" /> اللقاء القادم حاسم
                    </div>
-                   <h1 className="text-4xl md:text-6xl font-black text-white">{nextEvent.title}</h1>
-                   <div className="flex items-center gap-4 text-gray-500 text-lg">
-                      <span className="flex items-center gap-2"><Clock size={20}/> <span className="eng-num">{nextEvent.time || '--:--'}</span></span>
+                   <h1 className="text-2xl md:text-6xl font-black text-white">{nextEvent.title}</h1>
+                   <div className="flex items-center gap-3 md:gap-4 text-gray-500 text-sm md:text-lg">
+                      <span className="flex items-center gap-1.5"><Clock size={16}/> <span className="eng-num">{nextEvent.time || '--:--'}</span></span>
                       <span className="w-2 h-2 rounded-full bg-gray-800" />
-                      <span className="flex items-center gap-2 font-black text-white border-b-2 border-blue-500/50 pb-1 uppercase tracking-widest">{nextEvent.type}</span>
+                      <span className="flex items-center gap-1.5 font-black text-white border-b-2 border-blue-500/50 pb-0.5 uppercase tracking-widest text-xs">{nextEvent.type}</span>
                    </div>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 rounded-[3rem] p-8 md:p-12 backdrop-blur-md shadow-2xl relative group">
-                   <div className="absolute inset-0 bg-blue-500/5 rounded-[3rem] blur-2xl group-hover:bg-blue-500/10 transition-all" />
+                <div className="bg-white/5 border border-white/10 rounded-[2rem] md:rounded-[3rem] p-5 md:p-12 backdrop-blur-md shadow-2xl relative group w-full md:w-auto">
+                   <div className="absolute inset-0 bg-blue-500/5 rounded-[2rem] md:rounded-[3rem] blur-2xl group-hover:bg-blue-500/10 transition-all" />
                    <div className="relative z-10">
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-6 text-center">العد التنازلي للحدث</p>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 md:mb-6 text-center">العد التنازلي</p>
                       <LiveCountdown eventDate={nextEvent.date} eventTime={nextEvent.time} />
                    </div>
                 </div>
@@ -224,32 +224,39 @@ export default function EventsClient() {
         )}
       </AnimatePresence>
 
+      {!nextEvent && (
+        <div className="px-4 mb-4">
+           <h1 className="text-3xl md:text-5xl font-black flex flex-wrap items-center gap-3 mb-2"><Users className="text-purple-400 w-8 h-8 md:w-12 md:h-12 shrink-0"/> المواعيد والأصدقاء</h1>
+           <p className="text-gray-500 text-sm md:text-lg">إدارة جدولك الزمني وعلاقاتك بكل احترافية.</p>
+        </div>
+      )}
+
       {/* 🧭 NAVIGATION: COMMAND TABS */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4">
-         <div className="flex gap-2 p-2 bg-gray-900/50 backdrop-blur-xl border border-white/5 rounded-[2.5rem] shadow-2xl">
+      <div className="flex flex-col gap-4">
+         <div className="flex gap-1 p-1.5 bg-gray-900/50 backdrop-blur-xl border border-white/5 rounded-[2rem] shadow-2xl overflow-x-auto scrollbar-hide">
             {[
-              { id: 'overview', label: 'نظرة عامة', icon: <LayoutGrid size={18}/> },
-              { id: 'agenda', label: 'الجدول الزمني', icon: <CalendarIcon size={18}/> },
-              { id: 'social', label: 'دليل الأبطال', icon: <Users size={18}/> },
-              { id: 'calendar', label: 'التقويم الكامل', icon: <Grid size={18}/> }
+              { id: 'overview', label: 'نظرة عامة', icon: <LayoutGrid size={16}/> },
+              { id: 'agenda', label: 'الجدول', icon: <CalendarIcon size={16}/> },
+              { id: 'social', label: 'دليل الأبطال', icon: <Users size={16}/> },
+              { id: 'calendar', label: 'التقويم', icon: <Grid size={16}/> }
             ].map(tab => (
               <button 
                 key={tab.id} 
                 onClick={() => setActiveTab(tab.id as any)} 
-                className={`flex items-center gap-3 px-8 py-4 rounded-[2rem] font-black transition-all relative ${activeTab === tab.id ? 'text-black' : 'text-gray-500 hover:text-white'}`}
+                className={`flex items-center gap-2 px-5 py-3 md:px-8 md:py-4 rounded-[1.5rem] md:rounded-[2rem] font-black transition-all relative whitespace-nowrap text-base md:text-lg ${activeTab === tab.id ? 'text-black' : 'text-gray-500 hover:text-white'}`}
               >
-                 {activeTab === tab.id && <motion.div layoutId="tabActive" className="absolute inset-0 bg-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.3)] rounded-[2rem]" />}
-                 <span className="relative z-10 flex items-center gap-2">{tab.icon} {tab.label}</span>
+                 {activeTab === tab.id && <motion.div layoutId="tabActive" className="absolute inset-0 bg-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.3)] rounded-[1.5rem] md:rounded-[2rem]" />}
+                 <span className="relative z-10 flex items-center gap-1.5">{tab.icon} {tab.label}</span>
               </button>
             ))}
          </div>
 
-         <div className="flex gap-4">
-            <button onClick={() => setShowAddEvent(true)} className="flex items-center gap-2 px-8 py-4 bg-white text-black rounded-3xl font-black hover:bg-blue-400 transition-all shadow-xl active:scale-95">
-               <Plus size={20}/> موعد جديد
+         <div className="flex gap-2">
+            <button onClick={() => setShowAddEvent(true)} className="flex items-center gap-2 px-4 md:px-8 py-2.5 md:py-4 bg-white text-black rounded-2xl md:rounded-3xl font-black hover:bg-blue-400 transition-all shadow-xl active:scale-95 text-sm md:text-base">
+               <Plus size={18}/> موعد جديد
             </button>
-            <button onClick={() => setShowAddPerson(true)} className="flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white rounded-3xl font-black hover:bg-white/10 transition-all active:scale-95">
-               <UserPlus size={20}/> إضافة بطل
+            <button onClick={() => setShowAddPerson(true)} className="flex items-center gap-2 px-4 md:px-8 py-2.5 md:py-4 bg-white/5 border border-white/10 text-white rounded-2xl md:rounded-3xl font-black hover:bg-white/10 transition-all active:scale-95 text-sm md:text-base">
+               <UserPlus size={18}/> بطل جديد
             </button>
          </div>
       </div>
@@ -262,7 +269,7 @@ export default function EventsClient() {
              {/* Today's Timeline Column */}
              <div className="lg:col-span-2 space-y-8">
                 <div className="flex items-center justify-between px-4">
-                   <h3 className="text-2xl font-black flex items-center gap-3"><Clock className="text-blue-500"/> أجندة الـ 24 ساعة</h3>
+                   <h3 className="text-3xl md:text-4xl font-black flex items-center gap-3"><Clock className="text-blue-500 w-8 h-8 md:w-10 md:h-10 shrink-0"/> أجندة الـ 24 ساعة</h3>
                    <span className="text-xs font-black text-gray-500 bg-white/5 px-4 py-1 rounded-full uppercase tracking-widest eng-num">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
                 </div>
 
@@ -311,7 +318,7 @@ export default function EventsClient() {
 
              {/* Social Health Sidebar */}
              <div className="space-y-8">
-                <h3 className="text-2xl font-black flex items-center gap-3 px-4"><HeartPulse className="text-rose-500"/> الصحة الاجتماعية</h3>
+                <h3 className="text-3xl md:text-4xl font-black flex items-center gap-3 px-4"><HeartPulse className="text-rose-500 w-8 h-8 md:w-10 md:h-10 shrink-0"/> الصحة الاجتماعية</h3>
                 <div className="space-y-4">
                    {socialNeeds.map(p => (
                      <div key={p.id} className="grand-card p-6 bg-gradient-to-br from-rose-500/5 to-transparent border-rose-500/10 flex items-center gap-5 group">
