@@ -6,7 +6,8 @@ import {
   Activity, Wallet, Shield, Menu, X, Settings, ExternalLink, Target, 
   Gem, LayoutDashboard, Briefcase, ListTodo, HeartPulse, CreditCard, 
   Banknote, Sparkles, Users, BookOpen, Wrench, Video, Brain, Link as LinkIcon,
-  Plus, Trash2, History, Clock, AlertTriangle, Save, Check, ChevronLeft, Coffee, Compass
+  Plus, Trash2, History, Clock, AlertTriangle, Save, Check, ChevronLeft, Coffee, Compass,
+  Edit, CheckCircle
 } from 'lucide-react';
 import TaskClient from './TaskClient';
 import RoutineClient from './RoutineClient';
@@ -57,6 +58,8 @@ export default function DashboardClient({
   const totalSpentPersonal = transactions?.filter(t => t.category === 'شخصي').reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
 
   const [modal, setModal] = useState<string|null>(null);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [celebratingWish, setCelebratingWish] = useState<any>(null);
   const [panic, setPanic] = useState(settings.isPanic);
   const [notionUrl, setNotionUrl] = useState(settings.notionUrl);
   const [saving, setSaving] = useState(false);
@@ -82,6 +85,32 @@ export default function DashboardClient({
     window.location.reload();
   };
 
+  const postUpdate = async (type: string, id: number, data: any) => {
+      setSaving(true);
+      await fetch('/api/finance/update', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type, id, data }) });
+      setSaving(false);
+      setModal(null);
+      setEditId(null);
+      window.location.reload();
+  };
+
+  const achieveWish = async (wish: any) => {
+      if (!confirm('أحقاً حققت هذا الهدف أسطورة؟!')) return;
+      setSaving(true);
+      const res = await fetch('/api/finance/update', { 
+          method:'PATCH', 
+          headers:{'Content-Type':'application/json'}, 
+          body: JSON.stringify({ type: 'wishlist_achieve', id: wish.id }) 
+      });
+      setSaving(false);
+      if (res.ok) {
+          setCelebratingWish(wish);
+          setTimeout(() => {
+              window.location.reload();
+          }, 6000);
+      }
+  };
+
   const remove = async (table: string, id: number) => {
     if (!confirm('⚠️ هل أنت متأكد من حذف هذا السجل نهائياً؟')) return;
     setSaving(true);
@@ -94,7 +123,14 @@ export default function DashboardClient({
     else setSaving(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); post(modal!, form); };
+  const handleSubmit = (e: React.FormEvent) => { 
+      e.preventDefault(); 
+      if (editId) {
+          postUpdate(modal!, editId, form);
+      } else {
+          post(modal!, form); 
+      }
+  };
 
   const barData = [
     ...incomes.slice(0, 6).map((_, i) => ({ name: `شهر ${i + 1}`, الدخل: incomes[i]?.amount || 0, المصروفات: transactions[i]?.amount || 0 }))
@@ -942,7 +978,7 @@ export default function DashboardClient({
                     <h2 className="text-3xl md:text-5xl font-black mb-2 flex w-full flex-wrap items-center gap-3">قائمة الأمنيات <Target className="text-rose-400 w-8 h-8 md:w-12 md:h-12 shrink-0" /></h2>
                     <p className="text-xs md:text-xl text-gray-500">مشترياتك مقيّمة بالزمن من حياتك.. فكر جيداً قبل التنفيذ.</p>
                   </div>
-                  <button onClick={() => { setForm({ ...form }); setModal('wishlist'); }} className="mega-action-btn bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-6 py-2.5 text-sm self-start sm:self-auto shrink-0">+ أمنية جديدة</button>
+                  <button onClick={() => { setForm({ amount: '', category: 'شخصي', description: '', source: '', assetType: 'كاش', liquidType: 'سائل', name: '', platform: '', initialValue: '', monthlyAmount: '', type: '', priority: 1, link: '', notes: '', duration: '', price: '', profitAmount: '', date: new Date().toISOString().split('T')[0], hours: '', note: '' }); setEditId(null); setModal('wishlist'); }} className="mega-action-btn bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-6 py-2.5 text-sm self-start sm:self-auto shrink-0">+ أمنية جديدة</button>
                </div>
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
@@ -956,7 +992,9 @@ export default function DashboardClient({
                             <span className={`px-2 py-1 font-black text-[9px] md:text-sm rounded-lg border uppercase ${w.priority === 1 ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : w.priority === 2 ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-gray-500/20 text-gray-300 border-gray-500/30'}`}>
                               {w.priority === 1 ? 'قصوى' : w.priority === 2 ? 'عامة' : 'ترفيه'}
                             </span>
-                            <button onClick={() => remove('wishlist', w.id)} className="p-1.5 text-gray-600 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100" title="حذف الأمنية"><Trash2 size={16}/></button>
+                            <button onClick={() => achieveWish(w)} className="p-1.5 text-emerald-500 hover:text-emerald-400 transition-all bg-emerald-500/10 rounded-md" title="تم التحقيق"><CheckCircle size={16}/></button>
+                            <button onClick={() => { setForm({...w, priority: w.priority || 1}); setEditId(w.id); setModal('wishlist'); }} className="p-1.5 text-blue-500 hover:text-blue-400 transition-all bg-blue-500/10 rounded-md" title="تعديل"><Edit size={16}/></button>
+                            <button onClick={() => remove('wishlist', w.id)} className="p-1.5 text-gray-600 hover:text-rose-500 transition-all bg-rose-500/10 rounded-md" title="حذف الأمنية"><Trash2 size={16}/></button>
                           </div>
                         </div>
 
@@ -1170,6 +1208,45 @@ export default function DashboardClient({
 
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* 🚀 ACHIEVED CELEBRATION MODAL */}
+      <AnimatePresence>
+        {celebratingWish && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-[50px] overflow-hidden">
+             
+             {/* Confetti / Sparkles background */}
+             {[...Array(50)].map((_, i) => (
+                <motion.div 
+                   key={i}
+                   className={`absolute w-${Math.floor(Math.random() * 4) + 2} h-${Math.floor(Math.random() * 4) + 2} rounded-full`}
+                   style={{ backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'][Math.floor(Math.random() * 5)], left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
+                   initial={{ 
+                       x: 0, 
+                       y: 0, 
+                       opacity: 1 
+                   }}
+                   animate={{ 
+                       x: (Math.random() - 0.5) * 1000, 
+                       y: (Math.random() - 0.5) * 1000, 
+                       opacity: 0,
+                       scale: Math.random() * 2 + 1
+                   }}
+                   transition={{ duration: Math.random() * 2 + 1.5, ease: "easeOut", repeat: Infinity }}
+                />
+             ))}
+
+             <motion.div initial={{ scale: 0, rotate: -20, y: 100 }} animate={{ scale: 1, rotate: 0, y: 0 }} transition={{ type: "spring", damping: 10, stiffness: 50 }} className="text-center relative z-10 flex flex-col items-center">
+                <span className="text-[120px] md:text-[200px] leading-none mb-6 block drop-shadow-[0_0_100px_rgba(16,185,129,0.5)] animate-bounce">🏆</span>
+                <h1 className="text-5xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-emerald-300 to-emerald-600 mb-6 drop-shadow-2xl">أسطورة!</h1>
+                <p className="text-2xl md:text-4xl text-emerald-100 font-bold mb-8">لقد حققت الهدف أخيراً!</p>
+                <div className="bg-white/10 border border-white/20 p-8 rounded-[3rem] backdrop-blur-md inline-block max-w-2xl shadow-2xl">
+                   <p className="text-3xl md:text-5xl font-black text-white mb-4 line-clamp-2">{celebratingWish.name}</p>
+                   <p className="text-xl md:text-2xl text-emerald-400 font-bold">بمبلغ <span className="eng-num">{celebratingWish.price}</span> EGP</p>
+                </div>
+             </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
