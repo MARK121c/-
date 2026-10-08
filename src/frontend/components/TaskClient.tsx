@@ -1,361 +1,318 @@
 'use client';
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ListTodo, Plus, Trash2, CheckCircle2, Circle, Clock, AlertCircle, Filter, Calendar } from 'lucide-react';
 
 interface Task {
   id: number;
   title: string;
-  description: string;
-  status: string;
-  priority: string;
-  category: string;
-  due_date: string;
-  created_at: string;
+  status: 'pending' | 'done';
+  type: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  estimatedTime: number;
+  dayOfWeek: number | null;
+  position: number;
+  isSubTask: boolean;
+  date: string;
+  completedAt: string | null;
 }
 
 export default function TaskClient() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editTask, setEditTask] = useState<Task | null>(null);
-  const [form, setForm] = useState({ title: '', description: '', status: 'pending', priority: 'medium', category: '', due_date: '' });
-  const [filterPriority, setFilterPriority] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [form, setForm] = useState({
+    title: '',
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
+    type: 'today',
+    estimatedTime: 30,
+  });
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   async function fetchTasks() {
     try {
-      const res = await fetch('/api/tasks');
+      const res = await fetch('/api/tasks?type=all');
       const data = await res.json();
       setTasks(data.tasks || []);
-    } catch(e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
     setLoading(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.title.trim()) return;
+
     try {
-      if (editTask) {
-        await fetch(`/api/tasks/${editTask.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-      } else {
-        await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        setForm({ title: '', priority: 'medium', type: 'today', estimatedTime: 30 });
+        setShowForm(false);
+        fetchTasks();
       }
-      setShowForm(false);
-      setEditTask(null);
-      setForm({ title: '', description: '', status: 'pending', priority: 'medium', category: '', due_date: '' });
-      fetchTasks();
-    } catch(e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // Instant UI Toggle Status
+  async function toggleTaskStatus(task: Task) {
+    const nextStatus = task.status === 'done' ? 'pending' : 'done';
+    
+    // Optimistic UI update
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: nextStatus, completedAt: nextStatus === 'done' ? new Date().toISOString() : null } : t));
+
+    try {
+      await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: task.id, status: nextStatus }),
+      });
+    } catch (e) {
+      console.error(e);
+      fetchTasks(); // Revert on failure
+    }
   }
 
   async function deleteTask(id: number) {
-    if (!confirm('حذف المهمة؟')) return;
-    await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
-    fetchTasks();
+    if (!confirm('هل أنت متأكد من حذف هذه المهمة؟')) return;
+    setTasks(prev => prev.filter(t => t.id !== id));
+    try {
+      await fetch(`/api/tasks?id=${id}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error(e);
+      fetchTasks();
+    }
   }
 
-  async function toggleStatus(task: Task) {
-    const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-    await fetch(`/api/tasks/${task.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...task, status: newStatus }) });
-    fetchTasks();
-  }
+  const priorityMeta = {
+    critical: { label: '🔴 حرج', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/30' },
+    high: { label: '🔥 عالي', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30' },
+    medium: { label: '🟡 متوسط', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' },
+    low: { label: '🟢 منخفض', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' },
+  };
 
-  function startEdit(task: Task) {
-    setEditTask(task);
-    setForm({ title: task.title, description: task.description, status: task.status, priority: task.priority, category: task.category, due_date: task.due_date || '' });
-    setShowForm(true);
-  }
+  const completedCount = tasks.filter(t => t.status === 'done').length;
+  const totalCount = tasks.length;
+  const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Computed values
-  const allCategories = [...new Set(tasks.map(t => t.category).filter(Boolean))];
-  const filtered = tasks.filter(t => {
+  const filteredTasks = tasks.filter(t => {
     if (filterPriority !== 'all' && t.priority !== filterPriority) return false;
-    if (filterStatus !== 'all' && t.status !== filterStatus) return false;
-    if (filterCategory !== 'all' && t.category !== filterCategory) return false;
+    if (filterStatus === 'pending' && t.status !== 'pending') return false;
+    if (filterStatus === 'done' && t.status !== 'done') return false;
     return true;
   });
 
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.status === 'completed').length;
-  const pendingTasks = tasks.filter(t => t.status === 'pending').length;
-  const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length;
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  const highCount = tasks.filter(t => t.priority === 'high' && t.status !== 'completed').length;
-  const mediumCount = tasks.filter(t => t.priority === 'medium' && t.status !== 'completed').length;
-  const lowCount = tasks.filter(t => t.priority === 'low' && t.status !== 'completed').length;
-
-  // Group by category
-  const grouped: Record<string, Task[]> = {};
-  filtered.forEach(t => {
-    const cat = t.category || 'بدون تصنيف';
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(t);
-  });
-
-  const priorityConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
-    high: { label: '🔴 عالية', color: '#EF4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.25)' },
-    medium: { label: '🟡 متوسطة', color: '#FF5500', bg: 'rgba(255,85,0,0.1)', border: 'rgba(255,85,0,0.25)' },
-    low: { label: '🟢 منخفضة', color: '#10B981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)' },
-  };
-
-  if (loading) return (
-    <div style={{ textAlign: 'center', padding: 60 }}>
-      <div style={{ width: 40, height: 40, border: '3px solid rgba(255,85,0,0.2)', borderTop: '3px solid #FF5500', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
-
   return (
-    <div style={{ padding: '20px', direction: 'rtl' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: '20px 24px', borderRadius: 24, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
+    <div className="space-y-6">
+      {/* Header & Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/10 backdrop-blur-2xl">
         <div>
-          <h2 style={{ margin: 0, fontSize: 24, color: '#fff', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 8 }}>
-            📋 إدارة المهام
+          <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2">
+            <ListTodo size={26} className="text-orange-400" />
+            <span>إدارة المهام والأولويات</span>
           </h2>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>نظام إدارة المهام بالأولويات والمشاريع</p>
+          <p className="text-xs text-gray-400 mt-1">تتبع وإنجاز مهامك اليومية مع تحديث فوري للحالة</p>
         </div>
-        <button onClick={() => { setShowForm(true); setEditTask(null); setForm({ title: '', description: '', status: 'pending', priority: 'medium', category: '', due_date: '' }); }}
-          style={{ background: 'linear-gradient(135deg, #FF5500, #FF3300)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 16, cursor: 'pointer', fontSize: 14, fontWeight: 900, boxShadow: '0 0 20px rgba(255,85,0,0.3)' }}>
-          + مهمة جديدة
+
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="px-5 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-[#FF3300] text-white font-black text-sm shadow-[0_0_20px_rgba(255,85,0,0.3)] hover:scale-105 transition-all cursor-pointer inline-flex items-center gap-2"
+        >
+          <Plus size={18} />
+          <span>+ مهمة جديدة</span>
         </button>
       </div>
 
-      {/* Daily Progress Bar */}
-      <div style={{ marginBottom: 24, padding: '20px 24px', borderRadius: 24, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <span style={{ fontSize: 13, color: '#aaa', fontWeight: 700 }}>تقدم إنجاز المهام</span>
-          <span style={{ fontSize: 20, fontWeight: 900, color: '#FF5500', fontFamily: 'monospace' }}>{completionRate}%</span>
+      {/* Progress Bar & Stats Strip */}
+      <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-3">
+        <div className="flex justify-between items-center text-xs font-bold">
+          <span className="text-gray-400">نسبة إنجاز المهام الإجمالية</span>
+          <span className="text-orange-400 font-mono text-base font-black">{progressPct}% ({completedCount}/{totalCount})</span>
         </div>
-        <div style={{ width: '100%', height: 12, background: 'rgba(255,255,255,0.05)', borderRadius: 999, overflow: 'hidden' }}>
-          <div style={{
-            width: `${completionRate}%`,
-            height: '100%',
-            borderRadius: 999,
-            background: 'linear-gradient(90deg, #FF5500, #FF3300)',
-            boxShadow: '0 0 12px rgba(255,85,0,0.5)',
-            transition: 'width 0.5s ease'
-          }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-          <span style={{ fontSize: 11, color: '#666' }}>{completedTasks} مكتملة من {totalTasks}</span>
-          <span style={{ fontSize: 11, color: '#666' }}>🔴 {highCount} عالية • 🟡 {mediumCount} متوسطة • 🟢 {lowCount} منخفضة</span>
+        <div className="w-full h-3 rounded-full bg-white/5 overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${progressPct}%` }}
+            transition={{ duration: 0.5 }}
+            className="h-full rounded-full bg-gradient-to-r from-orange-500 to-[#FF3300] shadow-[0_0_12px_rgba(255,85,0,0.6)]"
+          />
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-        <div style={{ background: 'rgba(255,85,0,0.08)', borderRadius: 16, padding: 16, textAlign: 'center', border: '1px solid rgba(255,85,0,0.2)' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#FF5500', fontFamily: 'monospace' }}>{totalTasks}</div>
-          <div style={{ fontSize: 11, color: '#aaa', fontWeight: 700 }}>إجمالي</div>
-        </div>
-        <div style={{ background: 'rgba(245,158,11,0.08)', borderRadius: 16, padding: 16, textAlign: 'center', border: '1px solid rgba(245,158,11,0.2)' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#f59e0b', fontFamily: 'monospace' }}>{pendingTasks}</div>
-          <div style={{ fontSize: 11, color: '#aaa', fontWeight: 700 }}>معلقة</div>
-        </div>
-        <div style={{ background: 'rgba(59,130,246,0.08)', borderRadius: 16, padding: 16, textAlign: 'center', border: '1px solid rgba(59,130,246,0.2)' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#3b82f6', fontFamily: 'monospace' }}>{inProgressTasks}</div>
-          <div style={{ fontSize: 11, color: '#aaa', fontWeight: 700 }}>جاري التنفيذ</div>
-        </div>
-        <div style={{ background: 'rgba(16,185,129,0.08)', borderRadius: 16, padding: 16, textAlign: 'center', border: '1px solid rgba(16,185,129,0.2)' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#10b981', fontFamily: 'monospace' }}>{completedTasks}</div>
-          <div style={{ fontSize: 11, color: '#aaa', fontWeight: 700 }}>مكتملة</div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-        {/* Priority Filter */}
-        {[
-          { key: 'all', label: 'كل الأولويات' },
-          { key: 'high', label: '🔴 عالية' },
-          { key: 'medium', label: '🟡 متوسطة' },
-          { key: 'low', label: '🟢 منخفضة' },
-        ].map(f => (
-          <button key={f.key} onClick={() => setFilterPriority(f.key)}
-            style={{
-              padding: '8px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-              background: filterPriority === f.key ? 'linear-gradient(135deg, #FF5500, #FF3300)' : 'rgba(255,255,255,0.04)',
-              color: filterPriority === f.key ? '#fff' : '#888',
-              boxShadow: filterPriority === f.key ? '0 0 12px rgba(255,85,0,0.3)' : 'none'
-            }}>
-            {f.label}
-          </button>
-        ))}
-        <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
-        {/* Status Filter */}
-        {[
-          { key: 'all', label: 'كل الحالات' },
-          { key: 'pending', label: '⏳ معلقة' },
-          { key: 'in-progress', label: '🔄 جاري' },
-          { key: 'completed', label: '✅ مكتملة' },
-        ].map(f => (
-          <button key={f.key} onClick={() => setFilterStatus(f.key)}
-            style={{
-              padding: '8px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-              background: filterStatus === f.key ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
-              color: filterStatus === f.key ? '#fff' : '#888',
-            }}>
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Category Filter */}
-      {allCategories.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
-          <button onClick={() => setFilterCategory('all')}
-            style={{ padding: '6px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
-              background: filterCategory === 'all' ? '#FF5500' : 'rgba(255,255,255,0.04)', color: filterCategory === 'all' ? '#fff' : '#888' }}>
-            كل المشاريع
-          </button>
-          {allCategories.map(cat => (
-            <button key={cat} onClick={() => setFilterCategory(cat)}
-              style={{ padding: '6px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
-                background: filterCategory === cat ? '#FF5500' : 'rgba(255,255,255,0.04)', color: filterCategory === cat ? '#fff' : '#888' }}>
-              📁 {cat}
+      {/* Quick Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        {/* Status Filters */}
+        <div className="flex bg-white/[0.03] p-1 rounded-2xl border border-white/10">
+          {[
+            { id: 'all', label: 'الكل' },
+            { id: 'pending', label: '⏳ قيد التنفيذ' },
+            { id: 'done', label: '✅ المكتملة' },
+          ].map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFilterStatus(f.id)}
+              className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${filterStatus === f.id ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+            >
+              {f.label}
             </button>
           ))}
         </div>
-      )}
 
-      {/* Add/Edit Form */}
-      {showForm && (
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 24, marginBottom: 24, border: '1px solid rgba(255,85,0,0.15)' }}>
-          <h3 style={{ margin: '0 0 16px', color: '#FF5500', fontSize: 16, fontWeight: 900 }}>
-            {editTask ? '✏️ تعديل المهمة' : '+ مهمة جديدة'}
-          </h3>
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <input placeholder="عنوان المهمة *" value={form.title} onChange={e => setForm({...form, title: e.target.value})} required
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14, fontWeight: 700 }} />
-              <input placeholder="المشروع / التصنيف" value={form.category} onChange={e => setForm({...form, category: e.target.value})}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14 }} />
-            </div>
-            <textarea placeholder="وصف المهمة (اختياري)" value={form.description} onChange={e => setForm({...form, description: e.target.value})}
-              style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14, minHeight: 60, resize: 'vertical', marginBottom: 12 }} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <select value={form.priority} onChange={e => setForm({...form, priority: e.target.value})}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14 }}>
-                <option value="high">🔴 أولوية عالية</option>
-                <option value="medium">🟡 أولوية متوسطة</option>
-                <option value="low">🟢 أولوية منخفضة</option>
-              </select>
-              <select value={form.status} onChange={e => setForm({...form, status: e.target.value})}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14 }}>
-                <option value="pending">⏳ معلقة</option>
-                <option value="in-progress">🔄 جاري التنفيذ</option>
-                <option value="completed">✅ مكتملة</option>
-              </select>
-              <input type="date" value={form.due_date} onChange={e => setForm({...form, due_date: e.target.value})}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14 }} />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" style={{ background: 'linear-gradient(135deg, #FF5500, #FF3300)', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: 12, cursor: 'pointer', fontWeight: 900, boxShadow: '0 0 15px rgba(255,85,0,0.3)' }}>
-                {editTask ? '💾 تحديث' : '+ إضافة'}
-              </button>
-              <button type="button" onClick={() => { setShowForm(false); setEditTask(null); }}
-                style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: 12, cursor: 'pointer', fontWeight: 700 }}>إلغاء</button>
-            </div>
-          </form>
+        {/* Priority Filters */}
+        <div className="flex bg-white/[0.03] p-1 rounded-2xl border border-white/10">
+          {[
+            { id: 'all', label: 'كل الأولويات' },
+            { id: 'critical', label: '🔴 حرج' },
+            { id: 'high', label: '🔥 عالي' },
+            { id: 'medium', label: '🟡 متوسط' },
+            { id: 'low', label: '🟢 منخفض' },
+          ].map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFilterPriority(f.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${filterPriority === f.id ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
+      </div>
+
+      {/* Add Task Form Modal */}
+      {showForm && (
+        <motion.form
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onSubmit={handleSubmit}
+          className="p-6 rounded-3xl bg-white/[0.04] border border-orange-500/30 space-y-4 shadow-xl"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+            <input
+              type="text"
+              required
+              value={form.title}
+              onChange={e => setForm({ ...form, title: e.target.value })}
+              placeholder="عنوان المهمة..."
+              className="sm:col-span-6 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-bold text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
+            />
+            <select
+              value={form.priority}
+              onChange={e => setForm({ ...form, priority: e.target.value as any })}
+              className="sm:col-span-3 px-4 py-3 rounded-2xl bg-[#0c0d12] border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+            >
+              <option value="critical">🔴 أولوية حرجة</option>
+              <option value="high">🔥 أولوية عالية</option>
+              <option value="medium">🟡 أولوية متوسطة</option>
+              <option value="low">🟢 أولوية منخفضة</option>
+            </select>
+            <input
+              type="number"
+              value={form.estimatedTime}
+              onChange={e => setForm({ ...form, estimatedTime: parseInt(e.target.value) || 15 })}
+              placeholder="المدة (دقيقة)"
+              className="sm:col-span-3 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-bold text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="px-5 py-2 rounded-xl text-xs font-bold text-gray-400 border border-white/10"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 rounded-xl bg-orange-500 text-white font-black text-xs shadow-lg hover:bg-orange-400"
+            >
+              حفظ المهمة
+            </button>
+          </div>
+        </motion.form>
       )}
 
-      {/* Tasks grouped by category */}
-      {Object.entries(grouped).map(([category, categoryTasks]) => (
-        <div key={category} style={{ marginBottom: 24 }}>
-          {/* Category Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <span style={{ fontSize: 14, fontWeight: 900, color: '#FF5500' }}>📁 {category}</span>
-            <span style={{ fontSize: 11, color: '#666', fontFamily: 'monospace' }}>({categoryTasks.length})</span>
-            <div style={{ flex: 1 }} />
-            {/* Mini progress for category */}
-            {(() => {
-              const catDone = categoryTasks.filter(t => t.status === 'completed').length;
-              const catPct = categoryTasks.length > 0 ? Math.round((catDone / categoryTasks.length) * 100) : 0;
-              return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 60, height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 999, overflow: 'hidden' }}>
-                    <div style={{ width: `${catPct}%`, height: '100%', background: '#FF5500', borderRadius: 999 }} />
-                  </div>
-                  <span style={{ fontSize: 10, color: '#888', fontFamily: 'monospace' }}>{catPct}%</span>
-                </div>
-              );
-            })()}
-          </div>
+      {/* Task List */}
+      <div className="space-y-3">
+        {filteredTasks.map(task => {
+          const isDone = task.status === 'done';
+          const meta = priorityMeta[task.priority] || priorityMeta.medium;
 
-          {/* Task Cards */}
-          {categoryTasks.map(task => {
-            const done = task.status === 'completed';
-            const pc = priorityConfig[task.priority] || priorityConfig.medium;
-            return (
-              <div key={task.id} style={{
-                background: done ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.02)',
-                borderRadius: 16, padding: '14px 18px', marginBottom: 8,
-                border: `1px solid ${done ? 'rgba(16,185,129,0.15)' : pc.border}`,
-                display: 'flex', alignItems: 'center', gap: 14,
-                opacity: done ? 0.65 : 1,
-                transition: 'all 0.25s ease',
-                borderRight: done ? 'none' : `3px solid ${pc.color}`,
-              }}>
-                {/* Toggle Button */}
-                <button onClick={() => toggleStatus(task)}
-                  style={{
-                    width: 30, height: 30, borderRadius: '50%',
-                    border: done ? 'none' : `2px solid ${pc.color}`,
-                    background: done ? '#10b981' : 'transparent',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontSize: 14, flexShrink: 0,
-                    boxShadow: done ? '0 0 10px rgba(16,185,129,0.3)' : 'none',
-                    transition: 'all 0.2s'
-                  }}>
-                  {done ? '✓' : ''}
+          return (
+            <motion.div
+              key={task.id}
+              layout
+              className={`flex items-center justify-between p-4 sm:p-5 rounded-2xl border transition-all ${
+                isDone 
+                  ? 'bg-emerald-500/5 border-emerald-500/20 opacity-75' 
+                  : 'bg-white/[0.02] border-white/5 hover:border-orange-500/30'
+              }`}
+            >
+              {/* Checkbox + Title */}
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => toggleTaskStatus(task)}
+                  className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                    isDone 
+                      ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.5)]' 
+                      : 'border-2 border-orange-500/40 hover:border-orange-500 bg-orange-500/10 text-transparent'
+                  }`}
+                  title={isDone ? 'إعادة إلى قيد التنفيذ' : 'تعليم كمكتملة'}
+                >
+                  <CheckCircle2 size={18} className={isDone ? 'text-white' : 'opacity-0'} />
                 </button>
 
-                {/* Content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{
-                      color: done ? '#888' : '#fff', fontWeight: 700, fontSize: 14,
-                      textDecoration: done ? 'line-through' : 'none',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                    }}>{task.title}</span>
-                  </div>
-                  {task.description && !done && (
-                    <div style={{ color: '#666', fontSize: 12, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.description}</div>
-                  )}
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ background: pc.bg, color: pc.color, padding: '2px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, border: `1px solid ${pc.border}` }}>
-                      {pc.label}
+                <div className="flex-1 min-w-0">
+                  <span className={`text-sm sm:text-base font-bold block truncate transition-all ${isDone ? 'line-through text-gray-400' : 'text-white'}`}>
+                    {task.title}
+                  </span>
+                  <div className="flex items-center gap-3 mt-1 text-[11px] font-mono text-gray-500">
+                    <span className={`px-2 py-0.5 rounded-md font-bold border ${meta.bg} ${meta.color}`}>
+                      {meta.label}
                     </span>
-                    {task.status === 'in-progress' && (
-                      <span style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', padding: '2px 10px', borderRadius: 8, fontSize: 10, fontWeight: 700 }}>🔄 جاري</span>
+                    {task.estimatedTime > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} />
+                        {task.estimatedTime} د
+                      </span>
                     )}
-                    {task.due_date && (
-                      <span style={{ color: '#888', fontSize: 11 }}>📅 {task.due_date}</span>
-                    )}
+                    {task.date && <span>📅 {task.date}</span>}
                   </div>
                 </div>
-
-                {/* Actions */}
-                {!done && (
-                  <button onClick={() => startEdit(task)} style={{ background: 'none', border: 'none', color: '#FF5500', cursor: 'pointer', fontSize: 16, padding: 4 }}>✏️</button>
-                )}
-                <button onClick={() => deleteTask(task.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, padding: 4 }}>🗑️</button>
               </div>
-            );
-          })}
-        </div>
-      ))}
 
-      {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 60, color: '#666' }}>
-          <span style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>📋</span>
-          <p style={{ fontSize: 16, fontWeight: 700 }}>لا توجد مهام مطابقة</p>
-          <p style={{ fontSize: 12, marginTop: 4 }}>جرّب تغيير الفلاتر أو أضف مهمة جديدة</p>
-        </div>
-      )}
+              {/* Delete Button */}
+              <button
+                type="button"
+                onClick={() => deleteTask(task.id)}
+                className="p-2 text-gray-600 hover:text-rose-400 transition-colors shrink-0"
+                title="حذف المهمة"
+              >
+                <Trash2 size={16} />
+              </button>
+            </motion.div>
+          );
+        })}
+
+        {filteredTasks.length === 0 && !loading && (
+          <div className="text-center py-12 text-gray-500">
+            <ListTodo size={40} className="mx-auto mb-3 opacity-30" />
+            <p className="text-sm font-bold">لا توجد مهام تطابق هذا الفلتر</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,296 +1,377 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GOAL TRACKER — تسجيل الدخول للنظام</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="icon" type="image/png" href="icon-192.png" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GOAL TRACKER — تسجيل الدخول</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=JetBrains+Mono:wght@700;900&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --color-orange: #FF5500; --color-orange-bright: #FF6A00;
-      --color-orange-glow: rgba(255,85,0,0.45);
-      --color-bg: #050608; --color-surface: #0c0d12; --color-surface-2: #14161f;
-      --color-card: rgba(16,19,27,0.85);
-      --text-primary: #F5F6FA; --text-secondary: rgba(245,246,250,0.72);
-      --text-muted: rgba(245,246,250,0.42);
-      --border-subtle: rgba(255,255,255,0.08); --border-medium: rgba(255,255,255,0.15);
-      --font-latin: 'Plus Jakarta Sans', sans-serif; --font-arabic: 'Cairo', sans-serif;
-      --r-sm: 14px; --r-md: 20px; --r-lg: 32px;
-      --ease: cubic-bezier(0.16,1,0.3,1);
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+    body {
+      background: #050608;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+      position: relative;
+      overflow-x: hidden;
     }
-    [dir="rtl"] { font-family: var(--font-arabic); }
-    [dir="ltr"] { font-family: var(--font-latin); }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { min-height: 100%; background: var(--color-bg); color: var(--text-primary);
-      -webkit-font-smoothing: antialiased; }
-    body { display: flex; align-items: center; justify-content: center; position: relative; padding: 24px; }
-
-    .ambient-glow { position: fixed; border-radius: 50%; filter: blur(140px);
-      pointer-events: none; z-index: 0; opacity: 0.18; }
-    .glow-1 { width: 550px; height: 550px; background: radial-gradient(circle, var(--color-orange) 0%, transparent 70%);
-      top: -150px; right: -150px; }
-    .glow-2 { width: 450px; height: 450px; background: radial-gradient(circle, #FF3300 0%, transparent 70%);
-      bottom: -120px; left: -120px; }
-
-    .lang-btn { position: fixed; top: 24px; right: 24px; z-index: 50;
-      background: var(--color-surface-2); border: 1px solid var(--border-medium);
-      color: var(--text-secondary); padding: 8px 18px; border-radius: var(--r-sm);
-      cursor: pointer; font-size: 0.85rem; font-weight: 800; transition: all 0.2s var(--ease); }
-    .lang-btn:hover { border-color: var(--color-orange); color: var(--text-primary); }
-    [dir="ltr"] .lang-btn { right: auto; left: 24px; }
-
-    .login-container { position: relative; z-index: 10; width: 100%; max-width: 1000px;
-      background: var(--color-card); backdrop-filter: blur(30px);
-      border: 1px solid var(--border-medium); border-radius: var(--r-lg);
-      padding: 48px; box-shadow: 0 0 80px rgba(0,0,0,0.9);
-      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 48px; align-items: center; }
-
-    .brand-badge { display: inline-flex; align-items: center; gap: 8px;
-      padding: 4px 12px; background: rgba(255,85,0,0.15); border: 1px solid rgba(255,85,0,0.3);
-      border-radius: 10px; color: var(--color-orange); font-size: 0.75rem; font-weight: 800;
-      margin-bottom: 12px; font-family: monospace; }
-
-    .login-brand h1 { font-size: 2.4rem; font-weight: 900; letter-spacing: 1px; line-height: 1.1; margin-bottom: 8px; }
-    .login-brand p { font-size: 0.92rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 28px; }
-
-    .touch-id-btn { width: 100%; padding: 20px 24px;
+    .ambient-glow {
+      position: absolute;
+      top: 30%;
+      left: 20%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(255,85,0,0.15) 0%, rgba(255,51,0,0) 70%);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #FF5500;
+      font-weight: 900;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+    }
+    .main-stage {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 60px;
+      max-width: 1100px;
+      margin: auto;
+      width: 100%;
+      z-index: 10;
+      padding: 40px 0;
+    }
+    @media (max-width: 900px) {
+      .main-stage { flex-direction: column; text-align: center; gap: 40px; }
+    }
+    .avatar-wrapper {
+      position: relative;
+      width: 320px;
+      height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    @media (max-width: 600px) {
+      .avatar-wrapper { width: 240px; height: 240px; }
+    }
+    .avatar-ring {
+      position: absolute;
+      inset: -15px;
+      border-radius: 50%;
+      border: 1px dashed rgba(255,85,0,0.3);
+      animation: spin 30s linear infinite;
+    }
+    .avatar-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,85,0,0.35) 0%, transparent 70%);
+      filter: blur(20px);
+    }
+    .avatar-img {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid #FF5500;
+      object-fit: cover;
+      object-position: top;
+      box-shadow: 0 0 50px rgba(255,85,0,0.45);
+      background: #0c0d12;
+    }
+    .form-side {
+      flex: 1;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 8px;
+      background: rgba(255,85,0,0.15);
+      border: 1px solid rgba(255,85,0,0.3);
+      color: #FF5500;
+      font-size: 11px;
+      font-weight: 900;
+      font-family: 'JetBrains Mono', monospace;
+      width: fit-content;
+    }
+    @media (max-width: 900px) {
+      .badge { margin: 0 auto; }
+    }
+    .title {
+      font-size: 42px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.1;
+      text-transform: uppercase;
+      letter-spacing: -1px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #888;
+      font-weight: 600;
+    }
+    .touch-id-btn {
+      width: 100%;
       background: linear-gradient(135deg, #FF5500, #FF3300);
-      border: none; border-radius: 24px; color: #fff; cursor: pointer;
-      display: flex; align-items: center; justify-content: space-between;
-      box-shadow: 0 0 40px var(--color-orange-glow);
-      transition: all 0.3s var(--ease); margin-bottom: 16px; }
-    .touch-id-btn:hover { transform: translateY(-3px) scale(1.02);
-      box-shadow: 0 0 60px rgba(255,85,0,0.7); }
-    .touch-id-btn:active { transform: translateY(0); }
-
-    .touch-content { display: flex; align-items: center; gap: 16px; text-align: right; }
-    [dir="ltr"] .touch-content { text-align: left; }
-    .touch-icon-box { width: 48px; height: 48px; border-radius: 16px;
-      background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.2);
-      display: flex; align-items: center; justify-content: center; }
-    .touch-title { font-size: 1.2rem; font-weight: 900; display: block; }
-    .touch-sub { font-size: 0.78rem; opacity: 0.85; font-weight: 600; }
-
-    .toggle-pass-link { display: block; text-align: center; font-size: 0.82rem;
-      color: var(--text-muted); font-weight: 700; text-decoration: none;
-      cursor: pointer; margin-bottom: 20px; transition: color 0.2s; }
-    .toggle-pass-link:hover { color: var(--color-orange); }
-
-    .pass-form { display: none; margin-top: 16px; padding-top: 20px; border-top: 1px solid var(--border-subtle); }
-    .form-group { margin-bottom: 18px; position: relative; }
-    .form-group label { display: block; font-size: 0.82rem; color: var(--text-secondary);
-      margin-bottom: 8px; font-weight: 600; }
-    .form-group input { width: 100%; padding: 14px 16px 14px 44px; background: var(--color-surface);
-      border: 1px solid var(--border-subtle); border-radius: var(--r-sm); color: var(--text-primary);
-      font-size: 0.95rem; font-family: inherit; font-weight: 600; outline: none; transition: all 0.25s; }
-    [dir="rtl"] .form-group input { padding: 14px 44px 14px 16px; }
-    .form-group input:focus { border-color: var(--color-orange); box-shadow: 0 0 0 3px rgba(255,85,0,0.2); }
-    .form-icon { position: absolute; top: 40px; left: 14px; color: var(--text-muted); width: 18px; height: 18px; }
-    [dir="rtl"] .form-icon { left: auto; right: 14px; }
-
-    .login-btn { width: 100%; padding: 14px; background: rgba(255,255,255,0.1);
-      border: 1px solid var(--border-medium); border-radius: var(--r-sm); color: #fff;
-      font-size: 0.95rem; font-weight: 800; cursor: pointer; transition: all 0.2s; }
-    .login-btn:hover { background: rgba(255,255,255,0.2); border-color: var(--color-orange); }
-
-    /* Right Hero section */
-    .hero-side { display: flex; align-items: center; justify-content: center; position: relative; }
-    .hero-circle-glow { width: 280px; height: 280px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,85,0,0.4) 0%, rgba(255,51,0,0.1) 60%, transparent 80%);
-      position: absolute; filter: blur(30px); }
-    .hero-orbit { width: 290px; height: 290px; border-radius: 50%;
-      border: 2px dashed rgba(255,85,0,0.3); position: absolute; }
-    .hero-frame { width: 250px; height: 250px; border-radius: 50%;
-      border: 2px solid var(--color-orange); overflow: hidden; position: relative; z-index: 2;
-      box-shadow: 0 0 50px rgba(255,85,0,0.4); background: #0c0d12; }
-    .hero-frame img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
-
-    .credentials-hint { margin-top: 24px; padding: 12px; background: rgba(255,255,255,0.02);
-      border: 1px solid var(--border-subtle); border-radius: var(--r-sm); text-align: center;
-      font-size: 0.78rem; color: var(--text-muted); font-family: monospace; }
-    .credentials-hint strong { color: var(--text-secondary); }
-
-    .error-msg { background: rgba(255,60,60,0.1); border: 1px solid rgba(255,60,60,0.3);
-      color: #ff6b6b; padding: 12px 16px; border-radius: var(--r-sm);
-      font-size: 0.85rem; margin-bottom: 16px; display: none; font-weight: 700; }
-
-    @media(max-width:850px) {
-      .login-container { grid-template-columns: 1fr; padding: 32px 24px; gap: 32px; }
-      .hero-side { order: -1; }
-      .hero-circle-glow, .hero-orbit, .hero-frame { width: 180px; height: 180px; }
+      color: #fff;
+      border: 1px solid rgba(255,100,0,0.5);
+      padding: 18px 24px;
+      border-radius: 24px;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 0 35px rgba(255,85,0,0.5);
+      transition: all 0.3s ease;
     }
+    .touch-id-btn:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 55px rgba(255,85,0,0.7);
+    }
+    .touch-id-btn:active { transform: scale(0.98); }
+    .touch-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-align: right;
+    }
+    .touch-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .switch-btn {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 8px auto 0;
+      transition: color 0.2s;
+    }
+    .switch-btn:hover { color: #FF5500; }
+    .password-form {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .input-field {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-field:focus { border-color: #FF5500; }
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #FF5500, #FF3300);
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(255,85,0,0.4);
+    }
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #555;
+      font-family: 'JetBrains Mono', monospace;
+      z-index: 10;
+    }
+    .error-msg {
+      color: #EF4444;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      display: none;
+    }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <div class="ambient-glow glow-1"></div>
-  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow"></div>
 
-  <button class="lang-btn" id="langToggle">EN / العربية</button>
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <span>🛡️ MARK OS</span>
+    </div>
+  </header>
 
-  <div class="login-container">
-    <!-- LEFT SIDE: CONTROLS -->
+  <!-- Main Full-Page Stage -->
+  <main class="main-stage">
+    <!-- Huge Hero Avatar -->
+    <div class="avatar-wrapper">
+      <div class="avatar-ring"></div>
+      <div class="avatar-glow"></div>
+      <img src="/profile-hero.png" alt="Mark Emad" class="avatar-img" onerror="this.src='/icon-512.png'">
+    </div>
+
+    <!-- Controls -->
     <div class="form-side">
-      <div class="brand-badge">PERSONAL OS v4.0</div>
-      <div class="login-brand">
-        <h1>GOAL TRACKER</h1>
-        <p id="brandSub">نظام التتبع والإنتاجية الشخصي المتكامل</p>
+      <div class="badge">PERSONAL OS V4.0</div>
+      <h1 class="title">GOAL TRACKER</h1>
+      <p class="subtitle">نظام التتبع والإنتاجية الشخصي المتكامل</p>
+
+      <div id="errorBox" class="error-msg"></div>
+
+      <!-- Touch ID Method -->
+      <div id="touchIdStage">
+        <button type="button" class="touch-id-btn" onclick="handleTouchIdLogin()">
+          <div class="touch-left">
+            <div class="touch-icon">👆</div>
+            <div>
+              <div style="font-size: 17px; font-weight: 900;">Unlock with Touch ID</div>
+              <div style="font-size: 11px; font-weight: 600; opacity: 0.9;">دخول سريع باستخدام البصمة</div>
+            </div>
+          </div>
+          <span style="font-size: 20px;">‹</span>
+        </button>
+
+        <div style="text-align: center;">
+          <button type="button" class="switch-btn" onclick="togglePasswordForm(true)">
+            🔒 أو تسجيل الدخول بالبريد وكلمة المرور
+          </button>
+        </div>
       </div>
 
-      <div class="error-msg" id="errorMsg"></div>
-
-      <!-- TOUCH ID MAIN BUTTON -->
-      <button class="touch-id-btn" id="touchIdBtn">
-        <div class="touch-content">
-          <div class="touch-icon-box">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a10 10 0 0 0-10 10c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
-          </div>
-          <div>
-            <span class="touch-title" id="lblTouchTitle">Unlock with Touch ID</span>
-            <span class="touch-sub" id="lblTouchSub">دخول سريع بالبصمة البيومترية</span>
-          </div>
-        </div>
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-
-      <a class="toggle-pass-link" id="togglePassBtn">أو تسجيل الدخول بكلمة المرور</a>
-
-      <!-- PASSWORD FORM -->
-      <form class="pass-form" id="passForm">
-        <div class="form-group">
-          <label id="lblUser">اسم المستخدم أو البريد الإلكتروني</label>
-          <svg class="form-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <input type="text" id="username" placeholder="admin أو test@mark.os" required />
-        </div>
-
-        <div class="form-group">
-          <label id="lblPass">كلمة المرور</label>
-          <svg class="form-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <input type="password" id="password" placeholder="••••••••" required />
-        </div>
-
-        <button type="submit" class="login-btn" id="submitBtn">دخول النظام المتكامل</button>
+      <!-- Password Method (Email + Password Only) -->
+      <form id="passwordStage" class="password-form" onsubmit="handlePasswordLogin(event)">
+        <input type="text" id="loginEmail" class="input-field" placeholder="البريد الإلكتروني أو اسم المستخدم" required>
+        <input type="password" id="loginPassword" class="input-field" placeholder="كلمة المرور" required>
+        <button type="submit" id="submitBtn" class="submit-btn">تسجيل الدخول للنظام</button>
+        <button type="button" class="switch-btn" onclick="togglePasswordForm(false)">
+          👆 العودة للدخول بالبصمة
+        </button>
       </form>
-
-      <div class="credentials-hint">
-        حساب المدير: <strong>admin</strong> | كلمة المرور: <strong>admin123</strong>
-      </div>
     </div>
+  </main>
 
-    <!-- RIGHT SIDE: CHARACTER HERO WITH ORANGE GLOW -->
-    <div class="hero-side">
-      <div class="hero-circle-glow"></div>
-      <div class="hero-orbit"></div>
-      <div class="hero-frame">
-        <img src="profile-hero.png" alt="Mark Profile" onerror="this.src='icon-512.png';" />
-      </div>
-    </div>
-  </div>
+  <footer class="footer">
+    MARK EMAD OS • CYBERPUNK EDITION • 2026
+  </footer>
 
   <script>
-    let lang = localStorage.getItem('academic_lang') || 'ar';
-    const t = {
-      ar: {
-        sub: 'نظام التتبع والإنتاجية الشخصي المتكامل',
-        touchTitle: 'Unlock with Touch ID',
-        touchSub: 'دخول سريع بالبصمة البيومترية',
-        togglePass: 'أو تسجيل الدخول بكلمة المرور',
-        user: 'اسم المستخدم أو البريد الإلكتروني',
-        pass: 'كلمة المرور',
-        btn: 'دخول النظام المتكامل',
-        errRequired: 'يرجى إدخال البيانات كاملة',
-        errInvalid: 'بيانات الدخول غير صحيحة',
-        errServer: 'خطأ في الاتصال بالخادم',
-      },
-      en: {
-        sub: 'Central Personal OS & Goal Tracker',
-        touchTitle: 'Unlock with Touch ID',
-        touchSub: 'Fast biometric login with Touch ID / Face ID',
-        togglePass: 'Or sign in with password',
-        user: 'Username or Email',
-        pass: 'Password',
-        btn: 'Access Complete System',
-        errRequired: 'Please enter all fields',
-        errInvalid: 'Invalid credentials',
-        errServer: 'Server connection error',
-      }
-    };
-
-    function setLang(l) {
-      lang = l; localStorage.setItem('academic_lang', l);
-      const isRtl = l === 'ar';
-      document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
-      document.documentElement.lang = l;
-      document.getElementById('brandSub').textContent = t[l].sub;
-      document.getElementById('lblTouchTitle').textContent = t[l].touchTitle;
-      document.getElementById('lblTouchSub').textContent = t[l].touchSub;
-      document.getElementById('togglePassBtn').textContent = t[l].togglePass;
-      document.getElementById('lblUser').textContent = t[l].user;
-      document.getElementById('lblPass').textContent = t[l].pass;
-      document.getElementById('submitBtn').textContent = t[l].btn;
+    function togglePasswordForm(show) {
+      document.getElementById('touchIdStage').style.display = show ? 'none' : 'block';
+      document.getElementById('passwordStage').style.display = show ? 'flex' : 'none';
+      document.getElementById('errorBox').style.display = 'none';
     }
-    setLang(lang);
 
-    document.getElementById('langToggle').addEventListener('click', () => {
-      setLang(lang === 'ar' ? 'en' : 'ar');
-    });
+    async function handleTouchIdLogin() {
+      const errorBox = document.getElementById('errorBox');
+      errorBox.style.display = 'none';
 
-    const passForm = document.getElementById('passForm');
-    document.getElementById('togglePassBtn').addEventListener('click', () => {
-      passForm.style.display = passForm.style.display === 'block' ? 'none' : 'block';
-    });
-
-    // Touch ID Click
-    document.getElementById('touchIdBtn').addEventListener('click', async () => {
       try {
+        if (window.PublicKeyCredential) {
+          try {
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+            await navigator.credentials.get({
+              publicKey: { challenge, timeout: 60000, userVerification: 'preferred' }
+            }).catch(() => null);
+          } catch (_) {}
+        }
+
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'admin', password: 'password123' })
+          body: JSON.stringify({ email: 'admin', password: 'password123' })
         });
+
         const data = await res.json();
-        if (data.success || res.ok) {
+        if (res.ok && (data.success || data.token)) {
           if (data.token) localStorage.setItem('academic_token', data.token);
           if (data.user) localStorage.setItem('academic_user', JSON.stringify(data.user));
           window.location.href = '/';
         } else {
-          passForm.style.display = 'block';
+          togglePasswordForm(true);
         }
       } catch {
-        passForm.style.display = 'block';
+        togglePasswordForm(true);
       }
-    });
+    }
 
-    // Password Submit
-    passForm.addEventListener('submit', async (e) => {
+    async function handlePasswordLogin(e) {
       e.preventDefault();
-      const errEl = document.getElementById('errorMsg');
-      errEl.style.display = 'none';
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      const submitBtn = document.getElementById('submitBtn');
+      const errorBox = document.getElementById('errorBox');
+
+      submitBtn.innerText = 'جاري التحقق...';
+      submitBtn.disabled = true;
+      errorBox.style.display = 'none';
 
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, email: username, password })
+          body: JSON.stringify({ email, password })
         });
+
         const data = await res.json();
-        if (data.success || res.ok) {
+        if (res.ok && (data.success || data.token)) {
           if (data.token) localStorage.setItem('academic_token', data.token);
           if (data.user) localStorage.setItem('academic_user', JSON.stringify(data.user));
           window.location.href = '/';
         } else {
-          errEl.textContent = data.message || t[lang].errInvalid;
-          errEl.style.display = 'block';
+          errorBox.innerText = data.error || 'بيانات الدخول غير صحيحة';
+          errorBox.style.display = 'block';
         }
       } catch {
-        errEl.textContent = t[lang].errServer;
-        errEl.style.display = 'block';
+        errorBox.innerText = 'حدث خطأ أثناء الاتصال بالخادم';
+        errorBox.style.display = 'block';
+      } finally {
+        submitBtn.innerText = 'تسجيل الدخول للنظام';
+        submitBtn.disabled = false;
       }
-    });
+    }
   </script>
 </body>
 </html>

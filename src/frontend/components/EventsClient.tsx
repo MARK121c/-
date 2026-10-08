@@ -1,368 +1,527 @@
 'use client';
-import { useState, useEffect } from 'react';
 
-interface Event {
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Calendar as CalendarIcon, Users, Plus, Trash2, Clock, MapPin, Search, Copy, Check, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
+
+interface EventItem {
   id: number;
   title: string;
-  description: string;
-  event_date: string;
-  event_time: string;
-  category: string;
-  location: string;
-  reminder: number;
-  is_recurring: number;
-  recurrence_pattern: string;
+  type: string;
+  date: string;
+  time?: string | null;
+  endTime?: string | null;
+  repeat?: string;
+  priority?: string;
+  status?: string;
+  personId?: number | null;
+  notes?: string;
 }
 
-interface Friend {
+interface Person {
   id: number;
   name: string;
-  phone: string;
-  email: string;
-  category: string;
+  relationship: string;
   notes: string;
-  birthday: string;
+  importanceLevel: number;
+  lastInteraction?: string | null;
+  createdAt: string;
 }
 
 export default function EventsClient() {
-  const [tab, setTab] = useState<'events' | 'friends'>('events');
-  const [events, setEvents] = useState<Event[]>([]);
-  const [friends, setFriends] = useState<Friend[]>([]);
+  const [tab, setTab] = useState<'events' | 'people'>('events');
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Event form
   const [showEventForm, setShowEventForm] = useState(false);
-  const [showFriendForm, setShowFriendForm] = useState(false);
-  const [eventForm, setEventForm] = useState({ title: '', description: '', event_date: '', event_time: '', category: '', location: '', reminder: 0 });
-  const [friendForm, setFriendForm] = useState({ name: '', phone: '', email: '', category: '', notes: '', birthday: '' });
-  const [searchQuery, setSearchQuery] = useState('');
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    type: 'meeting',
+    date: new Date().toISOString().split('T')[0],
+    time: '12:00',
+    notes: '',
+    priority: 'medium',
+  });
+
+  // Person form
+  const [showPersonForm, setShowPersonForm] = useState(false);
+  const [personForm, setPersonForm] = useState({
+    name: '',
+    relationship: 'friend',
+    notes: '',
+    importanceLevel: 3,
+  });
+
+  const [searchPerson, setSearchPerson] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Calendar state
+  // Calendar navigation
   const [calendarDate, setCalendarDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDayEvents, setSelectedDayEvents] = useState<EventItem[] | null>(null);
+  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    fetchAll();
+  }, []);
 
   async function fetchAll() {
     try {
-      const [eRes, fRes] = await Promise.all([fetch('/api/events'), fetch('/api/friends')]);
-      const eData = await eRes.json();
-      const fData = await fRes.json();
-      setEvents(eData.events || []);
-      setFriends(fData.friends || []);
-    } catch(e) { console.error(e); }
+      const [eventsRes, peopleRes] = await Promise.all([
+        fetch('/api/events'),
+        fetch('/api/people')
+      ]);
+      const eventsData = await eventsRes.json();
+      const peopleData = await peopleRes.json();
+      setEvents(eventsData.events || []);
+      setPeople(peopleData.people || []);
+    } catch (e) {
+      console.error(e);
+    }
     setLoading(false);
   }
 
-  async function addEvent(e: React.FormEvent) {
+  async function handleAddEvent(e: React.FormEvent) {
     e.preventDefault();
-    await fetch('/api/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(eventForm) });
-    setShowEventForm(false);
-    setEventForm({ title: '', description: '', event_date: '', event_time: '', category: '', location: '', reminder: 0 });
-    fetchAll();
+    if (!eventForm.title.trim()) return;
+
+    try {
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventForm),
+      });
+      if (res.ok) {
+        setShowEventForm(false);
+        setEventForm({
+          title: '',
+          type: 'meeting',
+          date: new Date().toISOString().split('T')[0],
+          time: '12:00',
+          notes: '',
+          priority: 'medium',
+        });
+        fetchAll();
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  async function addFriend(e: React.FormEvent) {
+  async function handleDeleteEvent(id: number) {
+    if (!confirm('حذف هذا الموعد؟')) return;
+    setEvents(prev => prev.filter(ev => ev.id !== id));
+    try {
+      await fetch(`/api/events?id=${id}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error(e);
+      fetchAll();
+    }
+  }
+
+  async function handleAddPerson(e: React.FormEvent) {
     e.preventDefault();
-    await fetch('/api/friends', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(friendForm) });
-    setShowFriendForm(false);
-    setFriendForm({ name: '', phone: '', email: '', category: '', notes: '', birthday: '' });
-    fetchAll();
+    if (!personForm.name.trim()) return;
+
+    try {
+      const res = await fetch('/api/people', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(personForm),
+      });
+      if (res.ok) {
+        setShowPersonForm(false);
+        setPersonForm({
+          name: '',
+          relationship: 'friend',
+          notes: '',
+          importanceLevel: 3,
+        });
+        fetchAll();
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  async function deleteEvent(id: number) {
-    if (!confirm('حذف الموعد؟')) return;
-    await fetch(`/api/events/${id}`, { method: 'DELETE' });
-    fetchAll();
-  }
-
-  async function deleteFriend(id: number) {
+  async function handleDeletePerson(id: number) {
     if (!confirm('حذف جهة الاتصال؟')) return;
-    await fetch(`/api/friends/${id}`, { method: 'DELETE' });
-    fetchAll();
+    setPeople(prev => prev.filter(p => p.id !== id));
+    try {
+      await fetch(`/api/people?id=${id}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error(e);
+      fetchAll();
+    }
   }
 
-  function copyToClipboard(text: string, id: string) {
+  function copyText(text: string, id: string) {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   }
 
-  // Calendar helpers
+  // Calendar calculations
   const year = calendarDate.getFullYear();
   const month = calendarDate.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month + 1, 0).getDate();
   const todayStr = new Date().toISOString().split('T')[0];
-  const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+  const monthNames = [
+    'يناير / JAN', 'فبراير / FEB', 'مارس / MAR', 'أبريل / APR', 'مايو / MAY', 'يونيو / JUN',
+    'يوليو / JUL', 'أغسطس / AUG', 'سبتمبر / SEP', 'أكتوبر / OCT', 'نوفمبر / NOV', 'ديسمبر / DEC'
+  ];
   const dayNames = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
 
-  const eventsByDate: Record<string, Event[]> = {};
-  events.forEach(e => {
-    if (!eventsByDate[e.event_date]) eventsByDate[e.event_date] = [];
-    eventsByDate[e.event_date].push(e);
-  });
-
-  const prevMonth = () => setCalendarDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setCalendarDate(new Date(year, month + 1, 1));
-
-  const upcomingEvents = events
-    .filter(e => new Date(e.event_date) >= new Date(todayStr))
-    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
-
-  const filteredFriends = friends.filter(f => 
-    !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const categoryColors: Record<string, string> = {
-    'عمل': '#3B82F6', 'شخصي': '#10B981', 'دراسة': '#8B5CF6', 'صحة': '#EF4444',
-    'اجتماعي': '#F59E0B', 'سفر': '#06B6D4',
+  const handleDayClick = (dateStr: string) => {
+    const dayEvs = events.filter(e => e.date === dateStr);
+    setSelectedDateStr(dateStr);
+    setSelectedDayEvents(dayEvs);
   };
 
-  if (loading) return (
-    <div style={{ textAlign: 'center', padding: 60 }}>
-      <div style={{ width: 40, height: 40, border: '3px solid rgba(255,85,0,0.2)', borderTop: '3px solid #FF5500', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+  const filteredPeople = people.filter(p =>
+    !searchPerson.trim() || p.name.toLowerCase().includes(searchPerson.toLowerCase()) || p.notes?.toLowerCase().includes(searchPerson.toLowerCase())
   );
 
   return (
-    <div style={{ padding: '20px', direction: 'rtl' }}>
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        <button onClick={() => setTab('events')} style={{
-          padding: '12px 24px', borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 900,
-          background: tab === 'events' ? 'linear-gradient(135deg, #FF5500, #FF3300)' : 'rgba(255,255,255,0.04)',
-          color: tab === 'events' ? '#fff' : '#888',
-          boxShadow: tab === 'events' ? '0 0 15px rgba(255,85,0,0.3)' : 'none'
-        }}>
-          📅 المواعيد والتقويم
-        </button>
-        <button onClick={() => setTab('friends')} style={{
-          padding: '12px 24px', borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 900,
-          background: tab === 'friends' ? 'linear-gradient(135deg, #FF5500, #FF3300)' : 'rgba(255,255,255,0.04)',
-          color: tab === 'friends' ? '#fff' : '#888',
-          boxShadow: tab === 'friends' ? '0 0 15px rgba(255,85,0,0.3)' : 'none'
-        }}>
-          👥 جهات الاتصال ({friends.length})
-        </button>
+    <div className="space-y-6">
+      {/* Top Header & Tab Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/10 backdrop-blur-2xl">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2">
+            <CalendarIcon size={26} className="text-orange-400" />
+            <span>المواعيد وشبكة العلاقات</span>
+          </h2>
+          <p className="text-xs text-gray-400 mt-1">تقويم تفاعلي للمواعيد الهامة ودليل بيانات جهات الاتصال</p>
+        </div>
+
+        {/* Tab Buttons */}
+        <div className="flex bg-white/[0.03] p-1.5 rounded-2xl border border-white/10">
+          <button
+            onClick={() => setTab('events')}
+            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              tab === 'events' ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <CalendarIcon size={14} />
+            <span>المواعيد والتقويم ({events.length})</span>
+          </button>
+          <button
+            onClick={() => setTab('people')}
+            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              tab === 'people' ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Users size={14} />
+            <span>جهات الاتصال ({people.length})</span>
+          </button>
+        </div>
       </div>
 
-      {/* ── EVENTS TAB ── */}
+      {/* ── EVENTS & CALENDAR TAB ── */}
       {tab === 'events' && (
-        <div>
-          {/* Calendar */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 24, marginBottom: 24, border: '1px solid rgba(255,255,255,0.08)' }}>
-            {/* Calendar Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <button onClick={prevMonth} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>◀</button>
-              <h3 style={{ margin: 0, color: '#fff', fontWeight: 900, fontSize: 18 }}>
-                {monthNames[month]} {year}
-              </h3>
-              <button onClick={nextMonth} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>▶</button>
+        <div className="space-y-6">
+          {/* Action Bar */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-black text-white">تقويم المواعيد الشهري</h3>
+            <button
+              onClick={() => setShowEventForm(!showEventForm)}
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-orange-500 to-[#FF3300] text-white font-black text-xs shadow-lg hover:scale-105 transition-all cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <Plus size={16} />
+              <span>+ إضافة موعد جديد</span>
+            </button>
+          </div>
+
+          {/* Add Event Form */}
+          {showEventForm && (
+            <motion.form
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={handleAddEvent}
+              className="p-6 rounded-3xl bg-white/[0.04] border border-orange-500/30 space-y-4 shadow-xl"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <input
+                  type="text"
+                  required
+                  value={eventForm.title}
+                  onChange={e => setEventForm({ ...eventForm, title: e.target.value })}
+                  placeholder="عنوان الموعد *"
+                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                />
+                <input
+                  type="date"
+                  required
+                  value={eventForm.date}
+                  onChange={e => setEventForm({ ...eventForm, date: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-[#0c0d12] border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500 font-mono"
+                />
+                <input
+                  type="time"
+                  value={eventForm.time}
+                  onChange={e => setEventForm({ ...eventForm, time: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-[#0c0d12] border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500 font-mono"
+                />
+                <select
+                  value={eventForm.type}
+                  onChange={e => setEventForm({ ...eventForm, type: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-[#0c0d12] border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                >
+                  <option value="meeting">اجتماع (Meeting)</option>
+                  <option value="reminder">تذكير (Reminder)</option>
+                  <option value="birthday">عيد ميلاد (Birthday)</option>
+                  <option value="holiday">عطلة (Holiday)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEventForm(false)}
+                  className="px-5 py-2 rounded-xl text-xs font-bold text-gray-400 border border-white/10"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-orange-500 text-white font-black text-xs shadow-lg hover:bg-orange-400"
+                >
+                  حفظ الموعد
+                </button>
+              </div>
+            </motion.form>
+          )}
+
+          {/* Monthly Calendar View */}
+          <div className="p-6 rounded-[2.5rem] bg-white/[0.02] border border-white/5 space-y-6">
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <button
+                onClick={() => setCalendarDate(new Date(year, month - 1, 1))}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300"
+              >
+                <ChevronRight size={18} />
+              </button>
+              <h4 className="text-lg font-black text-white font-mono">{monthNames[month]} {year}</h4>
+              <button
+                onClick={() => setCalendarDate(new Date(year, month + 1, 1))}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300"
+              >
+                <ChevronLeft size={18} />
+              </button>
             </div>
 
-            {/* Day Names */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 8 }}>
-              {dayNames.map(d => (
-                <div key={d} style={{ textAlign: 'center', fontSize: 10, color: '#888', fontWeight: 700, padding: 4 }}>{d}</div>
+            {/* Calendar Days Matrix */}
+            <div className="grid grid-cols-7 gap-2 text-center">
+              {dayNames.map((d, idx) => (
+                <div key={idx} className="text-xs font-black text-gray-500 py-2">{d}</div>
               ))}
-            </div>
 
-            {/* Calendar Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
-              {/* Empty cells for days before 1st */}
-              {Array.from({ length: firstDay }, (_, i) => (
-                <div key={`empty-${i}`} style={{ padding: 8 }} />
+              {/* Empty spaces */}
+              {Array.from({ length: firstDayIndex }).map((_, i) => (
+                <div key={`empty-${i}`} className="h-14 sm:h-20 rounded-2xl bg-white/[0.01]" />
               ))}
-              
-              {/* Day cells */}
-              {Array.from({ length: daysInMonth }, (_, i) => {
-                const day = i + 1;
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const hasEvents = eventsByDate[dateStr]?.length > 0;
-                const isToday = dateStr === todayStr;
-                const isSelected = dateStr === selectedDate;
+
+              {/* Day Tiles */}
+              {Array.from({ length: totalDays }).map((_, i) => {
+                const dayNum = i + 1;
+                const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                const dayEvents = events.filter(e => e.date === dStr);
+                const isToday = dStr === todayStr;
+                const isSelected = dStr === selectedDateStr;
 
                 return (
-                  <button 
-                    key={day}
-                    onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                    style={{
-                      padding: '8px 4px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                      background: isSelected ? '#FF5500' : isToday ? 'rgba(255,85,0,0.15)' : hasEvents ? 'rgba(255,85,0,0.06)' : 'transparent',
-                      color: isSelected ? '#fff' : isToday ? '#FF5500' : '#ccc',
-                      fontWeight: isToday || hasEvents ? 900 : 400,
-                      fontSize: 13,
-                      position: 'relative',
-                      outline: isToday && !isSelected ? '2px solid rgba(255,85,0,0.4)' : 'none',
-                      transition: 'all 0.2s',
-                    }}
+                  <button
+                    key={dayNum}
+                    onClick={() => handleDayClick(dStr)}
+                    className={`h-14 sm:h-20 p-2 rounded-2xl border transition-all text-start flex flex-col justify-between cursor-pointer group ${
+                      isSelected 
+                        ? 'bg-orange-500/20 border-orange-500 shadow-[0_0_15px_rgba(255,85,0,0.3)]' 
+                        : isToday 
+                        ? 'bg-white/[0.06] border-orange-500/50' 
+                        : 'bg-white/[0.02] border-white/5 hover:border-white/20'
+                    }`}
                   >
-                    {day}
-                    {hasEvents && !isSelected && (
-                      <div style={{ 
-                        position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)',
-                        width: 5, height: 5, borderRadius: '50%', background: '#FF5500' 
-                      }} />
+                    <span className={`text-xs font-mono font-black ${isToday ? 'text-orange-400' : 'text-gray-400'}`}>
+                      {dayNum}
+                    </span>
+
+                    {dayEvents.length > 0 && (
+                      <div className="flex gap-1 overflow-hidden">
+                        {dayEvents.slice(0, 3).map(e => (
+                          <div key={e.id} className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_5px_rgba(255,85,0,0.8)]" />
+                        ))}
+                      </div>
                     )}
                   </button>
                 );
               })}
             </div>
 
-            {/* Selected Date Events */}
-            {selectedDate && eventsByDate[selectedDate] && (
-              <div style={{ marginTop: 16, padding: 12, background: 'rgba(255,85,0,0.06)', borderRadius: 12, border: '1px solid rgba(255,85,0,0.15)' }}>
-                <h4 style={{ margin: '0 0 8px', color: '#FF5500', fontSize: 13, fontWeight: 900 }}>
-                  أحداث {selectedDate}:
-                </h4>
-                {eventsByDate[selectedDate].map(ev => (
-                  <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div>
-                      <span style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>{ev.title}</span>
-                      {ev.event_time && <span style={{ color: '#888', fontSize: 11, marginRight: 8 }}>🕐 {ev.event_time}</span>}
-                    </div>
-                    {ev.location && <span style={{ color: '#888', fontSize: 11 }}>📍 {ev.location}</span>}
+            {/* Selected Day Event Drawer */}
+            {selectedDateStr && (
+              <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 space-y-2">
+                <span className="text-xs font-mono font-black text-orange-400">مواعيد يوم: {selectedDateStr}</span>
+                {selectedDayEvents && selectedDayEvents.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedDayEvents.map(e => (
+                      <div key={e.id} className="flex justify-between items-center p-3 rounded-xl bg-black/40 border border-white/10">
+                        <div>
+                          <strong className="text-sm text-white block">{e.title}</strong>
+                          <span className="text-xs text-gray-400 font-mono">🕒 {e.time || 'طوال اليوم'} • {e.type}</span>
+                        </div>
+                        <button onClick={() => handleDeleteEvent(e.id)} className="p-1.5 text-gray-500 hover:text-rose-400">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p className="text-xs text-gray-400">لا توجد مواعيد مسجلة في هذا اليوم</p>
+                )}
               </div>
             )}
           </div>
 
-          {/* Add Event Button + Form */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, color: '#fff', fontWeight: 900, fontSize: 18 }}>📋 المواعيد القادمة ({upcomingEvents.length})</h3>
-            <button onClick={() => setShowEventForm(!showEventForm)} style={{ background: 'linear-gradient(135deg, #FF5500, #FF3300)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 900, fontSize: 13, boxShadow: '0 0 12px rgba(255,85,0,0.2)' }}>+ موعد جديد</button>
-          </div>
-
-          {showEventForm && (
-            <form onSubmit={addEvent} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 20, marginBottom: 20, border: '1px solid rgba(255,85,0,0.15)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                <input placeholder="عنوان الموعد *" value={eventForm.title} onChange={e => setEventForm({...eventForm, title: e.target.value})} required style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14 }} />
-                <input placeholder="المكان" value={eventForm.location} onChange={e => setEventForm({...eventForm, location: e.target.value})} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14 }} />
-                <input type="date" value={eventForm.event_date} onChange={e => setEventForm({...eventForm, event_date: e.target.value})} required style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14 }} />
-                <input type="time" value={eventForm.event_time} onChange={e => setEventForm({...eventForm, event_time: e.target.value})} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14 }} />
-                <input placeholder="التصنيف" value={eventForm.category} onChange={e => setEventForm({...eventForm, category: e.target.value})} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14 }} />
-              </div>
-              <textarea placeholder="الوصف" value={eventForm.description} onChange={e => setEventForm({...eventForm, description: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14, minHeight: 50, marginBottom: 12 }} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button type="submit" style={{ background: 'linear-gradient(135deg, #FF5500, #FF3300)', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 12, cursor: 'pointer', fontWeight: 900, boxShadow: '0 0 10px rgba(255,85,0,0.2)' }}>إضافة</button>
-                <button type="button" onClick={() => setShowEventForm(false)} style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 12, cursor: 'pointer', fontWeight: 700 }}>إلغاء</button>
-              </div>
-            </form>
-          )}
-
           {/* Upcoming Events List */}
-          {upcomingEvents.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 60, color: '#666' }}>
-              <span style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>📅</span>
-              <p style={{ fontSize: 16, fontWeight: 700 }}>لا توجد مواعيد قادمة</p>
-            </div>
-          ) : upcomingEvents.map(event => {
-            const catColor = categoryColors[event.category] || '#FF5500';
-            const isEventToday = event.event_date === todayStr;
-            return (
-              <div key={event.id} style={{ 
-                background: isEventToday ? 'rgba(255,85,0,0.06)' : 'rgba(255,255,255,0.02)', 
-                borderRadius: 16, padding: '14px 18px', marginBottom: 8, 
-                border: `1px solid ${isEventToday ? 'rgba(255,85,0,0.2)' : 'rgba(255,255,255,0.06)'}`, 
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                borderRight: `3px solid ${catColor}`
-              }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>{event.title}</span>
-                    {isEventToday && (
-                      <span style={{ background: '#FF5500', color: '#fff', padding: '1px 8px', borderRadius: 6, fontSize: 9, fontWeight: 900 }}>اليوم</span>
-                    )}
+          <div className="space-y-3">
+            <h4 className="text-base font-black text-white">قائمة المواعيد القادمة</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {events.slice(0, 10).map(e => (
+                <div key={e.id} className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-orange-500/30 transition-all flex justify-between items-start group">
+                  <div className="space-y-1">
+                    <strong className="text-base font-bold text-white block">{e.title}</strong>
+                    <div className="flex items-center gap-3 text-xs text-gray-400 font-mono">
+                      <span>📅 {e.date}</span>
+                      {e.time && <span>🕒 {e.time}</span>}
+                      <span className="px-2 py-0.5 rounded-md bg-white/5 text-orange-400 border border-white/10">{e.type}</span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
-                    <span style={{ fontSize: 11, color: '#FF5500', fontWeight: 700 }}>📅 {event.event_date}</span>
-                    {event.event_time && <span style={{ fontSize: 11, color: '#888' }}>🕐 {event.event_time}</span>}
-                    {event.location && <span style={{ fontSize: 11, color: '#888' }}>📍 {event.location}</span>}
-                    {event.category && <span style={{ fontSize: 11, color: catColor, fontWeight: 700 }}>{event.category}</span>}
-                  </div>
+                  <button onClick={() => handleDeleteEvent(e.id)} className="p-1.5 text-gray-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <button onClick={() => deleteEvent(event.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, padding: 4 }}>🗑️</button>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* ── FRIENDS TAB ── */}
-      {tab === 'friends' && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, color: '#fff', fontWeight: 900, fontSize: 18 }}>👥 جهات الاتصال</h3>
-            <button onClick={() => setShowFriendForm(!showFriendForm)} style={{ background: 'linear-gradient(135deg, #FF5500, #FF3300)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 900, fontSize: 13, boxShadow: '0 0 12px rgba(255,85,0,0.2)' }}>+ إضافة</button>
+      {/* ── PEOPLE & CONTACTS TAB ── */}
+      {tab === 'people' && (
+        <div className="space-y-6">
+          {/* Action Bar */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+              <input
+                type="text"
+                value={searchPerson}
+                onChange={e => setSearchPerson(e.target.value)}
+                placeholder="بحث في جهات الاتصال..."
+                className="w-full pr-11 pl-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
+              />
+            </div>
+
+            <button
+              onClick={() => setShowPersonForm(!showPersonForm)}
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-orange-500 to-[#FF3300] text-white font-black text-xs shadow-lg hover:scale-105 transition-all cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <UserPlus size={16} />
+              <span>+ إضافة جهة اتصال</span>
+            </button>
           </div>
 
-          {/* Search */}
-          <div style={{ marginBottom: 16 }}>
-            <input 
-              placeholder="🔍 بحث بالاسم..." 
-              value={searchQuery} 
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16, padding: '12px 18px', color: '#fff', fontSize: 14, fontWeight: 700 }} 
-            />
-          </div>
+          {/* Add Person Form */}
+          {showPersonForm && (
+            <motion.form
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={handleAddPerson}
+              className="p-6 rounded-3xl bg-white/[0.04] border border-orange-500/30 space-y-4 shadow-xl"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <input
+                  type="text"
+                  required
+                  value={personForm.name}
+                  onChange={e => setPersonForm({ ...personForm, name: e.target.value })}
+                  placeholder="الاسم *"
+                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                />
+                <select
+                  value={personForm.relationship}
+                  onChange={e => setPersonForm({ ...personForm, relationship: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-[#0c0d12] border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                >
+                  <option value="friend">صديق (Friend)</option>
+                  <option value="business">عمل وشراكة (Business)</option>
+                  <option value="family">عائلة (Family)</option>
+                  <option value="other">أخرى (Other)</option>
+                </select>
+                <input
+                  type="text"
+                  value={personForm.notes}
+                  onChange={e => setPersonForm({ ...personForm, notes: e.target.value })}
+                  placeholder="ملاحظات / هاتف / حساب..."
+                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
 
-          {showFriendForm && (
-            <form onSubmit={addFriend} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 20, marginBottom: 20, border: '1px solid rgba(255,85,0,0.15)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                <input placeholder="الاسم *" value={friendForm.name} onChange={e => setFriendForm({...friendForm, name: e.target.value})} required style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14 }} />
-                <input placeholder="رقم الهاتف" value={friendForm.phone} onChange={e => setFriendForm({...friendForm, phone: e.target.value})} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14 }} />
-                <input placeholder="البريد" value={friendForm.email} onChange={e => setFriendForm({...friendForm, email: e.target.value})} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14 }} />
-                <input placeholder="التصنيف" value={friendForm.category} onChange={e => setFriendForm({...friendForm, category: e.target.value})} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14 }} />
-                <input type="date" placeholder="تاريخ الميلاد" value={friendForm.birthday} onChange={e => setFriendForm({...friendForm, birthday: e.target.value})} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14 }} />
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPersonForm(false)}
+                  className="px-5 py-2 rounded-xl text-xs font-bold text-gray-400 border border-white/10"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-orange-500 text-white font-black text-xs shadow-lg hover:bg-orange-400"
+                >
+                  حفظ
+                </button>
               </div>
-              <textarea placeholder="ملاحظات" value={friendForm.notes} onChange={e => setFriendForm({...friendForm, notes: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 14px', color: '#fff', fontSize: 14, minHeight: 50, marginBottom: 12 }} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button type="submit" style={{ background: 'linear-gradient(135deg, #FF5500, #FF3300)', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 12, cursor: 'pointer', fontWeight: 900, boxShadow: '0 0 10px rgba(255,85,0,0.2)' }}>إضافة</button>
-                <button type="button" onClick={() => setShowFriendForm(false)} style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 12, cursor: 'pointer', fontWeight: 700 }}>إلغاء</button>
-              </div>
-            </form>
+            </motion.form>
           )}
 
-          {/* Friends Table */}
-          {filteredFriends.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 60, color: '#666' }}>
-              <span style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>👥</span>
-              <p style={{ fontSize: 16, fontWeight: 700 }}>لا توجد جهات اتصال</p>
-            </div>
-          ) : (
-            <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-              {/* Table Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 50px', gap: 8, padding: '12px 18px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <span style={{ fontSize: 11, color: '#888', fontWeight: 900 }}>الاسم</span>
-                <span style={{ fontSize: 11, color: '#888', fontWeight: 900 }}>الهاتف</span>
-                <span style={{ fontSize: 11, color: '#888', fontWeight: 900 }}>البريد</span>
-                <span style={{ fontSize: 11, color: '#888', fontWeight: 900 }}>التصنيف</span>
-                <span style={{ fontSize: 11, color: '#888', fontWeight: 900 }}>الميلاد</span>
-                <span></span>
-              </div>
-              {/* Table Rows */}
-              {filteredFriends.map(friend => (
-                <div key={friend.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr 50px', gap: 8, padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', transition: 'background 0.2s' }}>
-                  <span style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>{friend.name}</span>
-                  <span 
-                    onClick={() => friend.phone && copyToClipboard(friend.phone, `phone-${friend.id}`)} 
-                    style={{ color: '#888', fontSize: 12, cursor: friend.phone ? 'pointer' : 'default' }}
-                  >
-                    {copiedId === `phone-${friend.id}` ? '✅ تم النسخ' : (friend.phone || '—')}
-                  </span>
-                  <span 
-                    onClick={() => friend.email && copyToClipboard(friend.email, `email-${friend.id}`)} 
-                    style={{ color: '#888', fontSize: 12, cursor: friend.email ? 'pointer' : 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                  >
-                    {copiedId === `email-${friend.id}` ? '✅ تم النسخ' : (friend.email || '—')}
-                  </span>
-                  <span style={{ color: '#FF5500', fontSize: 11, fontWeight: 700 }}>{friend.category || '—'}</span>
-                  <span style={{ color: '#888', fontSize: 11 }}>{friend.birthday ? `🎂 ${friend.birthday}` : '—'}</span>
-                  <button onClick={() => deleteFriend(friend.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: 2 }}>🗑️</button>
+          {/* People Grid Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredPeople.map(p => (
+              <div key={p.id} className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-white/15 transition-all space-y-3 group">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <strong className="text-base font-black text-white block">{p.name}</strong>
+                    <span className="text-xs text-orange-400 font-mono font-bold uppercase">{p.relationship}</span>
+                  </div>
+                  <button onClick={() => handleDeletePerson(p.id)} className="p-1.5 text-gray-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-              ))}
+
+                {p.notes && (
+                  <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-gray-300 flex justify-between items-center">
+                    <span className="truncate">{p.notes}</span>
+                    <button
+                      onClick={() => copyText(p.notes, `p-${p.id}`)}
+                      className="p-1 text-gray-500 hover:text-orange-400 shrink-0"
+                      title="نسخ"
+                    >
+                      {copiedId === `p-${p.id}` ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {filteredPeople.length === 0 && !loading && (
+            <div className="text-center py-16 text-gray-500">
+              <Users size={48} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-bold">لا توجد جهات اتصال مطابقة</p>
             </div>
           )}
         </div>

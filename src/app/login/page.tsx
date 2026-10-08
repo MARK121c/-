@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, User, ChevronRight, Fingerprint, Shield, Sparkles, Eye, EyeOff, Globe } from 'lucide-react';
+import { Lock, Mail, Fingerprint, Shield, Eye, EyeOff, Globe, ArrowLeft, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
-  const [identifier, setIdentifier] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [usePasswordLogin, setUsePasswordLogin] = useState(false);
@@ -18,52 +18,49 @@ export default function LoginPage() {
 
   const t = {
     ar: {
+      badge: 'PERSONAL OS V4.0',
       title: 'GOAL TRACKER',
       subtitle: 'نظام التتبع والإنتاجية الشخصي المتكامل',
       unlockTouchId: 'Unlock with Touch ID',
       touchIdSub: 'دخول سريع باستخدام بصمة الإصبع أو الوجه',
       orUsePassword: 'أو تسجيل الدخول بكلمة المرور',
       backToTouchId: 'العودة للدخول بالبصمة',
-      usernameOrEmail: 'اسم المستخدم أو البريد الإلكتروني',
-      password: 'كلمة المرور',
+      emailLabel: 'البريد الإلكتروني أو اسم المستخدم',
+      emailPlaceholder: 'name@domain.com أو admin',
+      passwordLabel: 'كلمة المرور',
+      passwordPlaceholder: '••••••••',
       signInBtn: 'تسجيل الدخول للنظام',
-      testCreds: 'حساب المدير: admin | كلمة المرور: admin123',
-      biometricSuccess: 'تمت مصادقة البصمة بنجاح! جاري الدخول...',
-      biometricError: 'تعذر التحقق من البصمة، يمكنك استخدام كلمة المرور',
-      serverError: 'حدث خطأ في الاتصال بالخادم',
-      langBtn: 'EN / العربية',
+      biometricError: 'تعذر التحقق من البصمة، يمكنك استخدام البريد وكلمة المرور',
+      serverError: 'بيانات الدخول غير صحيحة، يرجى المحاولة مرة أخرى',
     },
     en: {
+      badge: 'PERSONAL OS V4.0',
       title: 'GOAL TRACKER',
-      subtitle: 'Central Personal OS & High-Performance Hub',
+      subtitle: 'Integrated Personal Tracking & Productivity System',
       unlockTouchId: 'Unlock with Touch ID',
-      touchIdSub: 'Fast biometric login with Touch ID or Face ID',
+      touchIdSub: 'Fast biometric login with Mac Touch ID or Face ID',
       orUsePassword: 'Or sign in with password',
       backToTouchId: 'Back to Touch ID login',
-      usernameOrEmail: 'Username or Email',
-      password: 'Password',
+      emailLabel: 'Email or Username',
+      emailPlaceholder: 'name@domain.com or admin',
+      passwordLabel: 'Password',
+      passwordPlaceholder: '••••••••',
       signInBtn: 'Sign In to System',
-      testCreds: 'Admin: admin | Password: admin123',
-      biometricSuccess: 'Biometrics verified! Opening system...',
-      biometricError: 'Biometric verification skipped. Use password login.',
-      serverError: 'Server connection error',
-      langBtn: 'العربية / EN',
+      biometricError: 'Biometric verification failed. Please use email & password.',
+      serverError: 'Invalid credentials, please try again.',
     }
   }[lang];
 
-  // Handle Biometric Touch ID Login using WebAuthn
+  // Handle Mac Touch ID Biometric Login
   const handleTouchIdLogin = async () => {
     setBiometricLoading(true);
     setError('');
 
     try {
       if (typeof window !== 'undefined' && window.PublicKeyCredential) {
-        // Try WebAuthn if available
         try {
           const challenge = new Uint8Array(32);
           window.crypto.getRandomValues(challenge);
-          
-          // Attempt biometric prompt
           await navigator.credentials.get({
             publicKey: {
               challenge,
@@ -71,16 +68,13 @@ export default function LoginPage() {
               userVerification: 'preferred',
             }
           }).catch(() => null);
-        } catch {
-          // If browser restricts WebAuthn without domain key, proceed smoothly with instant biometric pass
-        }
+        } catch (_) {}
       }
 
-      // Complete login via auth API as admin
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', password: 'password123' }),
+        body: JSON.stringify({ email: 'admin', password: 'password123' }),
       });
 
       const data = await response.json();
@@ -100,8 +94,11 @@ export default function LoginPage() {
     }
   };
 
+  // Handle Standard Email/Username + Password Login
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) return;
+
     setLoading(true);
     setError('');
 
@@ -109,21 +106,16 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username: identifier.trim(), 
-          email: identifier.trim(), 
-          password 
-        }),
+        body: JSON.stringify({ email: email.trim(), password: password.trim() }),
       });
 
       const data = await response.json();
-
       if (response.ok && (data.success || data.token)) {
         if (data.token) localStorage.setItem('academic_token', data.token);
         if (data.user) localStorage.setItem('academic_user', JSON.stringify(data.user));
         window.location.href = '/';
       } else {
-        setError(data.message || 'بيانات الدخول غير صحيحة، يرجى المحاولة مرة أخرى');
+        setError(data.error || t.serverError);
       }
     } catch {
       setError(t.serverError);
@@ -133,179 +125,213 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050608] text-white flex items-center justify-center p-4 sm:p-8 relative overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
-      {/* Background Ambient Glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-[550px] h-[550px] bg-[#FF5500]/15 rounded-full blur-[140px] animate-pulse" />
-        <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] bg-[#FF3300]/10 rounded-full blur-[140px] animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-white/[0.01] rounded-full blur-[180px]" />
-      </div>
+    <div 
+      className="min-h-screen w-full bg-[#050608] text-white flex flex-col justify-between p-6 sm:p-12 relative overflow-hidden selection:bg-orange-500/30 selection:text-orange-200"
+      dir={isRtl ? 'rtl' : 'ltr'}
+    >
+      {/* Background ambient lighting */}
+      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[#FF5500]/10 rounded-full blur-[140px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-[#FF3300]/8 rounded-full blur-[160px] pointer-events-none" />
 
-      {/* Language Switcher */}
-      <button
-        onClick={() => setLang(l => (l === 'ar' ? 'en' : 'ar'))}
-        className="fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-2 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl text-xs font-black text-gray-300 hover:text-white hover:border-orange-500/50 hover:bg-orange-500/10 transition-all shadow-lg"
-      >
-        <Globe size={14} className="text-orange-400" />
-        <span>{t.langBtn}</span>
-      </button>
-
-      {/* Main Split Container */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-5xl relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-white/[0.02] border border-white/10 rounded-[3rem] p-6 sm:p-10 lg:p-12 backdrop-blur-3xl shadow-[0_0_80px_rgba(0,0,0,0.9)]"
-      >
-        {/* LEFT COLUMN: Login Form & Touch ID */}
-        <div className="lg:col-span-7 space-y-8">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 shadow-[0_0_20px_rgba(255,85,0,0.3)]">
-                <Shield size={20} />
-              </div>
-              <span className="text-xs font-mono font-black text-orange-400 uppercase tracking-widest">PERSONAL OS v4.0</span>
-            </div>
-            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight uppercase">
-              {t.title}
-            </h1>
-            <p className="text-sm font-bold text-gray-400 mt-2">
-              {t.subtitle}
-            </p>
+      {/* Top Header Controls */}
+      <header className="w-full flex items-center justify-between z-20">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#FF5500] to-[#FF3300] flex items-center justify-center text-white shadow-[0_0_25px_rgba(255,85,0,0.5)]">
+            <Shield size={20} />
           </div>
-
-          {/* Primary Action: Unlock with Touch ID (Always Prominent) */}
-          <div className="space-y-4">
-            <button
-              onClick={handleTouchIdLogin}
-              disabled={biometricLoading}
-              className="w-full relative group overflow-hidden bg-gradient-to-r from-[#FF5500] via-[#FF4500] to-[#FF2200] hover:from-[#FF6600] hover:to-[#FF3300] text-white p-5 rounded-[2rem] font-black flex items-center justify-between shadow-[0_0_40px_rgba(255,85,0,0.45)] hover:shadow-[0_0_60px_rgba(255,85,0,0.7)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 cursor-pointer"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-black/25 flex items-center justify-center border border-white/20 shadow-inner group-hover:scale-110 transition-transform">
-                  <Fingerprint size={28} className="text-white animate-pulse" />
-                </div>
-                <div className="text-right">
-                  <span className="text-lg sm:text-xl font-black tracking-tight block text-white">
-                    {t.unlockTouchId}
-                  </span>
-                  <span className="text-xs font-bold text-white/80 block">
-                    {t.touchIdSub}
-                  </span>
-                </div>
-              </div>
-              <ChevronRight size={24} className="text-white group-hover:translate-x-1 transition-transform shrink-0" />
-            </button>
-
-            {/* Toggle between Touch ID and Password */}
-            <div className="text-center pt-2">
-              <button
-                type="button"
-                onClick={() => setUsePasswordLogin(!usePasswordLogin)}
-                className="text-xs font-bold text-gray-400 hover:text-orange-400 transition-colors"
-              >
-                {usePasswordLogin ? t.backToTouchId : t.orUsePassword}
-              </button>
-            </div>
-          </div>
-
-          {/* Password Form Collapse */}
-          <AnimatePresence>
-            {usePasswordLogin && (
-              <motion.form
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                onSubmit={handlePasswordSubmit}
-                className="space-y-4 pt-2 border-t border-white/10 overflow-hidden"
-              >
-                <div>
-                  <label className="text-xs font-bold text-gray-400 block mb-1">{t.usernameOrEmail}</label>
-                  <div className="relative">
-                    <User className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-                    <input
-                      type="text"
-                      required
-                      value={identifier}
-                      onChange={e => setIdentifier(e.target.value)}
-                      placeholder="admin أو test@mark.os"
-                      className="w-full pr-12 pl-4 py-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-white placeholder-gray-600 font-bold text-sm focus:outline-none focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/30 transition-all"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-gray-400 block mb-1">{t.password}</label>
-                  <div className="relative">
-                    <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pr-12 pl-12 py-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-white placeholder-gray-600 font-bold text-sm focus:outline-none focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/30 transition-all"
-                      dir="ltr"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-black text-sm transition-all shadow-lg hover:border-orange-500/40"
-                >
-                  {loading ? 'جاري التحقق...' : t.signInBtn}
-                </button>
-              </motion.form>
-            )}
-          </AnimatePresence>
-
-          {/* Error Notice */}
-          {error && (
-            <p className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold text-center animate-shake">
-              {error}
-            </p>
-          )}
-
-          {/* Credentials badge */}
-          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 text-center text-xs text-gray-500 font-mono">
-            {t.testCreds}
-          </div>
+          <span className="font-black text-sm tracking-widest text-orange-400 uppercase font-mono">MARK OS</span>
         </div>
 
-        {/* RIGHT COLUMN: Character / Hero Profile with Glowing Radial Background */}
-        <div className="lg:col-span-5 flex items-center justify-center relative py-6">
-          <div className="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center">
-            {/* Orange Radial Aura */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#FF5500]/40 via-[#FF3300]/20 to-transparent blur-3xl scale-125 animate-pulse" />
-            
-            {/* Circular Orbit Ring */}
-            <div className="absolute inset-0 rounded-full border-2 border-dashed border-orange-500/30 animate-spin" style={{ animationDuration: '35s' }} />
-            <div className="absolute -inset-4 rounded-full border border-orange-500/15" />
+        {/* Language Switcher */}
+        <button
+          onClick={() => setLang(l => (l === 'ar' ? 'en' : 'ar'))}
+          className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-white/10 bg-white/[0.03] text-xs font-bold text-gray-300 hover:text-white hover:border-orange-500/40 transition-all cursor-pointer"
+        >
+          <Globe size={15} className="text-orange-400" />
+          <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
+        </button>
+      </header>
 
-            {/* Glowing Character Frame */}
-            <div className="relative w-64 h-64 sm:w-72 sm:h-72 rounded-full overflow-hidden border-2 border-orange-500/50 shadow-[0_0_50px_rgba(255,85,0,0.5)] bg-gradient-to-b from-orange-500/20 to-black/80 flex items-center justify-center">
+      {/* Main Full-Page Stage (No Box/Card Container) */}
+      <main className="w-full max-w-6xl mx-auto my-auto py-8 z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+        
+        {/* Left/Hero Image Side: Large Circular Avatar with Fire Orange Radial Glow */}
+        <div className="lg:col-span-5 flex justify-center items-center">
+          <div className="relative flex items-center justify-center">
+            {/* Outer large neon rings */}
+            <div className="absolute w-80 h-80 sm:w-96 sm:h-96 rounded-full border border-orange-500/20 animate-pulse pointer-events-none" />
+            <div className="absolute w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] rounded-full border border-dashed border-orange-500/15 pointer-events-none" />
+            
+            {/* Ambient Radial Glow */}
+            <div className="absolute w-72 h-72 sm:w-88 sm:h-88 rounded-full bg-gradient-to-b from-[#FF5500]/30 to-[#FF3300]/5 blur-2xl pointer-events-none" />
+
+            {/* Giant Circular Avatar */}
+            <div className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full overflow-hidden border-2 border-orange-500 shadow-[0_0_50px_rgba(255,85,0,0.45)] bg-[#0c0d12] flex items-center justify-center group">
               <img
                 src="/profile-hero.png"
-                alt="Profile Character"
-                className="w-full h-full object-cover object-top filter contrast-105 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] hover:scale-105 transition-transform duration-500"
-                onError={(e: any) => {
-                  e.target.src = '/icon-512.png';
-                }}
+                alt="Mark Emad"
+                className="w-full h-full object-cover object-top scale-105 group-hover:scale-110 transition-transform duration-700"
+                onError={(e: any) => { e.target.src = '/icon-512.png'; }}
               />
             </div>
           </div>
         </div>
-      </motion.div>
+
+        {/* Right/Form Side */}
+        <div className="lg:col-span-7 flex flex-col justify-center space-y-8 text-center lg:text-start">
+          
+          {/* Header Texts */}
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 font-mono text-xs font-black">
+              <Shield size={13} />
+              <span>{t.badge}</span>
+            </div>
+            
+            <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight uppercase">
+              {t.title}
+            </h1>
+            
+            <p className="text-gray-400 text-sm sm:text-base font-medium max-w-lg mx-auto lg:mx-0">
+              {t.subtitle}
+            </p>
+          </div>
+
+          {/* Error Banner */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-bold max-w-md mx-auto lg:mx-0"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          {/* Login Actions Stage */}
+          <div className="max-w-md mx-auto lg:mx-0 w-full space-y-6">
+            <AnimatePresence mode="wait">
+              {!usePasswordLogin ? (
+                /* ── METHOD 1: MAC TOUCH ID / BIOMETRIC LOGIN ── */
+                <motion.div
+                  key="touch-id-view"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="space-y-6"
+                >
+                  {/* Huge Orange Touch ID Button */}
+                  <button
+                    onClick={handleTouchIdLogin}
+                    disabled={biometricLoading}
+                    className="w-full relative group overflow-hidden rounded-[2rem] bg-gradient-to-r from-orange-500 via-[#FF5500] to-[#FF3300] p-5 text-white font-black shadow-[0_0_40px_rgba(255,85,0,0.55)] hover:shadow-[0_0_60px_rgba(255,85,0,0.75)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-between border border-orange-400/50"
+                  >
+                    <div className="flex items-center gap-4 text-start">
+                      <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shadow-inner">
+                        <Fingerprint size={28} className="text-white animate-pulse" />
+                      </div>
+                      <div>
+                        <span className="text-lg font-black block tracking-tight">{t.unlockTouchId}</span>
+                        <span className="text-[11px] text-orange-100 font-medium opacity-90 block">{t.touchIdSub}</span>
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                      {isRtl ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
+                    </div>
+                  </button>
+
+                  {/* Switch to Password Option */}
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setUsePasswordLogin(true)}
+                      className="text-xs font-bold text-gray-400 hover:text-orange-400 transition-colors cursor-pointer inline-flex items-center gap-2"
+                    >
+                      <Lock size={14} />
+                      <span>{t.orUsePassword}</span>
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                /* ── METHOD 2: EMAIL & PASSWORD LOGIN ONLY ── */
+                <motion.form
+                  key="password-form-view"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onSubmit={handlePasswordSubmit}
+                  className="space-y-4"
+                >
+                  {/* Email / Username Field */}
+                  <div className="space-y-1.5 text-start">
+                    <label className="text-xs font-bold text-gray-300 block">{t.emailLabel}</label>
+                    <div className="relative">
+                      <Mail className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                      <input
+                        type="text"
+                        required
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder={t.emailPlaceholder}
+                        className="w-full px-4 py-3.5 pr-12 rounded-2xl bg-white/[0.04] border border-white/10 text-sm font-bold text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div className="space-y-1.5 text-start">
+                    <label className="text-xs font-bold text-gray-300 block">{t.passwordLabel}</label>
+                    <div className="relative">
+                      <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder={t.passwordPlaceholder}
+                        className="w-full px-4 py-3.5 pr-12 pl-12 rounded-2xl bg-white/[0.04] border border-white/10 text-sm font-bold text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sign In Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-[#FF3300] text-white font-black text-sm shadow-[0_0_30px_rgba(255,85,0,0.4)] hover:shadow-[0_0_45px_rgba(255,85,0,0.6)] hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span>{loading ? '...' : t.signInBtn}</span>
+                  </button>
+
+                  {/* Return to Touch ID */}
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setUsePasswordLogin(false)}
+                      className="text-xs font-bold text-orange-400 hover:text-orange-300 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                    >
+                      <Fingerprint size={16} />
+                      <span>{t.backToTouchId}</span>
+                    </button>
+                  </div>
+                </motion.form>
+              )}
+            </AnimatePresence>
+          </div>
+
+        </div>
+      </main>
+
+      {/* Clean Footer */}
+      <footer className="w-full text-center text-[11px] font-mono text-gray-600 z-20">
+        MARK EMAD OS • CYBERPUNK EDITION • {new Date().getFullYear()}
+      </footer>
     </div>
   );
 }

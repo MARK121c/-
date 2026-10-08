@@ -1,16 +1,22 @@
 'use client';
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { CreditCard, Plus, Trash2, Calendar, AlertCircle, Clock, ShieldCheck, Check } from 'lucide-react';
 
 interface Subscription {
   id: number;
   name: string;
-  cost: number;
-  currency: string;
-  billing_cycle: string;
   category: string;
-  next_renewal: string;
+  amount: number;
+  currency: string;
+  billingCycle: string;
+  billingInterval: number;
+  startDate: string;
+  nextPaymentDate: string;
   status: string;
-  notes: string;
+  isEssential: boolean;
+  linkedAccount: string;
 }
 
 export default function SubscriptionClient() {
@@ -18,244 +24,303 @@ export default function SubscriptionClient() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
-  const [form, setForm] = useState({ name: '', cost: '', currency: 'USD', billing_cycle: 'monthly', category: '', next_renewal: '', status: 'active', notes: '' });
 
-  useEffect(() => { fetchSubs(); }, []);
+  const [form, setForm] = useState({
+    name: '',
+    category: 'business',
+    amount: '',
+    currency: 'EGP',
+    billingCycle: 'monthly',
+    startDate: new Date().toISOString().split('T')[0],
+    isEssential: true,
+    linkedAccount: 'cash',
+  });
 
-  async function fetchSubs() {
+  useEffect(() => {
+    fetchSubscriptions();
+  }, []);
+
+  async function fetchSubscriptions() {
     try {
       const res = await fetch('/api/subscriptions');
       const data = await res.json();
       setSubscriptions(data.subscriptions || []);
-    } catch(e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
     setLoading(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.name || !form.amount) return;
+
     try {
-      await fetch('/api/subscriptions', {
+      const res = await fetch('/api/subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, cost: parseFloat(form.cost) })
+        body: JSON.stringify({
+          name: form.name.trim(),
+          category: form.category,
+          amount: parseFloat(form.amount),
+          currency: form.currency,
+          billingCycle: form.billingCycle,
+          startDate: form.startDate,
+          isEssential: form.isEssential,
+          linkedAccount: form.linkedAccount,
+        }),
       });
-      setShowForm(false);
-      setForm({ name: '', cost: '', currency: 'USD', billing_cycle: 'monthly', category: '', next_renewal: '', status: 'active', notes: '' });
-      fetchSubs();
-    } catch(e) { console.error(e); }
+
+      if (res.ok) {
+        setForm({
+          name: '',
+          category: 'business',
+          amount: '',
+          currency: 'EGP',
+          billingCycle: 'monthly',
+          startDate: new Date().toISOString().split('T')[0],
+          isEssential: true,
+          linkedAccount: 'cash',
+        });
+        setShowForm(false);
+        fetchSubscriptions();
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  async function deleteSub(id: number) {
-    if (!confirm('حذف الاشتراك؟')) return;
-    await fetch(`/api/subscriptions/${id}`, { method: 'DELETE' });
-    fetchSubs();
+  async function deleteSubscription(id: number) {
+    if (!confirm('هل أنت متأكد من حذف هذا الاشتراك؟')) return;
+    setSubscriptions(prev => prev.filter(s => s.id !== id));
+    try {
+      await fetch(`/api/subscriptions?id=${id}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error(e);
+      fetchSubscriptions();
+    }
   }
 
-  // Computed values
-  const activeSubs = subscriptions.filter(s => s.status === 'active');
-  const categories = [...new Set(subscriptions.map(s => s.category).filter(Boolean))];
-  
-  const totalMonthly = activeSubs.reduce((sum, s) => {
-    if (s.billing_cycle === 'monthly') return sum + s.cost;
-    if (s.billing_cycle === 'yearly') return sum + (s.cost / 12);
-    if (s.billing_cycle === 'weekly') return sum + (s.cost * 4.33);
-    return sum + s.cost;
+  // Cost calculations
+  const totalMonthly = subscriptions.reduce((sum, s) => {
+    if (s.billingCycle === 'yearly') return sum + (s.amount / 12);
+    if (s.billingCycle === 'weekly') return sum + (s.amount * 4.33);
+    return sum + (s.amount || 0);
   }, 0);
 
   const totalAnnual = totalMonthly * 12;
 
-  const getDaysUntilRenewal = (date: string) => {
-    if (!date) return 999;
-    return Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const getDaysLeft = (targetDate: string) => {
+    if (!targetDate) return 999;
+    const diff = new Date(targetDate).getTime() - new Date().getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
-  const expiringSoon = activeSubs.filter(s => {
-    const days = getDaysUntilRenewal(s.next_renewal);
-    return days >= 0 && days <= 7;
-  }).length;
+  const categories = ['all', ...Array.from(new Set(subscriptions.map(s => s.category).filter(Boolean)))];
 
-  const getRenewalStyle = (date: string) => {
-    const days = getDaysUntilRenewal(date);
-    if (days <= 3) return { border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.06)', shadow: '0 0 15px rgba(239,68,68,0.15)', color: '#EF4444', label: `⚠️ ${days} يوم`, urgent: true };
-    if (days <= 7) return { border: '1px solid rgba(255,85,0,0.3)', background: 'rgba(255,85,0,0.06)', shadow: '0 0 10px rgba(255,85,0,0.1)', color: '#FF5500', label: `⏰ ${days} أيام`, urgent: true };
-    return { border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', shadow: 'none', color: '#10B981', label: `${days} يوم`, urgent: false };
-  };
-
-  const filtered = filterCategory === 'all' 
-    ? subscriptions 
+  const filtered = filterCategory === 'all'
+    ? subscriptions
     : subscriptions.filter(s => s.category === filterCategory);
 
-  if (loading) return (
-    <div style={{ textAlign: 'center', padding: 60 }}>
-      <div style={{ width: 40, height: 40, border: '3px solid rgba(255,85,0,0.2)', borderTop: '3px solid #FF5500', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
-
   return (
-    <div style={{ padding: '20px', direction: 'rtl' }}>
+    <div className="space-y-6">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: '20px 24px', borderRadius: 24, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/10 backdrop-blur-2xl">
         <div>
-          <h2 style={{ margin: 0, fontSize: 24, color: '#fff', fontWeight: 900 }}>💳 الاشتراكات والخدمات</h2>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>تتبع اشتراكاتك وتنبيهات التجديد</p>
+          <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2">
+            <CreditCard size={26} className="text-orange-400" />
+            <span>الاشتراكات والخدمات الدورية</span>
+          </h2>
+          <p className="text-xs text-gray-400 mt-1">تتبع كلفة وتواريخ تجديد اشتراكاتك الشهرية والسنوية</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
-          style={{ background: 'linear-gradient(135deg, #FF5500, #FF3300)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 16, cursor: 'pointer', fontSize: 14, fontWeight: 900, boxShadow: '0 0 20px rgba(255,85,0,0.3)' }}>
-          + اشتراك جديد
+
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="px-5 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-[#FF3300] text-white font-black text-sm shadow-[0_0_20px_rgba(255,85,0,0.3)] hover:scale-105 transition-all cursor-pointer inline-flex items-center gap-2"
+        >
+          <Plus size={18} />
+          <span>+ اشتراك جديد</span>
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
-        <div style={{ background: 'rgba(255,85,0,0.08)', borderRadius: 16, padding: 16, textAlign: 'center', border: '1px solid rgba(255,85,0,0.2)' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#FF5500', fontFamily: 'monospace' }}>{activeSubs.length}</div>
-          <div style={{ fontSize: 11, color: '#aaa', fontWeight: 700 }}>اشتراك نشط</div>
+      {/* 3 Summary Highlight Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-1">
+          <span className="text-xs text-gray-400 font-bold block">إجمالي الاشتراكات النشطة</span>
+          <strong className="text-2xl font-black text-white font-mono">{subscriptions.length}</strong>
         </div>
-        <div style={{ background: 'rgba(245,158,11,0.08)', borderRadius: 16, padding: 16, textAlign: 'center', border: '1px solid rgba(245,158,11,0.2)' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#f59e0b', fontFamily: 'monospace' }}>${totalMonthly.toFixed(0)}</div>
-          <div style={{ fontSize: 11, color: '#aaa', fontWeight: 700 }}>شهرياً</div>
+        <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-1">
+          <span className="text-xs text-gray-400 font-bold block">التكلفة الشهرية التقديرية</span>
+          <strong className="text-2xl font-black text-orange-400 font-mono">
+            {Math.round(totalMonthly).toLocaleString('en-US')} <span className="text-xs text-gray-500">EGP</span>
+          </strong>
         </div>
-        <div style={{ background: 'rgba(239,68,68,0.08)', borderRadius: 16, padding: 16, textAlign: 'center', border: '1px solid rgba(239,68,68,0.2)' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#ef4444', fontFamily: 'monospace' }}>${totalAnnual.toFixed(0)}</div>
-          <div style={{ fontSize: 11, color: '#aaa', fontWeight: 700 }}>سنوياً</div>
-        </div>
-        <div style={{ background: expiringSoon > 0 ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)', borderRadius: 16, padding: 16, textAlign: 'center', border: `1px solid ${expiringSoon > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}` }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: expiringSoon > 0 ? '#ef4444' : '#10b981', fontFamily: 'monospace' }}>{expiringSoon}</div>
-          <div style={{ fontSize: 11, color: '#aaa', fontWeight: 700 }}>تجديد قريب</div>
+        <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-1">
+          <span className="text-xs text-gray-400 font-bold block">التكلفة السنوية الإجمالية</span>
+          <strong className="text-2xl font-black text-emerald-400 font-mono">
+            {Math.round(totalAnnual).toLocaleString('en-US')} <span className="text-xs text-gray-500">EGP</span>
+          </strong>
         </div>
       </div>
 
-      {/* Category Filters */}
-      {categories.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
-          <button onClick={() => setFilterCategory('all')}
-            style={{ padding: '6px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 900,
-              background: filterCategory === 'all' ? '#FF5500' : 'rgba(255,255,255,0.04)', color: filterCategory === 'all' ? '#fff' : '#888' }}>
-            الكل
-          </button>
+      {/* Add Subscription Form */}
+      {showForm && (
+        <motion.form
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onSubmit={handleSubmit}
+          className="p-6 sm:p-8 rounded-3xl bg-white/[0.04] border border-orange-500/30 space-y-4 shadow-2xl"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="text-xs font-bold text-gray-400 block mb-1">اسم الاشتراك *</label>
+              <input
+                type="text"
+                required
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                placeholder="مثلاً: ChatGPT Plus / Netflix"
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-gray-400 block mb-1">المبلغ *</label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                value={form.amount}
+                onChange={e => setForm({ ...form, amount: e.target.value })}
+                placeholder="0.00"
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-gray-400 block mb-1">دورة الدفع</label>
+              <select
+                value={form.billingCycle}
+                onChange={e => setForm({ ...form, billingCycle: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-[#0c0d12] border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+              >
+                <option value="monthly">شهري (Monthly)</option>
+                <option value="yearly">سنوي (Yearly)</option>
+                <option value="weekly">أسبوعي (Weekly)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-gray-400 block mb-1">تاريخ التجديد / البداية</label>
+              <input
+                type="date"
+                required
+                value={form.startDate}
+                onChange={e => setForm({ ...form, startDate: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-[#0c0d12] border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500 font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-400 border border-white/10 hover:text-white"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2.5 rounded-xl bg-orange-500 text-white font-black text-xs shadow-lg hover:bg-orange-400"
+            >
+              حفظ الاشتراك
+            </button>
+          </div>
+        </motion.form>
+      )}
+
+      {/* Category Pills */}
+      {categories.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
           {categories.map(cat => (
-            <button key={cat} onClick={() => setFilterCategory(cat)}
-              style={{ padding: '6px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 900,
-                background: filterCategory === cat ? '#FF5500' : 'rgba(255,255,255,0.04)', color: filterCategory === cat ? '#fff' : '#888' }}>
-              {cat}
+            <button
+              key={cat}
+              onClick={() => setFilterCategory(cat)}
+              className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
+                filterCategory === cat ? 'bg-orange-500 text-white shadow-lg' : 'bg-white/[0.03] text-gray-400 border border-white/5 hover:text-white'
+              }`}
+            >
+              {cat === 'all' ? 'جميع الاشتراكات' : cat}
             </button>
           ))}
         </div>
       )}
 
-      {/* Add Form */}
-      {showForm && (
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 24, marginBottom: 24, border: '1px solid rgba(255,85,0,0.15)' }}>
-          <h3 style={{ margin: '0 0 16px', color: '#FF5500', fontSize: 16, fontWeight: 900 }}>+ اشتراك جديد</h3>
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <input placeholder="اسم الاشتراك *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14, fontWeight: 700 }} />
-              <input placeholder="التكلفة *" type="number" step="0.01" value={form.cost} onChange={e => setForm({...form, cost: e.target.value})} required
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14 }} />
-              <select value={form.billing_cycle} onChange={e => setForm({...form, billing_cycle: e.target.value})}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14 }}>
-                <option value="monthly">شهري</option>
-                <option value="yearly">سنوي</option>
-                <option value="weekly">أسبوعي</option>
-              </select>
-              <input placeholder="التصنيف" value={form.category} onChange={e => setForm({...form, category: e.target.value})}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14 }} />
-              <input type="date" value={form.next_renewal} onChange={e => setForm({...form, next_renewal: e.target.value})}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14 }} />
-              <select value={form.currency} onChange={e => setForm({...form, currency: e.target.value})}
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14 }}>
-                <option value="USD">USD</option>
-                <option value="EGP">EGP</option>
-                <option value="EUR">EUR</option>
-              </select>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" style={{ background: 'linear-gradient(135deg, #FF5500, #FF3300)', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: 12, cursor: 'pointer', fontWeight: 900, boxShadow: '0 0 15px rgba(255,85,0,0.3)' }}>إضافة</button>
-              <button type="button" onClick={() => setShowForm(false)} style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: 12, cursor: 'pointer', fontWeight: 700 }}>إلغاء</button>
-            </div>
-          </form>
-        </div>
-      )}
+      {/* Subscriptions Grid Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filtered.map(sub => {
+          const daysLeft = getDaysLeft(sub.nextPaymentDate);
+          const isSoon = daysLeft >= 0 && daysLeft <= 7;
+          const isCritical = daysLeft >= 0 && daysLeft <= 3;
 
-      {/* Subscription Cards */}
-      {filtered.map(sub => {
-        const renewal = getRenewalStyle(sub.next_renewal);
-        const monthlyEquiv = sub.billing_cycle === 'yearly' ? (sub.cost / 12) : sub.billing_cycle === 'weekly' ? (sub.cost * 4.33) : sub.cost;
-        const annualEquiv = monthlyEquiv * 12;
-        
-        return (
-          <div key={sub.id} style={{
-            background: renewal.background,
-            borderRadius: 20, padding: '18px 20px', marginBottom: 12,
-            border: renewal.border,
-            boxShadow: renewal.shadow,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            transition: 'all 0.3s',
-          }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                {/* Icon circle */}
-                <div style={{ 
-                  width: 36, height: 36, borderRadius: 12, 
-                  background: 'rgba(255,85,0,0.15)', border: '1px solid rgba(255,85,0,0.2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 
-                }}>
-                  💳
-                </div>
+          return (
+            <motion.div
+              key={sub.id}
+              whileHover={{ y: -3 }}
+              className={`p-6 rounded-3xl bg-white/[0.02] border transition-all space-y-4 group ${
+                isCritical 
+                  ? 'border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.2)]' 
+                  : isSoon 
+                  ? 'border-orange-500/40 shadow-[0_0_20px_rgba(255,85,0,0.15)]' 
+                  : 'border-white/5 hover:border-white/15'
+              }`}
+            >
+              <div className="flex justify-between items-start">
                 <div>
-                  <span style={{ color: '#fff', fontWeight: 900, fontSize: 15 }}>{sub.name}</span>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 2, alignItems: 'center' }}>
-                    {/* Status badge */}
-                    <span style={{ 
-                      background: sub.status === 'active' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', 
-                      color: sub.status === 'active' ? '#10b981' : '#ef4444', 
-                      padding: '1px 8px', borderRadius: 6, fontSize: 9, fontWeight: 900 
-                    }}>
-                      {sub.status === 'active' ? '● نشط' : '⏸ متوقف'}
+                  <h3 className="text-lg font-black text-white">{sub.name}</h3>
+                  <span className="text-[11px] text-gray-500 font-mono uppercase">{sub.category} • {sub.billingCycle}</span>
+                </div>
+                <button
+                  onClick={() => deleteSubscription(sub.id)}
+                  className="p-1.5 text-gray-600 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100"
+                  title="حذف الاشتراك"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+
+              {/* Amount & Renewal Alert */}
+              <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                <div>
+                  <span className="text-xs text-gray-400 block font-bold">التكلفة</span>
+                  <strong className="text-2xl font-black text-orange-400 font-mono">
+                    {sub.amount} <span className="text-xs text-gray-500">{sub.currency || 'EGP'}</span>
+                  </strong>
+                </div>
+
+                <div className="text-end">
+                  <span className="text-xs text-gray-400 block font-bold">التجديد القادم</span>
+                  <span className={`text-xs font-mono font-bold block ${isCritical ? 'text-rose-400' : isSoon ? 'text-orange-400' : 'text-emerald-400'}`}>
+                    {sub.nextPaymentDate || sub.startDate}
+                  </span>
+                  {daysLeft >= 0 && daysLeft <= 30 && (
+                    <span className={`text-[10px] font-bold block mt-0.5 ${isCritical ? 'text-rose-400 animate-pulse' : isSoon ? 'text-orange-400' : 'text-gray-500'}`}>
+                      {daysLeft === 0 ? '⚠️ اليوم التجديد' : `متبقي ${daysLeft} يوم`}
                     </span>
-                    {renewal.urgent && (
-                      <span style={{ background: `${renewal.color}22`, color: renewal.color, padding: '1px 8px', borderRadius: 6, fontSize: 9, fontWeight: 900 }}>
-                        {renewal.label}
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
-              
-              {/* Details row */}
-              <div style={{ display: 'flex', gap: 14, marginTop: 4, paddingRight: 46 }}>
-                {sub.category && <span style={{ fontSize: 11, color: '#888' }}>📂 {sub.category}</span>}
-                <span style={{ fontSize: 11, color: '#888' }}>🔄 {sub.billing_cycle === 'monthly' ? 'شهري' : sub.billing_cycle === 'yearly' ? 'سنوي' : 'أسبوعي'}</span>
-                {sub.next_renewal && (
-                  <span style={{ fontSize: 11, color: renewal.color }}>📅 {sub.next_renewal}</span>
-                )}
-              </div>
-            </div>
+            </motion.div>
+          );
+        })}
+      </div>
 
-            {/* Cost display */}
-            <div style={{ textAlign: 'left', marginLeft: 12 }}>
-              <div style={{ color: '#fff', fontWeight: 900, fontSize: 20, fontFamily: 'monospace' }}>
-                ${sub.cost}
-                <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>/{sub.billing_cycle === 'monthly' ? 'شهر' : sub.billing_cycle === 'yearly' ? 'سنة' : 'أسبوع'}</span>
-              </div>
-              {sub.billing_cycle !== 'monthly' && (
-                <div style={{ fontSize: 10, color: '#888', fontFamily: 'monospace' }}>
-                  ≈ ${monthlyEquiv.toFixed(0)}/شهر
-                </div>
-              )}
-            </div>
-
-            <button onClick={() => deleteSub(sub.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, padding: 8, marginRight: 4 }}>🗑️</button>
-          </div>
-        );
-      })}
-
-      {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 60, color: '#666' }}>
-          <span style={{ fontSize: 48, display: 'block', marginBottom: 12 }}>💳</span>
-          <p style={{ fontSize: 16, fontWeight: 700 }}>لا توجد اشتراكات مسجلة</p>
+      {filtered.length === 0 && !loading && (
+        <div className="text-center py-16 text-gray-500">
+          <CreditCard size={48} className="mx-auto mb-3 opacity-30" />
+          <p className="text-base font-bold">لا توجد اشتراكات مضافة بعد</p>
+          <p className="text-xs mt-1">أضف اشتراكاتك لتتبع المواعيد والتكاليف تلقائياً</p>
         </div>
       )}
     </div>
