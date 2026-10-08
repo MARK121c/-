@@ -98,6 +98,27 @@ export default function DashboardClient({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ table, id }) 
     });
+    if (res.ok) window.location.reload();
+  };
+
+  // Toggle Wishlist Status (Achieved / In Progress)
+  const toggleWishlistAchieved = async (item: any) => {
+    const newStatus = !item.isPurchased;
+    setWishlistItems(prev => prev.map(w => w.id === item.id ? { ...w, isPurchased: newStatus } : w));
+
+    if (newStatus) {
+      setRewardModal(item);
+    }
+
+    try {
+      await fetch('/api/finance/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'wishlist', id: item.id, data: { is_purchased: newStatus ? 1 : 0 } }),
+      });
+    } catch (_) {}
+  };
+
   // Profile & Notion Settings State
   const [profileEmail, setProfileEmail] = useState('admin@os.com');
   const [profilePassword, setProfilePassword] = useState('');
