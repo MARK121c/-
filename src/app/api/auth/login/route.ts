@@ -41,6 +41,24 @@ export async function POST(request: Request) {
     const envEmail = (process.env.AUTH_EMAIL || 'admin@os.com').toLowerCase();
     const envPassword = process.env.AUTH_PASSWORD || 'password123';
 
+    // 0. Check against custom settings table credentials
+    try {
+      const { createClient } = await import('@libsql/client');
+      const rawClient = createClient({ url: process.env.DATABASE_URL || 'file:./data/sqlite.db' });
+      const customCreds = await rawClient.execute(`SELECT * FROM settings WHERE key IN ('auth_email', 'auth_password')`);
+      const customMap: Record<string, string> = {};
+      (customCreds.rows || []).forEach((r: any) => { customMap[r.key] = r.value; });
+
+      if (customMap['auth_email'] && customMap['auth_password']) {
+        if (identifier === customMap['auth_email'].toLowerCase() && password === customMap['auth_password']) {
+          authenticated = true;
+          userRole = 'owner';
+          displayName = 'Mark Emad (Owner)';
+          userId = identifier;
+        }
+      }
+    } catch (_) {}
+
     let userRole = 'owner';
     let displayName = 'Mark Emad';
     let authenticated = false;
@@ -50,7 +68,7 @@ export async function POST(request: Request) {
     const validAdminIdentifiers = ['admin', 'admin@os.com', 'admin@os.cloud', 'test@mark.os', 'mark', envEmail];
     const validAdminPasswords = ['password123', 'admin123', 'mark123', envPassword];
 
-    if (validAdminIdentifiers.includes(identifier) && validAdminPasswords.includes(password)) {
+    if (!authenticated && validAdminIdentifiers.includes(identifier) && validAdminPasswords.includes(password)) {
       authenticated = true;
       userRole = 'owner';
       displayName = 'Mark Emad (Owner)';

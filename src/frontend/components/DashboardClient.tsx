@@ -98,25 +98,111 @@ export default function DashboardClient({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ table, id }) 
     });
-    if (res.ok) window.location.reload();
-  };
+  // Profile & Notion Settings State
+  const [profileEmail, setProfileEmail] = useState('admin@os.com');
+  const [profilePassword, setProfilePassword] = useState('');
+  const [profileNotionUrl, setProfileNotionUrl] = useState(settings.notionUrl || '');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
 
-  // Toggle Wishlist Status (Achieved / In Progress)
-  const toggleWishlistAchieved = async (item: any) => {
-    const newStatus = !item.isPurchased;
-    setWishlistItems(prev => prev.map(w => w.id === item.id ? { ...w, isPurchased: newStatus } : w));
+  // Backup & Restore State
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [backupMsg, setBackupMsg] = useState('');
 
-    if (newStatus) {
-      setRewardModal(item);
-    }
+  // Fetch initial profile settings
+  useEffect(() => {
+    fetch('/api/settings/profile')
+      .then(r => r.json())
+      .then(data => {
+        if (data.email) setProfileEmail(data.email);
+        if (data.notionUrl) setProfileNotionUrl(data.notionUrl);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    setProfileSuccessMsg('');
 
     try {
-      await fetch('/api/finance/update', {
+      const res = await fetch('/api/settings/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: 'wishlist', id: item.id, data: { is_purchased: newStatus ? 1 : 0 } }),
+        body: JSON.stringify({
+          email: profileEmail,
+          password: profilePassword,
+          notionUrl: profileNotionUrl,
+        }),
       });
-    } catch (_) {}
+      const data = await res.json();
+      if (res.ok) {
+        setProfileSuccessMsg(isRtl ? '✅ تم حفظ التعديلات وتحديث بيانات الحساب بنجاح!' : '✅ Profile and credentials updated successfully!');
+        setProfilePassword('');
+      }
+    } catch (_) {
+      setProfileSuccessMsg(isRtl ? '❌ حدث خطأ أثناء الحفظ' : '❌ Error saving changes');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleDownloadBackup = () => {
+    setBackupLoading(true);
+    setBackupMsg(isRtl ? 'جاري تجهيز النسخة الاحتياطية...' : 'Preparing full database backup...');
+    
+    // Direct download
+    const link = document.createElement('a');
+    link.href = '/api/backup/export';
+    link.download = `mark_os_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => {
+      setBackupLoading(false);
+      setBackupMsg(isRtl ? '✅ تم تنزيل النسخة الاحتياطية الكاملة بنجاح على جهازك!' : '✅ Backup JSON file downloaded successfully!');
+    }, 1500);
+  };
+
+  const handleRestoreBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!confirm(isRtl ? '⚠️ هل أنت متأكد من استعادة البيانات؟ سيتم استبدال البيانات الحالية بمحتويات الملف المرفوع.' : '⚠️ Are you sure you want to restore? Current data will be replaced by the backup contents.')) {
+      e.target.value = '';
+      return;
+    }
+
+    setRestoreLoading(true);
+    setBackupMsg(isRtl ? 'جاري قراءة واستعادة البيانات...' : 'Reading and restoring backup data...');
+
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+
+      const res = await fetch('/api/backup/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(json),
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setBackupMsg(isRtl ? `🎉 ${result.message}` : `🎉 Successfully restored data!`);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setBackupMsg(isRtl ? `❌ فشل الاستعادة: ${result.error || 'ملف غير صالح'}` : `❌ Restore failed`);
+      }
+    } catch (err: any) {
+      setBackupMsg(isRtl ? `❌ خطأ في قراءة الملف: ${err.message}` : `❌ Error reading backup file`);
+    } finally {
+      setRestoreLoading(false);
+      e.target.value = '';
+    }
   };
 
   const t = {
@@ -699,9 +785,134 @@ export default function DashboardClient({
         {/* ===================== 10. SETTINGS ===================== */}
         {mainTab === 'settings' && (
           <motion.div key="settings" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6 max-w-4xl">
-            <h2 className="text-2xl font-black text-white">إعدادات النظام والبروفايل</h2>
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">إعدادات النظام والنسخ الاحتياطي</h2>
+              <p className="text-xs text-gray-400 mt-1">إدارة بيانات تسجيل الدخول، روابط نوشن، وتصدير/استيراد قاعدة البيانات الكاملة</p>
+            </div>
 
-            {/* Profile Hero Avatar Info */}
+            {/* 1. Account Credentials & Security */}
+            <div className="grand-card p-6 sm:p-8 space-y-6">
+              <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                <div className="w-10 h-10 rounded-2xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white">بيانات تسجيل الدخول والأمان</h3>
+                  <p className="text-xs text-gray-400">تعديل البريد الإلكتروني وكلمة المرور الشخصية للنظام</p>
+                </div>
+              </div>
+
+              {profileSuccessMsg && (
+                <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-xs font-bold text-orange-300">
+                  {profileSuccessMsg}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-gray-300 block mb-1">البريد الإلكتروني أو اسم المستخدم</label>
+                    <input
+                      type="text"
+                      required
+                      value={profileEmail}
+                      onChange={e => setProfileEmail(e.target.value)}
+                      className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-gray-300 block mb-1">كلمة المرور الجديدة (اتركها فارغة إذا لم ترد التغيير)</label>
+                    <input
+                      type="password"
+                      value={profilePassword}
+                      onChange={e => setProfilePassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Personal Notion URL */}
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">رابط مساحة نوشن الشخصية (Personal Notion Workspace Link)</label>
+                  <input
+                    type="url"
+                    value={profileNotionUrl}
+                    onChange={e => setProfileNotionUrl(e.target.value)}
+                    placeholder="https://notion.so/..."
+                    className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500 font-mono"
+                  />
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={profileSaving}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-[#FF3300] text-white font-black text-xs shadow-lg hover:bg-orange-400 cursor-pointer"
+                  >
+                    {profileSaving ? 'جاري الحفظ...' : '💾 حفظ التعديلات'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* 3. Complete Database Backup & Restore */}
+            <div className="grand-card p-6 sm:p-8 space-y-6 border-orange-500/30 bg-gradient-to-b from-white/[0.03] to-orange-500/[0.02]">
+              <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-[#FF3300] text-white flex items-center justify-center shadow-lg">
+                  <UploadCloud size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white">النسخ الاحتياطي واستعادة البيانات الشاملة</h3>
+                  <p className="text-xs text-gray-400">احفظ نسخة كاملة من كل بياناتك على جهازك واسترجعها في أي وقت بضغطة زر</p>
+                </div>
+              </div>
+
+              {backupMsg && (
+                <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/40 text-xs font-bold text-orange-200">
+                  {backupMsg}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Download Backup Box */}
+                <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-3 text-start flex flex-col justify-between">
+                  <div>
+                    <strong className="text-base font-black text-white block">📥 تصدير وحفظ نسخة احتياطية</strong>
+                    <p className="text-xs text-gray-400 mt-1">تنزيل ملف JSON يحتوي على كافة الجداول: المهام، المالية، المواعيد، المعرفة، والدراسة.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadBackup}
+                    disabled={backupLoading}
+                    className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span>{backupLoading ? 'جاري التحميل...' : '📥 تحميل النسخة الاحتياطية (JSON)'}</span>
+                  </button>
+                </div>
+
+                {/* Restore Backup Box */}
+                <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-3 text-start flex flex-col justify-between">
+                  <div>
+                    <strong className="text-base font-black text-white block">📤 استعادة البيانات من ملف</strong>
+                    <p className="text-xs text-gray-400 mt-1">رفع ملف النسخة الاحتياطية واسترجاع كافة البيانات في قاعدة البيانات فوراً.</p>
+                  </div>
+                  <label className="w-full py-3.5 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white font-black text-xs shadow-[0_0_20px_rgba(255,85,0,0.4)] transition-all cursor-pointer flex items-center justify-center gap-2 text-center">
+                    <span>{restoreLoading ? 'جاري الاستعادة...' : '📤 اختيار ملف النسخة واسترجاعها'}</span>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleRestoreBackup}
+                      disabled={restoreLoading}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Profile Hero Avatar Info */}
             <div className="grand-card p-6 sm:p-8 space-y-4">
               <h3 className="text-lg font-black text-orange-400 flex items-center gap-2">
                 <Sparkles size={18} />
