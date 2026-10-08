@@ -7,18 +7,16 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const Database = require('better-sqlite3');
+const { createClient } = require('@libsql/client');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ── Database Setup ──
-const dbDir = path.dirname(process.env.DB_PATH || './database/academic.db');
+const dbDir = path.dirname(process.env.DB_PATH || './data/sqlite.db');
 fs.mkdirSync(dbDir, { recursive: true });
 
-const db = new Database(process.env.DB_PATH || './database/academic.db');
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+const db = createClient({ url: process.env.DATABASE_URL || 'file:./data/sqlite.db' });
 
 // Run schema on first start
 const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get();

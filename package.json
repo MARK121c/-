@@ -21,7 +21,6 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^9.4.3",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
@@ -44,7 +43,6 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "drizzle-kit": "^0.31.10"
   }
 }
