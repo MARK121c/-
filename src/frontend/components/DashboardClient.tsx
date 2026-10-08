@@ -290,15 +290,15 @@ export default function DashboardClient({
       systemSub: 'نظام التحكم والإنتاجية الذكي',
       blurOn: 'Blur On (تمويه مفعّل)',
       blurOff: 'Blur Off (مكشوف)',
-      tabGoals: 'الأهداف والداشبورد',
-      tabFocus: 'التركيز (DEEP FOCUS)',
-      tabTasks: 'المهام (TASKS)',
-      tabFinance: 'الإدارة المالية',
+      tabGoals: 'الأهداف',
+      tabFocus: 'التركيز',
+      tabTasks: 'المهام',
+      tabFinance: 'المالية',
       tabAcademic: 'الدراسة والكلية',
       tabSubscriptions: 'الاشتراكات',
-      tabWishlist: 'قائمة الأمنيات',
-      tabLibrary: 'مكتبة المعرفة',
-      tabEvents: 'المواعيد والعلاقات',
+      tabWishlist: 'الأمنيات',
+      tabLibrary: 'المعرفة',
+      tabGoogleCalendar: 'تقويم Google',
       tabSettings: 'الإعدادات',
       goalsAtGlance: 'نظرة عامة على الأهداف الشاملة (All Goals - At a Glance)',
       totalIncome: 'إجمالي الدخل',
@@ -316,15 +316,15 @@ export default function DashboardClient({
       systemSub: 'Personal Intelligence & High-Performance Hub',
       blurOn: 'Blur On (Protected)',
       blurOff: 'Blur Off (Visible)',
-      tabGoals: 'GOALS & OVERVIEW',
+      tabGoals: 'GOALS',
       tabFocus: 'DEEP FOCUS',
       tabTasks: 'TASKS',
       tabFinance: 'FINANCE',
-      tabAcademic: 'ACADEMIC HUB',
+      tabAcademic: 'ACADEMIC',
       tabSubscriptions: 'SUBSCRIPTIONS',
-      tabWishlist: 'WISHLIST & GOALS',
+      tabWishlist: 'WISHLIST',
       tabLibrary: 'LIBRARY',
-      tabEvents: 'SCHEDULE & NETWORK',
+      tabGoogleCalendar: 'Google Calendar',
       tabSettings: 'SETTINGS',
       goalsAtGlance: 'All Goals - At a Glance',
       totalIncome: 'Total Income',
@@ -339,18 +339,17 @@ export default function DashboardClient({
     }
   }[lang];
 
-  // Top Nav Items (Sidebar Removed Completely)
+  // Top Nav Items (Events removed, Google Calendar added, Compact one-row styling)
   const navItems = [
-    { id: 'overview', icon: <Target size={18} />, label: t.tabGoals },
-    { id: 'focus', icon: <Brain size={18} />, label: t.tabFocus, badge: 'PRO' },
-    { id: 'tasks', icon: <ListTodo size={18} />, label: t.tabTasks },
-    { id: 'finance', icon: <Wallet size={18} />, label: t.tabFinance },
-    { id: 'academic', icon: <GraduationCap size={18} />, label: t.tabAcademic, badge: 'NEW' },
-    { id: 'subscriptions', icon: <CreditCard size={18} />, label: t.tabSubscriptions },
-    { id: 'wishlist', icon: <Sparkles size={18} />, label: t.tabWishlist },
-    { id: 'library', icon: <BookOpen size={18} />, label: t.tabLibrary },
-    { id: 'events', icon: <Users size={18} />, label: t.tabEvents },
-    { id: 'settings', icon: <Settings size={18} />, label: t.tabSettings },
+    { id: 'overview', icon: <Target size={15} />, label: t.tabGoals },
+    { id: 'focus', icon: <Brain size={15} />, label: t.tabFocus, badge: 'PRO' },
+    { id: 'tasks', icon: <ListTodo size={15} />, label: t.tabTasks },
+    { id: 'finance', icon: <Wallet size={15} />, label: t.tabFinance },
+    { id: 'academic', icon: <GraduationCap size={15} />, label: t.tabAcademic, badge: 'NEW' },
+    { id: 'subscriptions', icon: <CreditCard size={15} />, label: t.tabSubscriptions },
+    { id: 'wishlist', icon: <Sparkles size={15} />, label: t.tabWishlist },
+    { id: 'library', icon: <BookOpen size={15} />, label: t.tabLibrary },
+    { id: 'settings', icon: <Settings size={15} />, label: t.tabSettings },
   ];
 
   // Life Pillars Goals Mockup
@@ -367,74 +366,86 @@ export default function DashboardClient({
     <div className="min-h-screen bg-[#050608] text-white selection:bg-orange-500/30 selection:text-orange-200" dir={isRtl ? 'rtl' : 'ltr'}>
       
       {/* ── TOP LUXURY NAVIGATION BAR (HEADER TABS) ── */}
-      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#050608]/90 backdrop-blur-2xl px-4 sm:px-8 py-3.5 space-y-3">
+      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#050608]/90 backdrop-blur-2xl px-4 sm:px-6 py-2.5 space-y-2">
         {/* Brand & Action Controls */}
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#FF5500] to-[#FF3300] flex items-center justify-center text-white shadow-[0_0_20px_rgba(255,85,0,0.5)]">
-              <Shield size={20} />
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#FF5500] to-[#FF3300] flex items-center justify-center text-white shadow-[0_0_15px_rgba(255,85,0,0.5)]">
+              <Shield size={18} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-lg sm:text-xl tracking-tight text-white">{t.systemTitle}</span>
-                <span className="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-400 font-mono text-[10px] font-black border border-orange-500/30">v4.0</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-base sm:text-lg tracking-tight text-white">{t.systemTitle}</span>
+                <span className="px-1.5 py-0.2 rounded-md bg-orange-500/20 text-orange-400 font-mono text-[9px] font-black border border-orange-500/30">v4.0</span>
               </div>
-              <p className="text-[11px] text-gray-400 font-medium hidden sm:block">{t.systemSub}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Google Calendar Direct Link Button */}
+            <a
+              href="https://calendar.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-xs font-black text-blue-300 transition-all cursor-pointer shadow-sm"
+              title="فتح تقويم Google في تبويب جديد"
+            >
+              <CalendarIcon size={14} className="text-blue-400" />
+              <span>{t.tabGoogleCalendar}</span>
+              <ExternalLink size={11} className="opacity-70" />
+            </a>
+
             {/* Full Privacy Blur Toggle */}
             <button
               onClick={() => setPrivacyActive(!privacyActive)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border text-xs font-black transition-all cursor-pointer shadow-lg ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-black transition-all cursor-pointer shadow-sm ${
                 privacyActive
-                  ? 'bg-orange-500 text-white border-orange-400 shadow-[0_0_20px_rgba(255,85,0,0.5)] scale-105'
+                  ? 'bg-orange-500 text-white border-orange-400 shadow-[0_0_15px_rgba(255,85,0,0.5)]'
                   : 'bg-white/[0.04] text-gray-400 border-white/10 hover:text-white hover:border-orange-500/40'
               }`}
             >
-              {privacyActive ? <EyeOff size={16} /> : <Eye size={16} />}
-              <span className="hidden sm:inline">{privacyActive ? t.blurOn : t.blurOff}</span>
+              {privacyActive ? <EyeOff size={14} /> : <Eye size={14} />}
+              <span className="hidden md:inline">{privacyActive ? t.blurOn : t.blurOff}</span>
             </button>
 
             {/* Language Switcher */}
             <button
               onClick={() => setLang(l => (l === 'ar' ? 'en' : 'ar'))}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl border border-white/10 bg-white/[0.04] text-xs font-black text-gray-300 hover:text-white hover:border-white/20 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/[0.04] text-xs font-black text-gray-300 hover:text-white hover:border-white/20 transition-all cursor-pointer"
             >
-              <Globe size={14} className="text-orange-400" />
-              <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
+              <Globe size={13} className="text-orange-400" />
+              <span>{lang === 'ar' ? 'EN' : 'عربي'}</span>
             </button>
 
             {/* Profile Avatar Pill */}
-            <div className="flex items-center gap-2.5 p-1.5 pr-3 rounded-2xl bg-white/[0.03] border border-white/10">
-              <div className="w-8 h-8 rounded-xl overflow-hidden border border-orange-500/40 bg-orange-500/20 flex items-center justify-center">
+            <div className="flex items-center gap-2 p-1 pr-2.5 rounded-xl bg-white/[0.03] border border-white/10">
+              <div className="w-7 h-7 rounded-lg overflow-hidden border border-orange-500/40 bg-orange-500/20 flex items-center justify-center">
                 <img src="/profile-hero.png" alt="Mark" className="w-full h-full object-cover" onError={(e:any)=>{e.target.src='/icon-192.png';}} />
               </div>
-              <span className="text-xs font-black text-gray-200 hidden md:inline">Mark Emad</span>
+              <span className="text-xs font-black text-gray-200 hidden lg:inline">Mark Emad</span>
             </div>
           </div>
         </div>
 
-        {/* ── TOP HORIZONTAL SECTION TABS (All in Top Bar) ── */}
-        <div className="max-w-7xl mx-auto overflow-x-auto no-scrollbar pt-1">
-          <nav className="flex items-center gap-2 min-w-max pb-1">
+        {/* ── ALL SECTION TABS NEXT TO EACH OTHER (NO SCROLL ARROWS) ── */}
+        <div className="max-w-7xl mx-auto">
+          <nav className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5">
             {navItems.map(item => {
               const isActive = mainTab === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => setMainTab(item.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-gradient-to-r from-orange-500 to-[#FF3300] text-white shadow-[0_0_20px_rgba(255,85,0,0.4)] scale-102'
+                      ? 'bg-gradient-to-r from-orange-500 to-[#FF3300] text-white shadow-[0_0_15px_rgba(255,85,0,0.4)] scale-102 font-black'
                       : 'text-gray-400 hover:text-white bg-white/[0.02] border border-white/5 hover:border-white/15'
                   }`}
                 >
                   <span className={isActive ? 'text-white' : 'text-gray-400'}>{item.icon}</span>
                   <span>{item.label}</span>
                   {item.badge && (
-                    <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono font-black ${
+                    <span className={`px-1 py-0.2 rounded text-[8px] font-mono font-black ${
                       isActive ? 'bg-black/30 text-white' : 'bg-orange-500/20 text-orange-400'
                     }`}>
                       {item.badge}
@@ -854,14 +865,7 @@ export default function DashboardClient({
           </motion.div>
         )}
 
-        {/* ===================== 9. EVENTS & CONTACTS ===================== */}
-        {mainTab === 'events' && (
-          <motion.div key="events" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}>
-            <EventsClient />
-          </motion.div>
-        )}
-
-        {/* ===================== 10. SETTINGS ===================== */}
+        {/* ===================== 9. SETTINGS ===================== */}
         {mainTab === 'settings' && (
           <motion.div key="settings" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6 max-w-4xl">
             <div>
