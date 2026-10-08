@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+@theme {
+  --color-super-dark: #07080c;
+  
+  --font-sans: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", "Oxygen Mono", "Ubuntu Monospace", "Source Code Pro", "Fira Mono", "Droid Sans Mono", "Courier New", monospace;
+  
+  /* Luxury Dark & Fire Orange Cyberpunk Theme Colors */
+  --color-orange-primary: #FF5500;
+  --color-orange-bright: #FF6A00;
+  --color-orange-glow: rgba(255, 85, 0, 0.4);
+  --color-orange-soft: rgba(255, 85, 0, 0.12);
+  
+  --color-emerald-glow: rgba(16, 185, 129, 0.35);
+  --color-blue-glow: rgba(59, 130, 246, 0.35);
+  --color-purple-glow: rgba(168, 85, 247, 0.35);
+  --color-amber-glow: rgba(245, 158, 11, 0.35);
+  --color-rose-glow: rgba(244, 63, 94, 0.35);
+}
+
+@layer base {
+  body {
+    background-color: #050608;
+    color: #f8fafc;
+    font-family: var(--font-sans);
+    @apply antialiased selection:bg-orange-500/30 selection:text-orange-200;
+    
+    /* Luxury Dark Background with Ambient Radial Glows */
+    background-image: 
+      radial-gradient(circle at 10% 10%, rgba(255, 85, 0, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 90% 90%, rgba(255, 51, 0, 0.06) 0%, transparent 40%),
+      radial-gradient(circle at 50% 30%, rgba(15, 23, 42, 0.6) 0%, transparent 60%);
+    background-attachment: fixed;
+  }
+
+  /* Force all numbers to display cleanly */
+  .eng-num, .eng-num * {
+    font-family: var(--font-mono), var(--font-cairo), sans-serif !important;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Privacy Blur Classes */
+  .privacy-blurred {
+    filter: blur(8px) !important;
+    user-select: none !important;
+    transition: filter 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  
+  /* Hover to Unblur Specific Element */
+  .privacy-blurred:hover,
+  .privacy-hover-reveal:hover .privacy-blurred {
+    filter: blur(0px) !important;
+  }
+
+  /* Goal & Luxury Glass Cards */
+  .grand-card {
+    @apply bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl transition-all duration-300 shadow-2xl;
+  }
+  
+  .grand-card:hover {
+    @apply bg-white/[0.05] border-white/20 translate-y-[-2px];
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
+  }
+
+  .goal-card-orange {
+    @apply relative overflow-hidden bg-gradient-to-br from-white/[0.05] to-white/[0.01] backdrop-blur-2xl border border-orange-500/30 rounded-[2rem] p-6 transition-all duration-300 hover:border-orange-500/60 shadow-[0_0_30px_rgba(255,85,0,0.1)];
+  }
+
+  .goal-card-orange:hover {
+    box-shadow: 0 0 45px rgba(255, 85, 0, 0.25), 0 20px 40px -10px rgba(0,0,0,0.8);
+    transform: translateY(-3px);
+  }
+
+  /* Glowing Touch ID & Primary Buttons */
+  .btn-orange-glow {
+    @apply bg-gradient-to-r from-[#FF5500] to-[#FF3300] text-white font-black rounded-2xl transition-all duration-300 shadow-[0_0_25px_rgba(255,85,0,0.4)] hover:shadow-[0_0_40px_rgba(255,85,0,0.6)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer;
+  }
+
+  .neon-text-orange { text-shadow: 0 0 20px rgba(255, 85, 0, 0.7); }
+  .neon-text-emerald { text-shadow: 0 0 15px rgba(16, 185, 129, 0.6); }
+  .neon-text-blue { text-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
+  .neon-text-amber { text-shadow: 0 0 15px rgba(245, 158, 11, 0.6); }
+
+  .glass-hub {
+    @apply relative overflow-hidden bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[3rem] shadow-2xl;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 85, 0, 0.5);
+}

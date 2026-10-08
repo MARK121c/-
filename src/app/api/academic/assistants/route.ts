@@ -1,0 +1,102 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@libsql/client';
+import crypto from 'crypto';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const getClient = () => createClient({ url: process.env.DATABASE_URL || 'file:./data/sqlite.db' });
+
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+export async function GET() {
+  const client = getClient();
+  try {
+    const res = await client.execute(`SELECT id, username, role, display_name, active, created_at FROM academic_users WHERE role = 'assistant' ORDER BY id DESC`);
+    return NextResponse.json({ success: true, assistants: res.rows });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const client = getClient();
+  try {
+    const body = await req.json();
+    const { username, password, display_name } = body;
+    if (!username || !password) {
+      return NextResponse.json({ success: false, error: 'Username and password are required' }, { status: 400 });
+    }
+
+    const existing = await client.execute({
+      sql: `SELECT id FROM academic_users WHERE username = ?`,
+      args: [username]
+    });
+    if (existing.rows.length > 0) {
+      return NextResponse.json({ success: false, error: 'Username already exists' }, { status: 409 });
+    }
+
+    const passwordHash = hashPassword(password);
+    const now = new Date().toISOString();
+
+    const insertRes = await client.execute({
+      sql: `INSERT INTO academic_users (username, password_hash, role, display_name, active, created_at, updated_at) VALUES (?, ?, 'assistant', ?, 1, ?, ?)`,
+      args: [username, passwordHash, display_name || username, now, now]
+    });
+
+    const userRes = await client.execute({
+      sql: `SELECT id, username, role, display_name, active, created_at FROM academic_users WHERE id = ?`,
+      args: [insertRes.lastInsertRowid!]
+    });
+
+    return NextResponse.json({ success: true, user: userRes.rows[0] });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  const client = getClient();
+  try {
+    const body = await req.json();
+    const { id, password, display_name, active } = body;
+    if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
+
+    const userRes = await client.execute({ sql: `SELECT * FROM academic_users WHERE id = ? AND role = 'assistant'`, args: [id] });
+    const user = userRes.rows[0];
+    if (!user) return NextResponse.json({ success: false, error: 'Assistant not found' }, { status: 404 });
+
+    if (password) {
+      const hash = hashPassword(password);
+      await client.execute({ sql: `UPDATE academic_users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`, args: [hash, id] });
+    }
+    if (display_name !== undefined) {
+      await client.execute({ sql: `UPDATE academic_users SET display_name = ?, updated_at = datetime('now') WHERE id = ?`, args: [display_name, id] });
+    }
+    if (active !== undefined) {
+      await client.execute({ sql: `UPDATE academic_users SET active = ?, updated_at = datetime('now') WHERE id = ?`, args: [active ? 1 : 0, id] });
+    }
+
+    const updated = await client.execute({ sql: `SELECT id, username, role, display_name, active, created_at, updated_at FROM academic_users WHERE id = ?`, args: [id] });
+    return NextResponse.json({ success: true, user: updated.rows[0] });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const client = getClient();
+  const id = new URL(req.url).searchParams.get('id');
+  if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
+
+  try {
+    await client.execute({ sql: `DELETE FROM academic_users WHERE id = ? AND role = 'assistant'`, args: [id] });
+    return NextResponse.json({ success: true });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}

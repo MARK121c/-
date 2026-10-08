@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Academic Hub — الدراسة والكلية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="stylesheet" href="academic.css" />
+</head>
+<body>
+  <script>if(!localStorage.getItem('academic_token')){window.location.href='academic-login.html';}</script>
+
+  <!-- Ambient Glow -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <!-- ============ NAVBAR ============ -->
+  <header class="acad-header" id="acadNavbar">
+    <div class="acad-container nav-container">
+      <a href="#" class="acad-brand" onclick="navigate('dashboard');return false;">
+        <span class="brand-name">MARK EMAD</span>
+        <span class="brand-divider">|</span>
+        <span class="brand-sub" data-i18n="academicHub">الدراسة والكلية</span>
+      </a>
+
+      <nav class="acad-nav" id="acadNav">
+        <a href="#" class="nav-item active" data-view="dashboard" data-i18n="navDashboard">لوحة التحكم</a>
+        <a href="#" class="nav-item owner-only" data-view="settings" data-i18n="navSettings">الإعدادات</a>
+        <a href="#" class="nav-item owner-only" data-view="assistants" data-i18n="navAssistants">المساعدين</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="lang-toggle" id="langToggle">EN / العربية</button>
+        <div class="user-menu" id="userMenu">
+          <button class="user-btn" id="userBtn">
+            <span class="user-avatar" id="userAvatar">M</span>
+            <span class="user-name" id="userName">Admin</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="user-dropdown" id="userDropdown">
+            <div class="dropdown-role" id="dropdownRole"></div>
+            <a href="#" onclick="navigate('change-password');return false;" data-i18n="changePassword">تغيير كلمة المرور</a>
+            <a href="#" class="danger" onclick="logout();return false;" data-i18n="logout">تسجيل الخروج</a>
+          </div>
+        </div>
+        <button class="mobile-menu-btn" id="mobileMenuBtn"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <main class="acad-main">
+    <div class="acad-container">
+
+      <!-- ===== DASHBOARD VIEW ===== -->
+      <div class="view active" id="view-dashboard">
+        <!-- Welcome & Academic Info -->
+        <div class="welcome-section">
+          <div class="welcome-card">
+            <h1><span data-i18n="welcome">مرحباً</span> <span id="welcomeName"></span> 👋</h1>
+            <p class="welcome-sub" data-i18n="welcomeSub">إدارة موادك الدراسية ومتابعة إنجازك</p>
+          </div>
+          <div class="academic-info-card" id="academicInfoCard">
+            <div class="info-row"><span class="info-label" data-i18n="collegeName">اسم الكلية</span><span class="info-value" id="infoCollege">—</span></div>
+            <div class="info-row"><span class="info-label" data-i18n="department">القسم</span><span class="info-value" id="infoDept">—</span></div>
+            <div class="info-row"><span class="info-label" data-i18n="academicYear">السنة الدراسية</span><span class="info-value" id="infoYear">—</span></div>
+            <div class="info-row"><span class="info-label" data-i18n="sectionNumber">رقم السكشن</span><span class="info-value" id="infoSection">—</span></div>
+          </div>
+        </div>
+
+        <!-- Overall Progress -->
+        <div class="progress-section">
+          <h2 data-i18n="overallProgress">الإنجاز الكلي</h2>
+          <div class="progress-bar-lg">
+            <div class="progress-fill" id="overallProgressFill" style="width:0%"></div>
+          </div>
+          <span class="progress-text" id="overallProgressText">0%</span>
+        </div>
+
+        <!-- Sync Banner (assistant only) -->
+        <div class="sync-banner" id="syncBanner" style="display:none">
+          <div class="sync-info">
+            <span class="sync-icon">🔄</span>
+            <span data-i18n="pendingSync">محتوى في انتظار التزامن:</span>
+            <strong id="syncCount">0</strong>
+          </div>
+          <button class="btn-primary btn-sm" onclick="syncContent()" data-i18n="syncNow">تزامن المحتوى</button>
+        </div>
+
+        <!-- Subjects Grid -->
+        <div class="subjects-header">
+          <h2 data-i18n="subjects">المواد الدراسية</h2>
+          <button class="btn-primary btn-sm" onclick="openModal('subject-modal')" data-i18n="addSubject">+ إضافة مادة</button>
+        </div>
+        <div class="subjects-grid" id="subjectsGrid">
+          <div class="empty-state" id="emptySubjects">
+            <span class="empty-icon">📚</span>
+            <p data-i18n="noSubjects">لا توجد مواد بعد. أضف مادتك الأولى!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SUBJECT DETAIL VIEW ===== -->
+      <div class="view" id="view-subject">
+        <button class="back-btn" onclick="navigate('dashboard')">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          <span data-i18n="back">رجوع</span>
+        </button>
+
+        <div class="subject-header" id="subjectHeader">
+          <div class="subject-icon" id="subjectIcon">📘</div>
+          <div class="subject-info">
+            <h1 id="subjectName"></h1>
+            <span class="subject-code" id="subjectCode"></span>
+          </div>
+          <div class="subject-actions">
+            <button class="btn-icon" onclick="editCurrentSubject()" title="Edit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="btn-icon btn-danger-icon" onclick="deleteSubject()" title="Delete"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          </div>
+        </div>
+
+        <div class="subject-progress">
+          <div class="progress-bar-md"><div class="progress-fill" id="subjectProgressFill" style="width:0%"></div></div>
+          <span class="progress-text" id="subjectProgressText">0%</span>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active" data-tab="lectures" onclick="switchTab('lectures')" data-i18n="tabLectures">المحاضرات والملفات</button>
+          <button class="tab" data-tab="assignments" onclick="switchTab('assignments')" data-i18n="tabAssignments">الواجبات والتاسكات</button>
+          <button class="tab" data-tab="resources" onclick="switchTab('resources')" data-i18n="tabResources">المصادر الخارجية</button>
+          <button class="tab" data-tab="videos" onclick="switchTab('videos')" data-i18n="tabVideos">الفيديوهات</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-header">
+          <span class="tab-count" id="tabCount"></span>
+          <button class="btn-primary btn-sm" id="addItemBtn" onclick="openAddItemModal()">+ <span data-i18n="add">إضافة</span></button>
+        </div>
+        <div class="materials-list" id="materialsList">
+          <div class="empty-state" id="emptyMaterials">
+            <span class="empty-icon">📄</span>
+            <p data-i18n="noItems">لا توجد عناصر بعد</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SETTINGS VIEW (Owner Only) ===== -->
+      <div class="view" id="view-settings">
+        <h2 data-i18n="settingsTitle">إعدادات الكلية والدراسة</h2>
+        <div class="settings-card">
+          <div class="form-group">
+            <label data-i18n="collegeName">اسم الكلية</label>
+            <input type="text" id="settCollege" placeholder="مثال: الكلية المصرية الصينية للتكنولوجيا المتقدمة" />
+          </div>
+          <div class="form-group">
+            <label data-i18n="department">القسم / التخصص</label>
+            <input type="text" id="settDept" placeholder="مثال: اتصالات" />
+          </div>
+          <div class="form-group">
+            <label data-i18n="academicYear">الفرقة / السنة الدراسية</label>
+            <input type="text" id="settYear" placeholder="مثال: الفرقة الأولى" />
+          </div>
+          <div class="form-group">
+            <label data-i18n="sectionNumber">رقم السكشن</label>
+            <input type="text" id="settSection" placeholder="مثال: سكشن 3" />
+          </div>
+          <button class="btn-primary" onclick="saveSettings()" data-i18n="save">حفظ</button>
+        </div>
+      </div>
+
+      <!-- ===== ASSISTANTS VIEW (Owner Only) ===== -->
+      <div class="view" id="view-assistants">
+        <div class="section-header">
+          <h2 data-i18n="assistantsTitle">إدارة حسابات المساعدين</h2>
+          <button class="btn-primary btn-sm" onclick="openModal('assistant-modal')" data-i18n="createAssistant">+ إنشاء حساب مساعد</button>
+        </div>
+        <div class="assistants-list" id="assistantsList">
+          <div class="empty-state" id="emptyAssistants">
+            <span class="empty-icon">👥</span>
+            <p data-i18n="noAssistants">لا يوجد حسابات مساعدين</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CHANGE PASSWORD VIEW ===== -->
+      <div class="view" id="view-change-password">
+        <button class="back-btn" onclick="navigate('dashboard')">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          <span data-i18n="back">رجوع</span>
+        </button>
+        <h2 data-i18n="changePassword">تغيير كلمة المرور</h2>
+        <div class="settings-card">
+          <div class="form-group">
+            <label data-i18n="currentPassword">كلمة المرور الحالية</label>
+            <input type="password" id="pwCurrent" />
+          </div>
+          <div class="form-group">
+            <label data-i18n="newPassword">كلمة المرور الجديدة</label>
+            <input type="password" id="pwNew" />
+          </div>
+          <button class="btn-primary" onclick="changePassword()" data-i18n="save">حفظ</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ MODALS ============ -->
+
+  <!-- Subject Modal -->
+  <div class="modal-backdrop" id="subject-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="subjectModalTitle" data-i18n="addSubject">إضافة مادة</h3>
+        <button class="modal-close" onclick="closeModal('subject-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editSubjectId" />
+        <div class="form-group">
+          <label data-i18n="subjectName">اسم المادة</label>
+          <input type="text" id="subjectNameInput" required />
+        </div>
+        <div class="form-group">
+          <label data-i18n="subjectCode">كود المادة</label>
+          <input type="text" id="subjectCodeInput" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label data-i18n="color">اللون</label>
+            <input type="color" id="subjectColorInput" value="#FF6B00" />
+          </div>
+          <div class="form-group">
+            <label data-i18n="icon">الأيقونة</label>
+            <div class="emoji-picker" id="emojiPicker">
+              <span class="emoji-option selected" data-emoji="📘">📘</span>
+              <span class="emoji-option" data-emoji="📗">📗</span>
+              <span class="emoji-option" data-emoji="📕">📕</span>
+              <span class="emoji-option" data-emoji="📙">📙</span>
+              <span class="emoji-option" data-emoji="📓">📓</span>
+              <span class="emoji-option" data-emoji="🔬">🔬</span>
+              <span class="emoji-option" data-emoji="💻">💻</span>
+              <span class="emoji-option" data-emoji="📐">📐</span>
+              <span class="emoji-option" data-emoji="🧮">🧮</span>
+              <span class="emoji-option" data-emoji="⚡">⚡</span>
+              <span class="emoji-option" data-emoji="🌐">🌐</span>
+              <span class="emoji-option" data-emoji="📡">📡</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('subject-modal')" data-i18n="cancel">إلغاء</button>
+        <button class="btn-primary" onclick="saveSubject()" data-i18n="save">حفظ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Material Modal (Lectures/Assignments) -->
+  <div class="modal-backdrop" id="material-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="materialModalTitle">إضافة</h3>
+        <button class="modal-close" onclick="closeModal('material-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editItemId" />
+        <div class="form-group">
+          <label data-i18n="title">العنوان</label>
+          <input type="text" id="itemTitle" required />
+        </div>
+        <div class="form-group">
+          <label data-i18n="description">الوصف</label>
+          <textarea id="itemDesc" rows="3"></textarea>
+        </div>
+        <div class="form-group" id="fileUploadGroup">
+          <label data-i18n="uploadFile">رفع ملف</label>
+          <div class="file-dropzone" id="fileDropzone">
+            <input type="file" id="itemFile" />
+            <p data-i18n="dropFile">اسحب الملف هنا أو اضغط للاختيار</p>
+            <span class="file-name" id="fileName"></span>
+          </div>
+        </div>
+        <div class="form-group" id="urlGroup" style="display:none">
+          <label data-i18n="url">الرابط</label>
+          <input type="url" id="itemUrl" placeholder="https://" />
+        </div>
+        <div class="form-group" id="videoTypeGroup" style="display:none">
+          <label data-i18n="videoType">نوع الفيديو</label>
+          <select id="videoTypeSelect">
+            <option value="youtube">YouTube</option>
+            <option value="external">رابط خارجي</option>
+            <option value="upload">رفع فيديو</option>
+          </select>
+        </div>
+        <div class="form-group" id="dueDateGroup" style="display:none">
+          <label data-i18n="dueDate">الموعد النهائي</label>
+          <input type="date" id="itemDueDate" />
+        </div>
+        <div class="form-group">
+          <label data-i18n="materialDate">تاريخ المادة (Backdate)</label>
+          <input type="date" id="itemMaterialDate" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('material-modal')" data-i18n="cancel">إلغاء</button>
+        <button class="btn-primary" onclick="saveMaterial()" data-i18n="save">حفظ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assistant Modal -->
+  <div class="modal-backdrop" id="assistant-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 data-i18n="createAssistant">إنشاء حساب مساعد</h3>
+        <button class="modal-close" onclick="closeModal('assistant-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label data-i18n="username">اسم المستخدم</label>
+          <input type="text" id="asstUsername" required />
+        </div>
+        <div class="form-group">
+          <label data-i18n="password">كلمة المرور</label>
+          <input type="password" id="asstPassword" required />
+        </div>
+        <div class="form-group">
+          <label data-i18n="displayName">الاسم المعروض</label>
+          <input type="text" id="asstDisplayName" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('assistant-modal')" data-i18n="cancel">إلغاء</button>
+        <button class="btn-primary" onclick="createAssistant()" data-i18n="create">إنشاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div class="modal-backdrop" id="confirm-modal">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3 data-i18n="confirmDelete">تأكيد الحذف</h3>
+        <button class="modal-close" onclick="closeModal('confirm-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMsg" data-i18n="confirmDeleteMsg">هل أنت متأكد من الحذف؟</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('confirm-modal')" data-i18n="cancel">إلغاء</button>
+        <button class="btn-danger" id="confirmDeleteBtn" data-i18n="delete">حذف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Player Modal -->
+  <div class="modal-backdrop" id="video-modal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 id="videoPlayerTitle"></h3>
+        <button class="modal-close" onclick="closeVideoModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="video-container" id="videoContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay" style="display:none">
+    <div class="spinner"></div>
+  </div>
+
+  <script src="academic.js"></script>
+</body>
+</html>
