@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Mail, Fingerprint, Shield, Eye, EyeOff, Globe, ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -9,12 +9,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [usePasswordLogin, setUsePasswordLogin] = useState(false);
+  const [hasTouchIdRegistered, setHasTouchIdRegistered] = useState(false);
+  const [usePasswordLogin, setUsePasswordLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [error, setError] = useState('');
 
   const isRtl = lang === 'ar';
+
+  useEffect(() => {
+    // Check if user has explicitly registered Touch ID on this device from Settings
+    const isRegistered = localStorage.getItem('touch_id_enabled') === 'true';
+    setHasTouchIdRegistered(isRegistered);
+    // If not registered, always default to Email & Password directly
+    setUsePasswordLogin(!isRegistered);
+  }, []);
 
   const t = {
     ar: {
@@ -22,7 +31,7 @@ export default function LoginPage() {
       title: 'GOAL TRACKER',
       subtitle: 'نظام التتبع والإنتاجية الشخصي المتكامل',
       unlockTouchId: 'Unlock with Touch ID',
-      touchIdSub: 'دخول سريع باستخدام بصمة الإصبع أو الوجه',
+      touchIdSub: 'دخول سريع باستخدام بصمة الإصبع المسجلة',
       orUsePassword: 'أو تسجيل الدخول بكلمة المرور',
       backToTouchId: 'العودة للدخول بالبصمة',
       emailLabel: 'البريد الإلكتروني أو اسم المستخدم',
@@ -30,7 +39,7 @@ export default function LoginPage() {
       passwordLabel: 'كلمة المرور',
       passwordPlaceholder: '••••••••',
       signInBtn: 'تسجيل الدخول للنظام',
-      biometricError: 'تعذر التحقق من البصمة، يمكنك استخدام البريد وكلمة المرور',
+      biometricError: 'تعذر التحقق من البصمة، يرجى استخدام البريد وكلمة المرور',
       serverError: 'بيانات الدخول غير صحيحة، يرجى المحاولة مرة أخرى',
     },
     en: {
@@ -38,7 +47,7 @@ export default function LoginPage() {
       title: 'GOAL TRACKER',
       subtitle: 'Integrated Personal Tracking & Productivity System',
       unlockTouchId: 'Unlock with Touch ID',
-      touchIdSub: 'Fast biometric login with Mac Touch ID or Face ID',
+      touchIdSub: 'Fast biometric login with registered Mac Touch ID',
       orUsePassword: 'Or sign in with password',
       backToTouchId: 'Back to Touch ID login',
       emailLabel: 'Email or Username',
@@ -210,8 +219,9 @@ export default function LoginPage() {
           {/* Login Actions Stage */}
           <div className="max-w-md mx-auto lg:mx-0 w-full space-y-6">
             <AnimatePresence mode="wait">
-              {!usePasswordLogin ? (
-                /* ── METHOD 1: MAC TOUCH ID / BIOMETRIC LOGIN ── */
+              {/* If Touch ID is registered on this device, allow user to use it or switch */}
+              {!usePasswordLogin && hasTouchIdRegistered ? (
+                /* ── REGISTERED MAC TOUCH ID LOGIN ── */
                 <motion.div
                   key="touch-id-view"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -219,7 +229,6 @@ export default function LoginPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="space-y-6"
                 >
-                  {/* Huge Orange Touch ID Button */}
                   <button
                     onClick={handleTouchIdLogin}
                     disabled={biometricLoading}
@@ -239,7 +248,6 @@ export default function LoginPage() {
                     </div>
                   </button>
 
-                  {/* Switch to Password Option */}
                   <div className="text-center pt-2">
                     <button
                       type="button"
@@ -252,7 +260,7 @@ export default function LoginPage() {
                   </div>
                 </motion.div>
               ) : (
-                /* ── METHOD 2: EMAIL & PASSWORD LOGIN ONLY ── */
+                /* ── PRIMARY & DEFAULT: EMAIL & PASSWORD LOGIN ── */
                 <motion.form
                   key="password-form-view"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -309,17 +317,19 @@ export default function LoginPage() {
                     <span>{loading ? '...' : t.signInBtn}</span>
                   </button>
 
-                  {/* Return to Touch ID */}
-                  <div className="text-center pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setUsePasswordLogin(false)}
-                      className="text-xs font-bold text-orange-400 hover:text-orange-300 transition-colors cursor-pointer inline-flex items-center gap-1.5"
-                    >
-                      <Fingerprint size={16} />
-                      <span>{t.backToTouchId}</span>
-                    </button>
-                  </div>
+                  {/* If Touch ID was already registered, allow switching back */}
+                  {hasTouchIdRegistered && (
+                    <div className="text-center pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setUsePasswordLogin(false)}
+                        className="text-xs font-bold text-orange-400 hover:text-orange-300 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                      >
+                        <Fingerprint size={16} />
+                        <span>{t.backToTouchId}</span>
+                      </button>
+                    </div>
+                  )}
                 </motion.form>
               )}
             </AnimatePresence>

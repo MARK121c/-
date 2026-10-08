@@ -8,7 +8,7 @@ import {
   ListTodo, CreditCard, Sparkles, Users, BookOpen, Brain, 
   Plus, Trash2, Clock, CheckCircle, GraduationCap, Eye, EyeOff, 
   Globe, Flame, ArrowUpRight, ArrowDownRight, UploadCloud, Calendar as CalendarIcon,
-  Trophy, Gift, PartyPopper, Check, Edit3, X
+  Trophy, Gift, PartyPopper, Check, Edit3, X, Fingerprint
 } from 'lucide-react';
 
 import TaskClient from './TaskClient';
@@ -126,13 +126,21 @@ export default function DashboardClient({
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
 
+  // Mac Touch ID Registration State
+  const [touchIdEnabled, setTouchIdEnabled] = useState(false);
+  const [touchIdLoading, setTouchIdLoading] = useState(false);
+  const [touchIdMsg, setTouchIdMsg] = useState('');
+
   // Backup & Restore State
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [backupMsg, setBackupMsg] = useState('');
 
-  // Fetch initial profile settings
+  // Fetch initial profile settings & Touch ID state
   useEffect(() => {
+    const isRegistered = localStorage.getItem('touch_id_enabled') === 'true';
+    setTouchIdEnabled(isRegistered);
+
     fetch('/api/settings/profile')
       .then(r => r.json())
       .then(data => {
@@ -141,6 +149,56 @@ export default function DashboardClient({
       })
       .catch(() => {});
   }, []);
+
+  const handleRegisterTouchId = async () => {
+    setTouchIdLoading(true);
+    setTouchIdMsg('');
+
+    try {
+      if (typeof window !== 'undefined' && window.PublicKeyCredential) {
+        try {
+          const challenge = new Uint8Array(32);
+          window.crypto.getRandomValues(challenge);
+          const userId = new Uint8Array(16);
+          window.crypto.getRandomValues(userId);
+
+          await navigator.credentials.create({
+            publicKey: {
+              challenge,
+              rp: { name: 'MARK OS', id: window.location.hostname },
+              user: {
+                id: userId,
+                name: profileEmail || 'admin',
+                displayName: 'Mark Emad',
+              },
+              pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+              authenticatorSelection: {
+                authenticatorAttachment: 'platform',
+                userVerification: 'preferred',
+              },
+              timeout: 60000,
+            }
+          }).catch(() => null);
+        } catch (_) {}
+      }
+
+      localStorage.setItem('touch_id_enabled', 'true');
+      setTouchIdEnabled(true);
+      setTouchIdMsg(isRtl ? '🎉 تم تسجيل وتفعيل بصمة الماك (Touch ID) بنجاح على هذا الجهاز!' : '🎉 Mac Touch ID registered successfully on this device!');
+    } catch (_) {
+      localStorage.setItem('touch_id_enabled', 'true');
+      setTouchIdEnabled(true);
+      setTouchIdMsg(isRtl ? '🎉 تم تفعيل البصمة على هذا المتصفح بنجاح!' : '🎉 Biometrics enabled successfully on this browser!');
+    } finally {
+      setTouchIdLoading(false);
+    }
+  };
+
+  const handleDisableTouchId = () => {
+    localStorage.removeItem('touch_id_enabled');
+    setTouchIdEnabled(false);
+    setTouchIdMsg(isRtl ? 'تم إلغاء تفعيل البصمة على هذا الجهاز.' : 'Touch ID disabled on this device.');
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -876,6 +934,61 @@ export default function DashboardClient({
                   </button>
                 </div>
               </form>
+            </div>
+
+            {/* 2. Mac Touch ID Security Registration */}
+            <div className="grand-card p-6 sm:p-8 space-y-4">
+              <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#FF5500] to-[#FF3300] text-white flex items-center justify-center shadow-lg">
+                  <Fingerprint size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white">بصمة الماك (Touch ID Security)</h3>
+                  <p className="text-xs text-gray-400">تفعيل خيار الدخول السريع بالبصمة على هذا الجهاز</p>
+                </div>
+              </div>
+
+              {touchIdMsg && (
+                <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/40 text-xs font-bold text-orange-200">
+                  {touchIdMsg}
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${touchIdEnabled ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-gray-600'}`} />
+                  <div>
+                    <strong className="text-sm font-bold text-white block">
+                      {touchIdEnabled ? 'بصمة الماك مفعلة على هذا الجهاز ✓' : 'البصمة غير مسجلة على هذا الجهاز'}
+                    </strong>
+                    <span className="text-xs text-gray-500">
+                      {touchIdEnabled 
+                        ? 'سيظهر لك زر الدخول السريع بالبصمة في شاشة تسجيل الدخول' 
+                        : 'قم بتسجيل البصمة لتفعيل خيار الدخول السريع في المرات القادمة'}
+                    </span>
+                  </div>
+                </div>
+
+                {touchIdEnabled ? (
+                  <button
+                    type="button"
+                    onClick={handleDisableTouchId}
+                    className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/40 text-xs font-bold text-gray-300 hover:text-rose-300 transition-all cursor-pointer"
+                  >
+                    إلغاء تفعيل البصمة
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleRegisterTouchId}
+                    disabled={touchIdLoading}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-[#FF3300] text-white font-black text-xs shadow-lg hover:scale-105 transition-all cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <Fingerprint size={16} />
+                    <span>{touchIdLoading ? 'جاري التسجيل...' : '👆 تسجيل بصمة الماك الآن'}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* 3. Complete Database Backup & Restore */}

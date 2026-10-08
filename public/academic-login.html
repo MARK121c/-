@@ -187,7 +187,7 @@
     }
     .switch-btn:hover { color: #FF5500; }
     .password-form {
-      display: none;
+      display: flex;
       flex-direction: column;
       gap: 14px;
     }
@@ -260,14 +260,14 @@
 
       <div id="errorBox" class="error-msg"></div>
 
-      <!-- Touch ID Method -->
-      <div id="touchIdStage">
+      <!-- Touch ID Method (Shown only if registered) -->
+      <div id="touchIdStage" style="display: none;">
         <button type="button" class="touch-id-btn" onclick="handleTouchIdLogin()">
           <div class="touch-left">
             <div class="touch-icon">👆</div>
             <div>
               <div style="font-size: 17px; font-weight: 900;">Unlock with Touch ID</div>
-              <div style="font-size: 11px; font-weight: 600; opacity: 0.9;">دخول سريع باستخدام البصمة</div>
+              <div style="font-size: 11px; font-weight: 600; opacity: 0.9;">دخول سريع باستخدام البصمة المسجلة</div>
             </div>
           </div>
           <span style="font-size: 20px;">‹</span>
@@ -280,12 +280,12 @@
         </div>
       </div>
 
-      <!-- Password Method (Email + Password Only) -->
+      <!-- Default / Primary: Email + Password Only -->
       <form id="passwordStage" class="password-form" onsubmit="handlePasswordLogin(event)">
         <input type="text" id="loginEmail" class="input-field" placeholder="البريد الإلكتروني أو اسم المستخدم" required>
         <input type="password" id="loginPassword" class="input-field" placeholder="كلمة المرور" required>
         <button type="submit" id="submitBtn" class="submit-btn">تسجيل الدخول للنظام</button>
-        <button type="button" class="switch-btn" onclick="togglePasswordForm(false)">
+        <button type="button" id="backToTouchBtn" class="switch-btn" style="display: none;" onclick="togglePasswordForm(false)">
           👆 العودة للدخول بالبصمة
         </button>
       </form>
@@ -297,6 +297,18 @@
   </footer>
 
   <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const isRegistered = localStorage.getItem('touch_id_enabled') === 'true';
+      if (isRegistered) {
+        document.getElementById('touchIdStage').style.display = 'block';
+        document.getElementById('passwordStage').style.display = 'none';
+        document.getElementById('backToTouchBtn').style.display = 'inline-flex';
+      } else {
+        document.getElementById('touchIdStage').style.display = 'none';
+        document.getElementById('passwordStage').style.display = 'flex';
+      }
+    });
+
     function togglePasswordForm(show) {
       document.getElementById('touchIdStage').style.display = show ? 'none' : 'block';
       document.getElementById('passwordStage').style.display = show ? 'flex' : 'none';
