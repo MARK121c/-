@@ -82,20 +82,26 @@ export async function GET() {
           const moduleLessons = lessons.filter((l: any) => (l.module_id === m.id || l.moduleId === m.id) && (l.course_id === c.id || l.courseId === c.id));
           return {
             id: m.id,
+            course_id: m.course_id ?? m.courseId,
             courseId: m.course_id ?? m.courseId,
             title: m.title,
+            sort_order: m.sort_order ?? m.sortOrder ?? 0,
             sortOrder: m.sort_order ?? m.sortOrder ?? 0,
             lessons: moduleLessons.map((l: any) => ({
               id: l.id,
+              course_id: l.course_id ?? l.courseId,
               courseId: l.course_id ?? l.courseId,
+              module_id: l.module_id ?? l.moduleId,
               moduleId: l.module_id ?? l.moduleId,
               title: l.title,
               description: l.description || '',
+              video_url: l.video_url ?? l.videoUrl ?? '',
               videoUrl: l.video_url ?? l.videoUrl ?? '',
               duration: l.duration || '',
               notes: l.notes || '',
               attachments: typeof l.attachments === 'string' ? JSON.parse(l.attachments || '[]') : (l.attachments || []),
               completed: Boolean(l.completed),
+              sort_order: l.sort_order ?? l.sortOrder ?? 0,
               sortOrder: l.sort_order ?? l.sortOrder ?? 0,
             })),
           };
@@ -106,17 +112,26 @@ export async function GET() {
       const totalLessons = allLessons.length;
       const completedLessons = allLessons.filter(l => l.completed).length;
       const progressPercentage = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+      const thumb = c.thumbnail_url ?? c.thumbnailUrl ?? '';
 
       return {
         id: c.id,
         title: c.title,
         description: c.description || '',
-        thumbnailUrl: c.thumbnail_url ?? c.thumbnailUrl ?? '',
+        thumbnail_url: thumb,
+        thumbnailUrl: thumb,
         category: c.category || 'general',
         instructor: c.instructor || 'Mark Emad',
+        sort_order: c.sort_order ?? 0,
+        sortOrder: c.sort_order ?? 0,
         totalLessons,
         completedLessons,
         progressPercentage,
+        stats: {
+          totalLessons,
+          completedLessons,
+          progressPercentage,
+        },
         modules: courseModules,
       };
     });
@@ -132,14 +147,23 @@ export async function POST(req: NextRequest) {
   try {
     await ensureCoursesTables(client);
     const body = await req.json();
-    const { title, description = '', thumbnailUrl = '', category = 'general', instructor = 'Mark Emad' } = body;
+    const {
+      title,
+      description = '',
+      thumbnailUrl = '',
+      thumbnail_url = '',
+      category = 'general',
+      instructor = 'Mark Emad',
+    } = body;
 
     if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
 
+    const thumb = (thumbnail_url || thumbnailUrl || '').trim();
     const createdAt = new Date().toISOString();
+
     const result = await client.execute({
       sql: `INSERT INTO courses (title, description, thumbnail_url, category, instructor, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [title, description, thumbnailUrl, category, instructor, createdAt],
+      args: [title, description, thumb, category, instructor, createdAt],
     });
 
     const courseId = Number(result.lastInsertRowid);
@@ -160,7 +184,7 @@ export async function PUT(req: NextRequest) {
   const client = getClient();
   try {
     const body = await req.json();
-    const { id, title, description, thumbnailUrl, category } = body;
+    const { id, title, description, thumbnailUrl, thumbnail_url, category, instructor } = body;
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
     const fields: string[] = [];
@@ -168,8 +192,12 @@ export async function PUT(req: NextRequest) {
 
     if (title !== undefined) { fields.push('title = ?'); args.push(title); }
     if (description !== undefined) { fields.push('description = ?'); args.push(description); }
-    if (thumbnailUrl !== undefined) { fields.push('thumbnail_url = ?'); args.push(thumbnailUrl); }
+    
+    const thumb = thumbnail_url !== undefined ? thumbnail_url : thumbnailUrl;
+    if (thumb !== undefined) { fields.push('thumbnail_url = ?'); args.push(thumb); }
+    
     if (category !== undefined) { fields.push('category = ?'); args.push(category); }
+    if (instructor !== undefined) { fields.push('instructor = ?'); args.push(instructor); }
 
     if (fields.length === 0) return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
     args.push(id);

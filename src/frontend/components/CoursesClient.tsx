@@ -679,13 +679,16 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                   >
                     {/* Course Thumbnail */}
                     <div className="relative w-full aspect-video bg-black/40 overflow-hidden">
-                      {course.thumbnail_url ? (
+                      {(course.thumbnail_url || course.thumbnailUrl) ? (
                         <img
-                          src={course.thumbnail_url}
+                          src={course.thumbnail_url || course.thumbnailUrl}
                           alt={course.title}
+                          referrerPolicy="no-referrer"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop';
                           }}
                         />
                       ) : (
@@ -1281,15 +1284,59 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-gray-400 block mb-1">{t.thumbnailUrl}</label>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-gray-400 block">{t.thumbnailUrl}</label>
+                    <span className="text-[10px] text-emerald-400 font-mono">يدعم روابط الصور المباشرة و Unsplash</span>
+                  </div>
                   <input
                     type="url"
                     value={courseForm.thumbnail_url}
                     onChange={e => setCourseForm({ ...courseForm, thumbnail_url: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://images.unsplash.com/... أو أي رابط صورة مباشر"
                   />
+
+                  {/* One-click preset banners */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <span className="text-[10px] text-gray-500 py-1">أغلفة جاهزة:</span>
+                    {[
+                      { label: '🎬 مونتاج وفيديو', url: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?q=80&w=800&auto=format&fit=crop' },
+                      { label: '🤖 ذكاء اصطناعي وبرمجة', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop' },
+                      { label: '💼 بزنس ووكالات', url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop' },
+                      { label: '🧠 عقلية وتطوير', url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=800&auto=format&fit=crop' },
+                      { label: '🎨 تصميم وموشن', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop' },
+                    ].map((preset, pIdx) => (
+                      <button
+                        key={pIdx}
+                        type="button"
+                        onClick={() => setCourseForm({ ...courseForm, thumbnail_url: preset.url })}
+                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-gray-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/40 text-[10px] font-bold transition-all"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Live Thumbnail Preview Box */}
+                  {courseForm.thumbnail_url && (
+                    <div className="mt-2 rounded-2xl overflow-hidden border border-white/10 aspect-video relative bg-black/50">
+                      <img
+                        src={courseForm.thumbnail_url}
+                        alt="Preview"
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null;
+                          target.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop';
+                        }}
+                      />
+                      <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/80 text-[10px] text-emerald-400 font-bold backdrop-blur-md">
+                        معاينة الغلاف الحية ✓
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

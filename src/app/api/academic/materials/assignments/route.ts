@@ -121,13 +121,16 @@ export async function PUT(req: NextRequest) {
     const item = itemRes.rows[0];
     if (!item) return NextResponse.json({ success: false, error: 'Assignment not found' }, { status: 404 });
 
+    const filePath = body.file_path !== undefined ? body.file_path : (body.url !== undefined ? body.url : item.file_path);
+
     await client.execute({
-      sql: `UPDATE academic_assignments SET title = ?, description = ?, due_date = ?, material_date = ? WHERE id = ?`,
+      sql: `UPDATE academic_assignments SET title = ?, description = ?, due_date = ?, material_date = ?, file_path = ? WHERE id = ?`,
       args: [
         title || item.title,
         description !== undefined ? description : item.description,
         due_date !== undefined ? due_date : item.due_date,
         material_date || item.material_date,
+        filePath || '',
         id
       ]
     });

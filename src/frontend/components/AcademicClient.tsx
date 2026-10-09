@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap, BookOpen, FileText, CheckSquare, Link as LinkIcon, Video,
   Plus, Edit2, Trash2, CheckCircle, Circle, RefreshCw, Settings, Users,
   ArrowLeft, ArrowRight, Download, ExternalLink, Play, Clock, Calendar,
-  AlertCircle, ChevronRight, X, UploadCloud, Search, Shield, Sparkles
+  AlertCircle, ChevronRight, X, Search, Shield, Sparkles, Folder, Eye, FolderPlus
 } from 'lucide-react';
 
 interface AcademicSettings {
@@ -24,6 +24,8 @@ interface Subject {
   color: string;
   icon: string;
   sort_order: number;
+  drive_folder_url?: string;
+  driveFolderUrl?: string;
   stats?: {
     lectures: number;
     assignments: number;
@@ -42,126 +44,35 @@ interface Subject {
 const EMOJIS = ['📘', '📗', '📕', '📙', '📓', '🔬', '💻', '📐', '🧮', '⚡', '🌐', '📡', '📊', '🧠', '⚙️', '🎯'];
 const COLORS = ['#FF6B00', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#06B6D4', '#6366F1'];
 
-const T = {
-  ar: {
-    academicHub: 'الدراسة والكلية',
-    collegeName: 'اسم الكلية',
-    department: 'القسم / التخصص',
-    academicYear: 'الفرقة / السنة الدراسية',
-    sectionNumber: 'رقم السكشن',
-    overallProgress: 'الإنجاز الأكاديمي الكلي',
-    subjects: 'المواد الدراسية',
-    addSubject: 'إضافة مادة',
-    editSubject: 'تعديل مادة',
-    noSubjects: 'لا توجد مواد مسجلة بعد. أضف مادتك الأولى للبدء!',
-    tabLectures: 'المحاضرات والملفات',
-    tabAssignments: 'الواجبات والتاسكات',
-    tabResources: 'المصادر والروابط',
-    tabVideos: 'الفيديوهات والشروحات',
-    add: 'إضافة',
-    edit: 'تعديل',
-    delete: 'حذف',
-    back: 'الرجوع للمواد',
-    save: 'حفظ التعديلات',
-    cancel: 'إلغاء',
-    create: 'إنشاء',
-    noItems: 'لا توجد عناصر مضافة في هذا القسم حتى الآن',
-    title: 'العنوان',
-    description: 'الوصف أو الملاحظات',
-    uploadFile: 'رفع ملف (PDF / Word / PPT / صور)',
-    url: 'الرابط الإلكتروني',
-    dueDate: 'الموعد النهائي للتسليم',
-    materialDate: 'تاريخ المادة',
-    videoType: 'نوع الفيديو',
-    subjectName: 'اسم المادة',
-    subjectCode: 'كود / رمز المادة',
-    color: 'اللون المميز',
-    icon: 'الأيقونة',
-    confirmDelete: 'تأكيد الحذف',
-    confirmDeleteMsg: 'هل أنت متأكد من الحذف؟ لا يمكن التراجع عن هذا الإجراء.',
-    settingsTitle: 'إعدادات الكلية والدراسة',
-    assistantsTitle: 'إدارة حسابات المساعدين والمزامنة',
-    createAssistant: 'إنشاء حساب مساعد',
-    noAssistants: 'لا توجد حسابات مساعدين حالياً',
-    username: 'اسم المستخدم',
-    password: 'كلمة المرور',
-    displayName: 'الاسم المعروض',
-    pendingSync: 'محتوى في انتظار المزامنة:',
-    syncNow: 'مزامنة المحتوى الآن',
-    synced: 'تمت المزامنة',
-    overdue: 'متأخر!',
-    dueIn: 'الموعد:',
-    download: 'تحميل الملف',
-    openLink: 'فتح الرابط',
-    watchVideo: 'مشاهدة الفيديو',
-    searchPlaceholder: 'ابحث في المواد أو المحتوى...',
-    items: 'عناصر',
-    completed: 'مكتمل',
-    allComplete: 'مكتمل بالكامل 👏',
-    activeProgress: 'قيد الإنجاز',
-  },
-  en: {
-    academicHub: 'Academic Hub',
-    collegeName: 'College Name',
-    department: 'Department',
-    academicYear: 'Academic Year',
-    sectionNumber: 'Section Number',
-    overallProgress: 'Overall Academic Progress',
-    subjects: 'Courses & Subjects',
-    addSubject: 'Add Subject',
-    editSubject: 'Edit Subject',
-    noSubjects: 'No courses added yet. Add your first subject to start!',
-    tabLectures: 'Lectures & Files',
-    tabAssignments: 'Assignments & Tasks',
-    tabResources: 'Resources & Links',
-    tabVideos: 'Videos & Tutorials',
-    add: 'Add',
-    edit: 'Edit',
-    delete: 'Delete',
-    back: 'Back to Subjects',
-    save: 'Save Changes',
-    cancel: 'Cancel',
-    create: 'Create',
-    noItems: 'No items in this section yet',
-    title: 'Title',
-    description: 'Description / Notes',
-    uploadFile: 'Upload File (PDF / Word / PPT / Images)',
-    url: 'URL Link',
-    dueDate: 'Due Date',
-    materialDate: 'Material Date',
-    videoType: 'Video Type',
-    subjectName: 'Subject Name',
-    subjectCode: 'Subject Code',
-    color: 'Theme Color',
-    icon: 'Icon',
-    confirmDelete: 'Confirm Delete',
-    confirmDeleteMsg: 'Are you sure you want to delete this? This action cannot be undone.',
-    settingsTitle: 'Academic Settings',
-    assistantsTitle: 'Assistant Accounts & Sync',
-    createAssistant: 'Create Assistant Account',
-    noAssistants: 'No assistant accounts yet',
-    username: 'Username',
-    password: 'Password',
-    displayName: 'Display Name',
-    pendingSync: 'Content pending sync:',
-    syncNow: 'Sync Content Now',
-    synced: 'Synced',
-    overdue: 'Overdue!',
-    dueIn: 'Due:',
-    download: 'Download File',
-    openLink: 'Open Link',
-    watchVideo: 'Watch Video',
-    searchPlaceholder: 'Search subjects or materials...',
-    items: 'items',
-    completed: 'completed',
-    allComplete: 'Completed 👏',
-    activeProgress: 'In Progress',
+function parseEmbedPreviewUrl(url: string): { embedUrl: string; type: 'youtube' | 'drive' | 'generic' } {
+  if (!url) return { embedUrl: '', type: 'generic' };
+  const clean = url.trim();
+
+  // YouTube
+  const ytMatch = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  if (ytMatch && ytMatch[1]) {
+    return {
+      embedUrl: `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?rel=0&modestbranding=1`,
+      type: 'youtube',
+    };
   }
-};
+
+  // Google Drive File
+  if (clean.includes('drive.google.com/file/d/')) {
+    const fileIdMatch = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      return {
+        embedUrl: `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`,
+        type: 'drive',
+      };
+    }
+  }
+
+  return { embedUrl: clean, type: 'generic' };
+}
 
 export default function AcademicClient() {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
-  const t = T[lang];
 
   const [settings, setSettings] = useState<AcademicSettings>({
     college_name: '',
@@ -185,24 +96,157 @@ export default function AcademicClient() {
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [editMaterialId, setEditMaterialId] = useState<number | null>(null);
   const [showAssistantsModal, setShowAssistantsModal] = useState(false);
-  const [showVideoPlayerModal, setShowVideoPlayerModal] = useState<{ open: boolean; video: any | null }>({ open: false, video: null });
+  const [previewModal, setPreviewModal] = useState<{ open: boolean; title: string; url: string; embedUrl: string; type: string }>({
+    open: false,
+    title: '',
+    url: '',
+    embedUrl: '',
+    type: 'generic',
+  });
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; type: string; id: number; title: string }>({ open: false, type: '', id: 0, title: '' });
 
   // Form states
-  const [subjectForm, setSubjectForm] = useState({ name: '', code: '', color: '#FF6B00', icon: '📘' });
+  const [subjectForm, setSubjectForm] = useState({
+    name: '',
+    code: '',
+    color: '#FF6B00',
+    icon: '📘',
+    drive_folder_url: '',
+  });
+
   const [materialForm, setMaterialForm] = useState({
     title: '',
     description: '',
+    file_path: '',
     url: '',
     video_url: '',
     video_type: 'youtube',
     due_date: '',
     material_date: new Date().toISOString().split('T')[0],
   });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const [assistantForm, setAssistantForm] = useState({ username: '', password: '', display_name: '' });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = {
+    ar: {
+      academicHub: 'الدراسة والكلية',
+      collegeName: 'اسم الكلية',
+      department: 'القسم / التخصص',
+      academicYear: 'الفرقة / السنة الدراسية',
+      sectionNumber: 'رقم السكشن',
+      overallProgress: 'الإنجاز الأكاديمي الكلي',
+      subjects: 'المواد الدراسية',
+      addSubject: 'إضافة مادة',
+      editSubject: 'تعديل مادة',
+      noSubjects: 'لا توجد مواد مسجلة بعد. أضف مادتك الأولى للبدء!',
+      tabLectures: 'المحاضرات والملفات',
+      tabAssignments: 'الواجبات والتاسكات',
+      tabResources: 'المصادر والروابط',
+      tabVideos: 'الفيديوهات والشروحات',
+      add: 'إضافة',
+      edit: 'تعديل',
+      delete: 'حذف',
+      back: 'الرجوع للمواد',
+      save: 'حفظ التعديلات',
+      cancel: 'إلغاء',
+      create: 'إنشاء',
+      noItems: 'لا توجد عناصر مضافة في هذا القسم حتى الآن',
+      title: 'العنوان',
+      description: 'الوصف أو الملاحظات',
+      linkUrl: 'رابط الملف أو المستند (Google Drive / PDF / Dropbox / خارجي)',
+      dueDate: 'الموعد النهائي للتسليم',
+      materialDate: 'تاريخ المادة',
+      videoType: 'نوع الفيديو',
+      subjectName: 'اسم المادة',
+      subjectCode: 'كود / رمز المادة',
+      driveFolderUrl: 'رابط مجلد Google Drive الخاص بالمادة (لتخزين المحاضرات والملفات)',
+      openDriveFolder: 'فتح مجلد Google Drive للمادة',
+      setDriveFolder: 'ربط مجلد Google Drive للمادة',
+      color: 'اللون المميز',
+      icon: 'الأيقونة',
+      confirmDelete: 'تأكيد الحذف',
+      confirmDeleteMsg: 'هل أنت متأكد من الحذف؟ لا يمكن التراجع عن هذا الإجراء.',
+      settingsTitle: 'إعدادات الكلية والدراسة',
+      assistantsTitle: 'إدارة حسابات المساعدين والمزامنة',
+      createAssistant: 'إنشاء حساب مساعد',
+      noAssistants: 'لا توجد حسابات مساعدين حالياً',
+      username: 'اسم المستخدم',
+      password: 'كلمة المرور',
+      displayName: 'الاسم المعروض',
+      pendingSync: 'محتوى في انتظار المزامنة:',
+      syncNow: 'مزامنة المحتوى الآن',
+      synced: 'تمت المزامنة',
+      overdue: 'متأخر!',
+      dueIn: 'الموعد:',
+      previewDoc: 'معاينة داخل السيستم',
+      openLink: 'فتح الرابط الأصلي',
+      watchVideo: 'مشاهدة الفيديو',
+      searchPlaceholder: 'ابحث في المواد أو المحتوى...',
+      items: 'عناصر',
+      completed: 'مكتمل',
+      allComplete: 'مكتمل بالكامل 👏',
+      activeProgress: 'قيد الإنجاز',
+    },
+    en: {
+      academicHub: 'Academic Hub',
+      collegeName: 'College Name',
+      department: 'Department',
+      academicYear: 'Academic Year',
+      sectionNumber: 'Section Number',
+      overallProgress: 'Overall Academic Progress',
+      subjects: 'Courses & Subjects',
+      addSubject: 'Add Subject',
+      editSubject: 'Edit Subject',
+      noSubjects: 'No courses added yet. Add your first subject to start!',
+      tabLectures: 'Lectures & Files',
+      tabAssignments: 'Assignments & Tasks',
+      tabResources: 'Resources & Links',
+      tabVideos: 'Videos & Tutorials',
+      add: 'Add',
+      edit: 'Edit',
+      delete: 'Delete',
+      back: 'Back to Subjects',
+      save: 'Save Changes',
+      cancel: 'Cancel',
+      create: 'Create',
+      noItems: 'No items in this section yet',
+      title: 'Title',
+      description: 'Description / Notes',
+      linkUrl: 'File / Document URL (Google Drive / PDF / Dropbox / External)',
+      dueDate: 'Due Date',
+      materialDate: 'Material Date',
+      videoType: 'Video Type',
+      subjectName: 'Subject Name',
+      subjectCode: 'Subject Code',
+      driveFolderUrl: 'Subject Google Drive Folder URL',
+      openDriveFolder: 'Open Subject Google Drive Folder',
+      setDriveFolder: 'Link Google Drive Folder',
+      color: 'Theme Color',
+      icon: 'Icon',
+      confirmDelete: 'Confirm Delete',
+      confirmDeleteMsg: 'Are you sure you want to delete this? This action cannot be undone.',
+      settingsTitle: 'Academic Settings',
+      assistantsTitle: 'Assistant Accounts & Sync',
+      createAssistant: 'Create Assistant Account',
+      noAssistants: 'No assistant accounts yet',
+      username: 'Username',
+      password: 'Password',
+      displayName: 'Display Name',
+      pendingSync: 'Content pending sync:',
+      syncNow: 'Sync Content Now',
+      synced: 'Synced',
+      overdue: 'Overdue!',
+      dueIn: 'Due:',
+      previewDoc: 'In-App Preview',
+      openLink: 'Open Link',
+      watchVideo: 'Watch Video',
+      searchPlaceholder: 'Search subjects or materials...',
+      items: 'items',
+      completed: 'completed',
+      allComplete: 'Completed 👏',
+      activeProgress: 'In Progress',
+    }
+  }[lang];
 
   // Fetch initial data
   const fetchData = useCallback(async () => {
@@ -249,21 +293,19 @@ export default function AcademicClient() {
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/academic/settings', {
-        method: 'PUT',
+      await fetch('/api/academic/settings', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
-      }).then(r => r.json());
-      if (res.success) {
-        setShowSettingsModal(false);
-        fetchData();
-      }
+      });
+      setShowSettingsModal(false);
+      fetchData();
     } catch (e) {
       console.error(e);
     }
   };
 
-  // Save Subject (Add/Edit)
+  // Save Subject
   const handleSaveSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subjectForm.name.trim()) return;
@@ -284,7 +326,7 @@ export default function AcademicClient() {
       }
       setShowSubjectModal(false);
       setEditSubjectId(null);
-      setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘' });
+      setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘', drive_folder_url: '' });
       fetchData();
       if (currentSubject && currentSubject.id === editSubjectId) {
         loadSubjectDetail(editSubjectId);
@@ -294,7 +336,7 @@ export default function AcademicClient() {
     }
   };
 
-  // Save Material (Lecture / Assignment / Resource / Video)
+  // Save Material (Lectures / Assignments / Resources / Videos) — 100% Links, Zero Server Storage
   const handleSaveMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentSubject || !materialForm.title.trim()) return;
@@ -310,53 +352,49 @@ export default function AcademicClient() {
     if (!endpoint) return;
 
     try {
+      const payload: any = {
+        subject_id: currentSubject.id,
+        title: materialForm.title.trim(),
+        description: materialForm.description.trim(),
+        material_date: materialForm.material_date,
+      };
+
+      if (activeTab === 'lectures') {
+        payload.file_path = materialForm.file_path.trim();
+        payload.url = materialForm.file_path.trim();
+      } else if (activeTab === 'assignments') {
+        payload.file_path = materialForm.file_path.trim();
+        payload.due_date = materialForm.due_date;
+      } else if (activeTab === 'resources') {
+        payload.url = materialForm.url.trim() || materialForm.file_path.trim();
+      } else if (activeTab === 'videos') {
+        payload.video_url = materialForm.video_url.trim();
+        payload.video_type = materialForm.video_type;
+      }
+
       if (editMaterialId) {
         await fetch(endpoint, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: editMaterialId,
-            ...materialForm,
+            ...payload,
           }),
         });
       } else {
-        if (selectedFile) {
-          const formData = new FormData();
-          formData.append('title', materialForm.title);
-          formData.append('description', materialForm.description);
-          formData.append('subject_id', String(currentSubject.id));
-          formData.append('material_date', materialForm.material_date);
-          if (activeTab === 'assignments' && materialForm.due_date) {
-            formData.append('due_date', materialForm.due_date);
-          }
-          if (activeTab === 'videos') {
-            formData.append('video_url', materialForm.video_url);
-            formData.append('video_type', materialForm.video_type);
-          }
-          formData.append('file', selectedFile);
-
-          await fetch(endpoint, {
-            method: 'POST',
-            body: formData,
-          });
-        } else {
-          await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              subject_id: currentSubject.id,
-              ...materialForm,
-            }),
-          });
-        }
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
       }
 
       setShowMaterialModal(false);
       setEditMaterialId(null);
-      setSelectedFile(null);
       setMaterialForm({
         title: '',
         description: '',
+        file_path: '',
         url: '',
         video_url: '',
         video_type: 'youtube',
@@ -383,7 +421,6 @@ export default function AcademicClient() {
     const endpoint = endpointMap[tab];
     if (!endpoint) return;
 
-    // Optimistic UI update
     if (currentSubject) {
       const listKey = tab as 'lectures' | 'assignments' | 'resources' | 'videos';
       const updatedList = (currentSubject[listKey] || []).map((item: any) =>
@@ -457,24 +494,28 @@ export default function AcademicClient() {
     }
   };
 
+  // Create Assistant
   const handleCreateAssistant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assistantForm.username || !assistantForm.password) return;
     try {
-      await fetch('/api/academic/assistants', {
+      const res = await fetch('/api/academic/assistants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(assistantForm),
-      });
-      setAssistantForm({ username: '', password: '', display_name: '' });
-      loadAssistants();
+      }).then(r => r.json());
+      if (res.success) {
+        setAssistantForm({ username: '', password: '', display_name: '' });
+        loadAssistants();
+      }
     } catch (e) {
       console.error(e);
     }
   };
 
+  // Delete Assistant
   const handleDeleteAssistant = async (id: number) => {
-    if (!confirm('هل أنت متأكد من حذف حساب المساعد؟')) return;
+    if (!confirm(t.confirmDeleteMsg)) return;
     try {
       await fetch(`/api/academic/assistants?id=${id}`, { method: 'DELETE' });
       loadAssistants();
@@ -483,166 +524,151 @@ export default function AcademicClient() {
     }
   };
 
-  // Filter subjects / materials
   const filteredSubjects = subjects.filter(s =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (s.code && s.code.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const getYoutubeEmbedUrl = (url: string) => {
-    if (!url) return '';
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}` : url;
-  };
-
   return (
-    <div className="space-y-8 animate-fade-in" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      {/* ── TOP ACADEMIC BANNER ── */}
-      <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 sm:p-8 backdrop-blur-2xl shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-              <GraduationCap size={36} />
+    <div className="space-y-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      {/* ── TOP HEADER BAR ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 sm:p-8 rounded-[2.5rem] border border-white/10 bg-white/[0.03] backdrop-blur-2xl">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
+              <GraduationCap size={26} />
             </div>
             <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{t.academicHub}</h1>
-                <button
-                  onClick={() => setLang(l => (l === 'ar' ? 'en' : 'ar'))}
-                  className="px-2.5 py-1 text-xs font-mono font-bold rounded-lg border border-white/10 bg-white/5 text-gray-400 hover:text-white transition-all"
-                >
-                  {lang === 'ar' ? 'EN' : 'العربية'}
-                </button>
-              </div>
-              <p className="text-sm font-medium text-gray-400 mt-1">
-                {settings.college_name || 'كلية التكنولوجيا'} {settings.department ? `• ${settings.department}` : ''} {settings.academic_year ? `• ${settings.academic_year}` : ''} {settings.section_number ? `• ${settings.section_number}` : ''}
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+                {t.academicHub}
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
+                  COLLEGE OS
+                </span>
+              </h1>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {settings.college_name || 'الكلية'} • {settings.department || 'القسم'} • {settings.academic_year || 'السنة الدراسية'}
               </p>
             </div>
           </div>
-
-          {/* Action buttons */}
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => {
-                setShowAssistantsModal(true);
-                loadAssistants();
-              }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm font-bold text-gray-300 hover:bg-white/10 hover:text-white transition-all"
-            >
-              <Users size={16} />
-              <span>{t.assistantsTitle}</span>
-            </button>
-            <button
-              onClick={() => setShowSettingsModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm font-bold text-gray-300 hover:bg-white/10 hover:text-white transition-all"
-            >
-              <Settings size={16} />
-              <span>{t.settingsTitle}</span>
-            </button>
-          </div>
         </div>
 
-        {/* Sync Pending Alert */}
-        {pendingSync > 0 && (
-          <div className="mt-6 flex items-center justify-between p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-md">
-            <div className="flex items-center gap-3 text-amber-300 text-sm font-bold">
-              <RefreshCw size={18} className="animate-spin text-amber-400" />
-              <span>{t.pendingSync} <strong>{pendingSync}</strong> {t.items}</span>
-            </div>
+        {/* Global Action Controls */}
+        <div className="flex flex-wrap items-center gap-3">
+          {pendingSync > 0 && (
             <button
               onClick={handleSyncContent}
-              className="px-4 py-2 rounded-lg bg-amber-500 text-black text-xs font-black hover:bg-amber-400 transition-all shadow-lg"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-black shadow-lg animate-pulse"
             >
-              {t.syncNow}
+              <RefreshCw size={14} className="animate-spin" />
+              <span>{t.syncNow} ({pendingSync})</span>
             </button>
-          </div>
-        )}
+          )}
 
-        {/* Overall Progress Bar */}
-        <div className="mt-8 pt-6 border-t border-white/10">
-          <div className="flex justify-between items-center text-sm font-bold mb-2">
-            <span className="text-gray-400 flex items-center gap-2">
-              <Sparkles size={16} className="text-emerald-400" />
-              {t.overallProgress}
-            </span>
-            <span className="text-white font-mono text-base">
-              {overallProgress.completed} / {overallProgress.total} ({overallProgress.percentage}%)
-            </span>
-          </div>
-          <div className="w-full h-3.5 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/10">
-            <motion.div
-              className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)]"
-              initial={{ width: 0 }}
-              animate={{ width: `${overallProgress.percentage}%` }}
-              transition={{ duration: 1, ease: 'easeOut' }}
-            />
-          </div>
+          <button
+            onClick={() => {
+              loadAssistants();
+              setShowAssistantsModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all"
+          >
+            <Users size={16} />
+            <span>حسابات المساعدين</span>
+          </button>
+
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all"
+          >
+            <Settings size={16} />
+            <span>إعدادات الكلية</span>
+          </button>
         </div>
       </div>
 
-      {/* ── SEARCH & CONTROLS ── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search size={18} className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-500" />
-          <input
-            type="text"
-            placeholder={t.searchPlaceholder}
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-4 pr-10 py-3 rounded-2xl border border-white/10 bg-white/[0.03] text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50 transition-all"
+      {/* ── OVERALL PROGRESS STRIP ── */}
+      <div className="p-6 rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl space-y-3">
+        <div className="flex justify-between items-center text-xs font-bold">
+          <span className="text-gray-400 flex items-center gap-2">
+            <Sparkles size={14} className="text-amber-400" />
+            <span>{t.overallProgress}</span>
+          </span>
+          <span className="font-mono text-amber-400 text-sm font-black">
+            {overallProgress.completed} / {overallProgress.total} {t.items} ({overallProgress.percentage}%)
+          </span>
+        </div>
+        <div className="w-full h-3 rounded-full bg-white/5 overflow-hidden p-0.5 border border-white/5">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-300 transition-all duration-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+            style={{ width: `${overallProgress.percentage}%` }}
           />
         </div>
-
-        {!currentSubject && (
-          <button
-            onClick={() => {
-              setEditSubjectId(null);
-              setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘' });
-              setShowSubjectModal(true);
-            }}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:scale-105"
-          >
-            <Plus size={18} />
-            <span>{t.addSubject}</span>
-          </button>
-        )}
       </div>
 
       {/* ── MAIN CONTENT AREA ── */}
       {!currentSubject ? (
         /* ── SUBJECTS GRID VIEW ── */
-        <div>
-          {filteredSubjects.length === 0 ? (
-            <div className="text-center py-16 px-4 rounded-[2rem] border border-white/10 bg-white/[0.02]">
-              <BookOpen size={48} className="mx-auto text-gray-600 mb-4" />
-              <h3 className="text-lg font-bold text-gray-300">{t.noSubjects}</h3>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search size={16} className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={t.searchPlaceholder}
+                className="w-full pl-4 pr-9 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                setEditSubjectId(null);
+                setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘', drive_folder_url: '' });
+                setShowSubjectModal(true);
+              }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02]"
+            >
+              <Plus size={18} />
+              <span>{t.addSubject}</span>
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20 text-gray-400">
+              <RefreshCw className="animate-spin text-amber-400 mr-3" size={24} />
+              <span>جاري تحميل المواد...</span>
+            </div>
+          ) : filteredSubjects.length === 0 ? (
+            <div className="text-center py-16 px-4 rounded-3xl border border-white/10 bg-white/[0.02] space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-3xl">
+                📚
+              </div>
+              <h3 className="text-lg font-bold text-white">{t.noSubjects}</h3>
               <button
                 onClick={() => setShowSubjectModal(true)}
-                className="mt-4 px-6 py-2.5 rounded-xl bg-amber-500 text-black text-sm font-bold hover:bg-amber-400 transition-all shadow-lg"
+                className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-bold text-sm hover:bg-amber-400 shadow-lg"
               >
-                {t.addSubject}
+                + {t.addSubject}
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredSubjects.map(sub => {
-                const p = sub.stats?.percentage || 0;
+                const percentage = sub.stats?.percentage || 0;
+                const driveUrl = sub.drive_folder_url || sub.driveFolderUrl;
+
                 return (
                   <motion.div
                     key={sub.id}
                     whileHover={{ y: -4 }}
-                    className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 backdrop-blur-xl transition-all hover:border-white/20 hover:shadow-2xl cursor-pointer"
                     onClick={() => handleSelectSubject(sub)}
+                    className="group relative flex flex-col justify-between p-6 rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-amber-500/40 hover:shadow-2xl hover:shadow-amber-500/5 transition-all cursor-pointer space-y-5"
                   >
-                    {/* Top Subject Info */}
-                    <div className="flex items-start justify-between gap-4 mb-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border shadow-lg"
+                          className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border shadow-lg"
                           style={{
                             backgroundColor: `${sub.color}20`,
                             borderColor: `${sub.color}50`,
@@ -651,73 +677,68 @@ export default function AcademicClient() {
                           {sub.icon || '📘'}
                         </div>
                         <div>
-                          <h3 className="text-lg font-black text-white group-hover:text-amber-400 transition-colors">
+                          <h3 className="text-lg font-black text-white group-hover:text-amber-400 transition-colors line-clamp-1">
                             {sub.name}
                           </h3>
                           {sub.code && (
-                            <span className="text-xs font-mono font-bold text-gray-400 uppercase">
-                              {sub.code}
-                            </span>
+                            <span className="text-xs font-mono font-bold text-gray-400">{sub.code}</span>
                           )}
                         </div>
                       </div>
 
-                      {/* Menu Edit/Delete on card */}
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                        <button
-                          onClick={() => {
-                            setEditSubjectId(sub.id);
-                            setSubjectForm({ name: sub.name, code: sub.code, color: sub.color, icon: sub.icon });
-                            setShowSubjectModal(true);
-                          }}
-                          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm({ open: true, type: 'subject', id: sub.id, title: sub.name })}
-                          className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                      <div className="flex items-center gap-1.5">
+                        {driveUrl && (
+                          <a
+                            href={driveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition-all"
+                            title="فتح مجلد Google Drive للمادة"
+                          >
+                            <Folder size={14} />
+                          </a>
+                        )}
+                        <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-mono font-bold text-gray-300">
+                          {percentage}%
+                        </span>
                       </div>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="space-y-1.5 my-4">
-                      <div className="flex justify-between text-xs font-bold text-gray-400">
-                        <span>{t.completed}</span>
-                        <span className="font-mono text-white">{p}%</span>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs text-gray-400 font-mono">
+                        <span>{sub.stats?.completed || 0} / {sub.stats?.total || 0} {t.completed}</span>
+                        <span>{sub.stats?.total ? `${sub.stats.total} مواد` : 'فارغ'}</span>
                       </div>
-                      <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{
-                            width: `${p}%`,
-                            backgroundColor: sub.color || '#10B981',
-                            boxShadow: `0 0 10px ${sub.color || '#10B981'}80`
+                            width: `${percentage}%`,
+                            backgroundColor: sub.color || '#FF6B00',
                           }}
                         />
                       </div>
                     </div>
 
-                    {/* Material Counters */}
+                    {/* Material Counters Strip */}
                     <div className="grid grid-cols-4 gap-2 pt-3 border-t border-white/5 text-center">
                       <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <span className="text-xs text-gray-400 block">{t.tabLectures.split(' ')[0]}</span>
-                        <strong className="text-sm font-mono text-white">{sub.stats?.lectures || 0}</strong>
+                        <span className="text-[11px] text-gray-400 block font-bold">محاضرات</span>
+                        <strong className="text-xs font-mono text-white">{sub.stats?.lectures || 0}</strong>
                       </div>
                       <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <span className="text-xs text-gray-400 block">{t.tabAssignments.split(' ')[0]}</span>
-                        <strong className="text-sm font-mono text-white">{sub.stats?.assignments || 0}</strong>
+                        <span className="text-[11px] text-gray-400 block font-bold">واجبات</span>
+                        <strong className="text-xs font-mono text-white">{sub.stats?.assignments || 0}</strong>
                       </div>
                       <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <span className="text-xs text-gray-400 block">{t.tabResources.split(' ')[0]}</span>
-                        <strong className="text-sm font-mono text-white">{sub.stats?.resources || 0}</strong>
+                        <span className="text-[11px] text-gray-400 block font-bold">مراجع</span>
+                        <strong className="text-xs font-mono text-white">{sub.stats?.resources || 0}</strong>
                       </div>
                       <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <span className="text-xs text-gray-400 block">{t.tabVideos.split(' ')[0]}</span>
-                        <strong className="text-sm font-mono text-white">{sub.stats?.videos || 0}</strong>
+                        <span className="text-[11px] text-gray-400 block font-bold">فيديوهات</span>
+                        <strong className="text-xs font-mono text-white">{sub.stats?.videos || 0}</strong>
                       </div>
                     </div>
                   </motion.div>
@@ -769,7 +790,13 @@ export default function AcademicClient() {
               <button
                 onClick={() => {
                   setEditSubjectId(currentSubject.id);
-                  setSubjectForm({ name: currentSubject.name, code: currentSubject.code, color: currentSubject.color, icon: currentSubject.icon });
+                  setSubjectForm({
+                    name: currentSubject.name,
+                    code: currentSubject.code || '',
+                    color: currentSubject.color || '#FF6B00',
+                    icon: currentSubject.icon || '📘',
+                    drive_folder_url: currentSubject.drive_folder_url || currentSubject.driveFolderUrl || '',
+                  });
                   setShowSubjectModal(true);
                 }}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm font-bold text-gray-300 hover:bg-white/10 hover:text-white"
@@ -783,6 +810,76 @@ export default function AcademicClient() {
               >
                 <Trash2 size={18} />
               </button>
+            </div>
+          </div>
+
+          {/* ── GOOGLE DRIVE FOLDER HERO BANNER ── */}
+          <div className="p-5 rounded-3xl border border-blue-500/30 bg-gradient-to-r from-blue-950/40 via-blue-900/20 to-black backdrop-blur-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-blue-500/5">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/40 text-blue-400 flex items-center justify-center text-xl shadow-inner">
+                <Folder size={24} />
+              </div>
+              <div>
+                <strong className="text-base font-black text-white block">
+                  مجلد Google Drive المخصص لهذه المادة
+                </strong>
+                <span className="text-xs text-gray-400 block">
+                  {currentSubject.drive_folder_url || currentSubject.driveFolderUrl
+                    ? 'تم ربط المجلد السحابي: يمكنك رفع وتصفح الملفات والـ PDFs مباشرة عبر درايف'
+                    : 'لم يتم ربط مجلد درايف بعد — اضغط هنا لتعيين رابط المجلد'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {currentSubject.drive_folder_url || currentSubject.driveFolderUrl ? (
+                <>
+                  <a
+                    href={currentSubject.drive_folder_url || currentSubject.driveFolderUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-400 text-black font-black text-xs shadow-lg shadow-blue-500/20 transition-all hover:scale-105"
+                  >
+                    <span>🚀 {t.openDriveFolder}</span>
+                    <ExternalLink size={14} />
+                  </a>
+                  <button
+                    onClick={() => {
+                      setEditSubjectId(currentSubject.id);
+                      setSubjectForm({
+                        name: currentSubject.name,
+                        code: currentSubject.code || '',
+                        color: currentSubject.color || '#FF6B00',
+                        icon: currentSubject.icon || '📘',
+                        drive_folder_url: currentSubject.drive_folder_url || currentSubject.driveFolderUrl || '',
+                      });
+                      setShowSubjectModal(true);
+                    }}
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white"
+                    title="تعديل رابط المجلد"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setEditSubjectId(currentSubject.id);
+                    setSubjectForm({
+                      name: currentSubject.name,
+                      code: currentSubject.code || '',
+                      color: currentSubject.color || '#FF6B00',
+                      icon: currentSubject.icon || '📘',
+                      drive_folder_url: '',
+                    });
+                    setShowSubjectModal(true);
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500/20 hover:bg-blue-500 text-blue-300 hover:text-black font-black text-xs border border-blue-500/40 transition-all"
+                >
+                  <FolderPlus size={16} />
+                  <span>+ {t.setDriveFolder}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -816,10 +913,10 @@ export default function AcademicClient() {
             <button
               onClick={() => {
                 setEditMaterialId(null);
-                setSelectedFile(null);
                 setMaterialForm({
                   title: '',
                   description: '',
+                  file_path: '',
                   url: '',
                   video_url: '',
                   video_type: 'youtube',
@@ -828,22 +925,21 @@ export default function AcademicClient() {
                 });
                 setShowMaterialModal(true);
               }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/10 shrink-0"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shadow-lg shrink-0"
             >
               <Plus size={16} />
               <span>{t.add}</span>
             </button>
           </div>
 
-          {/* Materials List Render */}
-          <div className="space-y-4">
+          {/* Material Items List */}
+          <div className="space-y-3">
             {(() => {
-              const items = (currentSubject as any)[activeTab] || [];
+              const items = currentSubject[activeTab] || [];
               if (items.length === 0) {
                 return (
-                  <div className="text-center py-16 px-4 rounded-[2rem] border border-white/10 bg-white/[0.02]">
-                    <FileText size={40} className="mx-auto text-gray-600 mb-3" />
-                    <p className="text-gray-400 font-bold">{t.noItems}</p>
+                  <div className="text-center py-12 text-gray-500">
+                    <p className="text-sm font-bold">{t.noItems}</p>
                   </div>
                 );
               }
@@ -851,6 +947,8 @@ export default function AcademicClient() {
               return items.map((item: any) => {
                 const isCompleted = item.completed === 1 || item.completed === true;
                 const isOverdue = item.due_date && new Date(item.due_date) < new Date() && !isCompleted;
+                const itemLink = item.file_path || item.url || item.video_url || '';
+                const { embedUrl, type: previewType } = parseEmbedPreviewUrl(itemLink);
 
                 return (
                   <motion.div
@@ -867,10 +965,10 @@ export default function AcademicClient() {
                     }`}
                   >
                     {/* Checkbox and info */}
-                    <div className="flex items-start gap-4 w-full sm:w-auto">
+                    <div className="flex items-start gap-4 w-full sm:w-auto flex-1 min-w-0">
                       <button
                         onClick={() => handleToggleCompleted(activeTab, item.id, isCompleted)}
-                        className={`mt-1 w-6 h-6 rounded-lg flex items-center justify-center border transition-all ${
+                        className={`mt-1 w-6 h-6 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
                           isCompleted
                             ? 'bg-emerald-500 border-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.5)]'
                             : 'border-gray-500 hover:border-emerald-400 text-transparent'
@@ -879,9 +977,9 @@ export default function AcademicClient() {
                         <CheckCircle size={14} className={isCompleted ? 'stroke-[3]' : 'opacity-0'} />
                       </button>
 
-                      <div className="space-y-1 flex-1">
+                      <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h4 className={`text-base font-bold ${isCompleted ? 'line-through text-gray-500' : 'text-white'}`}>
+                          <h4 className={`text-base font-bold truncate ${isCompleted ? 'line-through text-gray-500' : 'text-white'}`}>
                             {item.title}
                           </h4>
                           {isOverdue && (
@@ -910,10 +1008,10 @@ export default function AcademicClient() {
                               {t.dueIn} {item.due_date}
                             </span>
                           )}
-                          {item.file_name && (
-                            <span className="flex items-center gap-1 text-cyan-400 font-mono">
-                              <FileText size={12} />
-                              {item.file_name} {item.file_size ? `(${Math.round(item.file_size / 1024)} KB)` : ''}
+                          {itemLink && (
+                            <span className="flex items-center gap-1 text-cyan-400 font-mono truncate max-w-xs">
+                              <LinkIcon size={12} />
+                              <span className="truncate">{itemLink}</span>
                             </span>
                           )}
                         </div>
@@ -922,49 +1020,50 @@ export default function AcademicClient() {
 
                     {/* Actions on item */}
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                      {item.file_path && (
-                        <a
-                          href={item.file_path}
-                          download={item.file_name || true}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs font-bold hover:bg-cyan-500/20"
-                        >
-                          <Download size={14} />
-                          <span>{t.download}</span>
-                        </a>
-                      )}
-
-                      {item.url && (
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-bold hover:bg-blue-500/20"
-                        >
-                          <ExternalLink size={14} />
-                          <span>{t.openLink}</span>
-                        </a>
-                      )}
-
-                      {(item.video_url || item.file_path) && activeTab === 'videos' && (
+                      {/* In-App Live Preview Button for Documents / Drive / Videos */}
+                      {itemLink && (
                         <button
-                          onClick={() => setShowVideoPlayerModal({ open: true, video: item })}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 text-xs font-bold hover:bg-rose-500/20"
+                          type="button"
+                          onClick={() => {
+                            setPreviewModal({
+                              open: true,
+                              title: item.title,
+                              url: itemLink,
+                              embedUrl: embedUrl,
+                              type: previewType,
+                            });
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-bold hover:bg-amber-500 hover:text-black transition-all shadow-sm"
+                          title={t.previewDoc}
                         >
-                          <Play size={14} />
-                          <span>{t.watchVideo}</span>
+                          <Eye size={14} />
+                          <span>{t.previewDoc}</span>
                         </button>
                       )}
 
+                      {/* Direct External Link */}
+                      {itemLink && (
+                        <a
+                          href={itemLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                          title={t.openLink}
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
+
+                      {/* Edit Button */}
                       <button
                         onClick={() => {
                           setEditMaterialId(item.id);
                           setMaterialForm({
                             title: item.title,
                             description: item.description || '',
-                            url: item.url || '',
-                            video_url: item.video_url || '',
+                            file_path: item.file_path || item.url || '',
+                            url: item.url || item.file_path || '',
+                            video_url: item.video_url || item.file_path || '',
                             video_type: item.video_type || 'youtube',
                             due_date: item.due_date || '',
                             material_date: item.material_date || '',
@@ -976,6 +1075,7 @@ export default function AcademicClient() {
                         <Edit2 size={14} />
                       </button>
 
+                      {/* Delete Button */}
                       <button
                         onClick={() => setDeleteConfirm({ open: true, type: activeTab, id: item.id, title: item.title })}
                         className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400"
@@ -1075,7 +1175,7 @@ export default function AcademicClient() {
         )}
       </AnimatePresence>
 
-      {/* 2. Subject Modal (Add / Edit) */}
+      {/* 2. Subject Modal (Add / Edit) with Google Drive Folder Link */}
       <AnimatePresence>
         {showSubjectModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
@@ -1116,6 +1216,24 @@ export default function AcademicClient() {
                     className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-amber-500"
                     placeholder="مثال: ELEC101"
                   />
+                </div>
+
+                {/* Google Drive Folder Link */}
+                <div className="space-y-1.5 p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20">
+                  <label className="text-xs font-black text-blue-400 flex items-center gap-1.5">
+                    <Folder size={14} />
+                    <span>{t.driveFolderUrl}</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={subjectForm.drive_folder_url}
+                    onChange={e => setSubjectForm({ ...subjectForm, drive_folder_url: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white focus:outline-none focus:border-blue-400"
+                    placeholder="https://drive.google.com/drive/folders/..."
+                  />
+                  <span className="text-[10px] text-gray-400 block">
+                    ضع رابط مجلد درايف المخصص لهذه المادة لفتحه وتخزين كافة المحاضرات والماتريال فيه.
+                  </span>
                 </div>
 
                 {/* Color Selection */}
@@ -1176,7 +1294,7 @@ export default function AcademicClient() {
         )}
       </AnimatePresence>
 
-      {/* 3. Material Modal (Lectures / Assignments / Resources / Videos) */}
+      {/* 3. Material Modal (Lectures / Assignments / Resources / Videos) — ZERO FILE UPLOAD */}
       <AnimatePresence>
         {showMaterialModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
@@ -1204,7 +1322,7 @@ export default function AcademicClient() {
                     value={materialForm.title}
                     onChange={e => setMaterialForm({ ...materialForm, title: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-amber-500"
-                    placeholder="عنوان المحاضرة أو الواجب أو الرابط..."
+                    placeholder="عنوان المحاضرة أو الواجب أو المرجع..."
                   />
                 </div>
 
@@ -1219,71 +1337,40 @@ export default function AcademicClient() {
                   />
                 </div>
 
-                {/* File Upload for Lectures, Assignments, Videos */}
-                {(activeTab === 'lectures' || activeTab === 'assignments' || (activeTab === 'videos' && materialForm.video_type === 'upload')) && !editMaterialId && (
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 block mb-1">{t.uploadFile}</label>
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-white/10 hover:border-amber-500/50 rounded-2xl p-6 text-center cursor-pointer bg-white/[0.02] hover:bg-white/[0.04] transition-all"
-                    >
-                      <UploadCloud size={32} className="mx-auto text-gray-500 mb-2" />
-                      <p className="text-xs text-gray-300 font-bold">
-                        {selectedFile ? selectedFile.name : 'اضغط لاختيار ملف أو اسحبه هنا'}
-                      </p>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        onChange={e => setSelectedFile(e.target.files?.[0] || null)}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* URL field for Resources */}
-                {activeTab === 'resources' && (
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 block mb-1">{t.url}</label>
+                {/* Direct Link / Google Drive / PDF URL */}
+                {activeTab !== 'videos' && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-400 block mb-1">{t.linkUrl}</label>
                     <input
                       type="url"
-                      value={materialForm.url}
-                      onChange={e => setMaterialForm({ ...materialForm, url: e.target.value })}
+                      value={activeTab === 'resources' ? materialForm.url : materialForm.file_path}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (activeTab === 'resources') setMaterialForm({ ...materialForm, url: val });
+                        else setMaterialForm({ ...materialForm, file_path: val });
+                      }}
                       className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-amber-500"
-                      placeholder="https://example.com"
+                      placeholder="https://drive.google.com/file/d/... أو رابط PDF خارجي"
                     />
+                    <span className="text-[10px] text-gray-500">
+                      يدعم روابط Google Drive و Dropbox و مستندات الـ PDF مع إمكانية المعاينة المباشرة داخل السيستم.
+                    </span>
                   </div>
                 )}
 
-                {/* Video URL & Type */}
+                {/* Video URL */}
                 {activeTab === 'videos' && (
-                  <>
-                    <div>
-                      <label className="text-xs font-bold text-gray-400 block mb-1">{t.videoType}</label>
-                      <select
-                        value={materialForm.video_type}
-                        onChange={e => setMaterialForm({ ...materialForm, video_type: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#161821] text-sm text-white focus:outline-none focus:border-amber-500"
-                      >
-                        <option value="youtube">YouTube</option>
-                        <option value="external">رابط خارجي</option>
-                        <option value="upload">رفع ملف فيديو</option>
-                      </select>
-                    </div>
-
-                    {materialForm.video_type !== 'upload' && (
-                      <div>
-                        <label className="text-xs font-bold text-gray-400 block mb-1">رابط الفيديو</label>
-                        <input
-                          type="url"
-                          value={materialForm.video_url}
-                          onChange={e => setMaterialForm({ ...materialForm, video_url: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-amber-500"
-                          placeholder="https://www.youtube.com/watch?v=..."
-                        />
-                      </div>
-                    )}
-                  </>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-400 block mb-1">رابط الفيديو (YouTube / Drive / Loom)</label>
+                    <input
+                      type="url"
+                      required
+                      value={materialForm.video_url}
+                      onChange={e => setMaterialForm({ ...materialForm, video_url: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-amber-500"
+                      placeholder="https://www.youtube.com/watch?v=... أو Google Drive Video"
+                    />
+                  </div>
                 )}
 
                 {/* Dates */}
@@ -1332,7 +1419,62 @@ export default function AcademicClient() {
         )}
       </AnimatePresence>
 
-      {/* 4. Assistants & Sync Modal */}
+      {/* 4. Live In-App Document / Video Preview Modal */}
+      <AnimatePresence>
+        {previewModal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-5xl rounded-[2rem] border border-white/10 bg-[#0c0d12] p-6 space-y-4 shadow-2xl flex flex-col max-h-[92vh]"
+            >
+              <div className="flex justify-between items-center border-b border-white/10 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                    <Eye size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white truncate max-w-md">{previewModal.title}</h3>
+                    <span className="text-[11px] text-gray-400 font-mono block truncate max-w-sm">{previewModal.url}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={previewModal.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 hover:text-white border border-white/10 transition-all"
+                  >
+                    <span>{t.openLink}</span>
+                    <ExternalLink size={12} />
+                  </a>
+                  <button
+                    onClick={() => setPreviewModal({ open: false, title: '', url: '', embedUrl: '', type: 'generic' })}
+                    className="p-2 text-gray-400 hover:text-white rounded-xl bg-white/5"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Embedded Frame */}
+              <div className="relative flex-1 w-full min-h-[60vh] rounded-2xl overflow-hidden bg-black border border-white/10">
+                <iframe
+                  src={previewModal.embedUrl || previewModal.url}
+                  title={previewModal.title}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 5. Assistants & Sync Modal */}
       <AnimatePresence>
         {showAssistantsModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
@@ -1412,43 +1554,6 @@ export default function AcademicClient() {
         )}
       </AnimatePresence>
 
-      {/* 5. Video Player Modal */}
-      <AnimatePresence>
-        {showVideoPlayerModal.open && showVideoPlayerModal.video && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-4xl rounded-[2rem] border border-white/10 bg-[#0c0d12] p-6 space-y-4 shadow-2xl"
-            >
-              <div className="flex justify-between items-center border-b border-white/10 pb-3">
-                <h3 className="text-lg font-black text-white">{showVideoPlayerModal.video.title}</h3>
-                <button
-                  onClick={() => setShowVideoPlayerModal({ open: false, video: null })}
-                  className="p-2 text-gray-400 hover:text-white"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-white/10">
-                {showVideoPlayerModal.video.file_path ? (
-                  <video controls className="w-full h-full" src={showVideoPlayerModal.video.file_path} />
-                ) : (
-                  <iframe
-                    src={getYoutubeEmbedUrl(showVideoPlayerModal.video.video_url)}
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       {/* 6. Confirm Delete Modal */}
       <AnimatePresence>
         {deleteConfirm.open && (
@@ -1478,7 +1583,7 @@ export default function AcademicClient() {
                 </button>
                 <button
                   onClick={executeDelete}
-                  className="px-6 py-2 rounded-xl bg-red-500 text-white text-xs font-black hover:bg-red-400 shadow-lg"
+                  className="px-6 py-2 rounded-xl bg-red-500 text-white font-bold text-xs hover:bg-red-400 shadow-lg"
                 >
                   {t.delete}
                 </button>

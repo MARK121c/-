@@ -121,12 +121,15 @@ export async function PUT(req: NextRequest) {
     const item = itemRes.rows[0];
     if (!item) return NextResponse.json({ success: false, error: 'Lecture not found' }, { status: 404 });
 
+    const filePath = body.file_path !== undefined ? body.file_path : (body.url !== undefined ? body.url : item.file_path);
+
     await client.execute({
-      sql: `UPDATE academic_lectures SET title = ?, description = ?, material_date = ? WHERE id = ?`,
+      sql: `UPDATE academic_lectures SET title = ?, description = ?, material_date = ?, file_path = ? WHERE id = ?`,
       args: [
         title || item.title,
         description !== undefined ? description : item.description,
         material_date || item.material_date,
+        filePath || '',
         id
       ]
     });
