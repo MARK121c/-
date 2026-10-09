@@ -1321,7 +1321,7 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                   <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2 text-emerald-300 font-bold">
                       <Sparkles size={16} className="text-emerald-400 shrink-0" />
-                      <span>المقاس المثالي للغلاف: <strong>1280 × 720 بكسل</strong> (نسبة 16:9 العريضة)</span>
+                      <span>صورة الغلاف (اختياري): المقاس المثالي <strong>1280 × 720 بكسل</strong> (16:9)</span>
                     </div>
                     <span className="text-[10px] text-emerald-400/80 font-mono">JPG, PNG, WebP • أقصى حجم 5MB</span>
                   </div>
@@ -1354,12 +1354,12 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                       ) : (
                         <>
                           <Upload size={15} />
-                          <span>📤 رفع غلاف من الجهاز</span>
+                          <span>📤 رفع غلاف من جهازك مباشرة</span>
                         </>
                       )}
                     </button>
 
-                    <span className="text-[11px] text-gray-400 font-bold text-center sm:text-start">أو ضع رابط مباشر أدناه:</span>
+                    <span className="text-[11px] text-gray-400 font-bold text-center sm:text-start">أو ضع رابط اختياري أدناه:</span>
                   </div>
 
                   {uploadError && (
@@ -1369,11 +1369,11 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                   )}
 
                   <input
-                    type="url"
+                    type="text"
                     value={courseForm.thumbnail_url}
                     onChange={e => setCourseForm({ ...courseForm, thumbnail_url: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-emerald-500 placeholder-gray-500"
-                    placeholder="https://images.unsplash.com/... أو /uploads/courses/..."
+                    placeholder="رابط الصورة (اختياري) https://... أو اتركه فارغاً"
                   />
 
                   {/* One-click preset banners */}
@@ -1399,7 +1399,7 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
 
                   {/* Live Thumbnail Preview Box */}
                   {courseForm.thumbnail_url && (
-                    <div className="mt-2 rounded-2xl overflow-hidden border border-emerald-500/30 aspect-video relative bg-black/60 shadow-lg">
+                    <div className="mt-2 rounded-2xl overflow-hidden border border-emerald-500/30 aspect-video relative bg-black/60 shadow-lg group">
                       <img
                         src={courseForm.thumbnail_url}
                         alt="Preview"
@@ -1415,6 +1415,14 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                         <Check size={12} />
                         <span>معاينة الغلاف الحية (16:9)</span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setCourseForm({ ...courseForm, thumbnail_url: '' })}
+                        className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-rose-500/90 hover:bg-rose-500 text-white text-[10px] font-bold shadow-lg flex items-center gap-1 cursor-pointer transition-all"
+                      >
+                        <X size={12} />
+                        <span>إزالة الغلاف</span>
+                      </button>
                     </div>
                   )}
                 </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Activity, Wallet, Shield, Settings, ExternalLink, Target, 
@@ -8,7 +8,7 @@ import {
   Plus, Trash2, Clock, CheckCircle, GraduationCap, Eye, EyeOff, 
   Globe, Flame, ArrowUpRight, ArrowDownRight, UploadCloud, Calendar as CalendarIcon,
   Trophy, Gift, PartyPopper, Check, Edit3, X, Image as ImageIcon, Link as LinkIcon, LogOut,
-  Upload, Camera
+  Upload, Camera, Lightbulb
 } from 'lucide-react';
 
 import TaskClient from './TaskClient';
@@ -17,6 +17,8 @@ import LibraryClient from './LibraryClient';
 import AcademicClient from './AcademicClient';
 import DeepFocusClient from './DeepFocusClient';
 import CoursesClient from './CoursesClient';
+import BrainDumpClient from './BrainDumpClient';
+
 
 interface Props {
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
@@ -370,6 +372,7 @@ export default function DashboardClient({
       tabGoals: 'الأهداف والداشبورد',
       tabCourses: 'الكورسات والتعلم',
       tabFocus: 'التركيز (DEEP FOCUS)',
+      tabNotes: 'تفريغ الأفكار (NOTES)',
       tabTasks: 'المهام (TASKS)',
       tabFinance: 'الإدارة المالية',
       tabAcademic: 'الدراسة والكلية',
@@ -398,6 +401,7 @@ export default function DashboardClient({
       tabGoals: 'GOALS & OVERVIEW',
       tabCourses: 'COURSES & SKOOL HUB',
       tabFocus: 'DEEP FOCUS',
+      tabNotes: 'BRAIN DUMP',
       tabTasks: 'TASKS',
       tabFinance: 'FINANCE',
       tabAcademic: 'ACADEMIC HUB',
@@ -425,6 +429,7 @@ export default function DashboardClient({
     { id: 'overview', icon: <Target size={15} />, label: t.tabGoals },
     { id: 'courses', icon: <GraduationCap size={15} />, label: t.tabCourses, badge: 'SKOOL' },
     { id: 'focus', icon: <Brain size={15} />, label: t.tabFocus, badge: 'PRO' },
+    { id: 'notes', icon: <Lightbulb size={15} />, label: t.tabNotes, badge: 'NEW' },
     { id: 'tasks', icon: <ListTodo size={15} />, label: t.tabTasks },
     { id: 'finance', icon: <Wallet size={15} />, label: t.tabFinance },
     { id: 'academic', icon: <BookOpen size={15} />, label: t.tabAcademic, badge: 'NEW' },
@@ -566,7 +571,7 @@ export default function DashboardClient({
             <div className="flex items-center gap-2 p-1 pr-2.5 rounded-xl bg-white/[0.03] border border-white/10">
               <div 
                 onClick={() => avatarFileInputRef.current?.click()}
-                className="w-7 h-7 rounded-lg overflow-hidden border border-orange-500/40 bg-orange-500/20 flex items-center justify-center cursor-pointer hover:border-orange-500 transition-colors"
+                className="w-7 h-7 overflow-hidden border border-orange-500/40 bg-orange-500/20 flex items-center justify-center cursor-pointer hover:border-orange-500 transition-colors shadow-[0_0_15px_rgba(255,85,0,0.5)]"
                 title="اضغط لتغيير الصورة الشخصية من جهازك"
               >
                 <img src={avatarUrl || "/profile-hero.png"} alt="User" className="w-full h-full object-cover" onError={(e:any)=>{e.target.src='/profile-hero.png';}} />
@@ -629,13 +634,13 @@ export default function DashboardClient({
                   <div className="relative shrink-0">
                     <div 
                       onClick={() => avatarFileInputRef.current?.click()}
-                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl overflow-hidden border-2 border-orange-500/50 shadow-[0_0_30px_rgba(255,85,0,0.3)] bg-gradient-to-br from-orange-500/20 to-black p-0.5 cursor-pointer relative group"
+                      className="w-20 h-20 sm:w-24 sm:h-24 overflow-hidden border-2 border-orange-500/50 shadow-[0_0_15px_rgba(255,85,0,0.5)] bg-cover bg-center cursor-pointer p-0.5 group"
                       title="اضغط لتغيير الصورة الشخصية من جهازك"
                     >
                       <img
                         src={avatarUrl || "/profile-hero.png"}
                         alt="Mark Emad"
-                        className="w-full h-full object-cover rounded-[1.4rem]"
+                        className="w-full h-full object-cover"
                         onError={(e: any) => { e.target.src = '/profile-hero.png'; }}
                       />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white rounded-[1.4rem] backdrop-blur-xs">
@@ -746,7 +751,7 @@ export default function DashboardClient({
             </div>
 
             {/* Quick Action Navigation Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               <button
                 onClick={() => setMainTab('courses')}
                 className="p-5 rounded-3xl bg-white/[0.03] hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/40 transition-all text-center group cursor-pointer"
@@ -754,6 +759,15 @@ export default function DashboardClient({
                 <GraduationCap size={28} className="mx-auto text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
                 <strong className="text-sm font-black text-white block">الكورسات والتعلم</strong>
                 <span className="text-[11px] text-gray-500">Skool Learning Hub</span>
+              </button>
+
+              <button
+                onClick={() => setMainTab('notes')}
+                className="p-5 rounded-3xl bg-white/[0.03] hover:bg-orange-500/10 border border-white/10 hover:border-orange-500/40 transition-all text-center group cursor-pointer"
+              >
+                <Lightbulb size={28} className="mx-auto text-orange-400 mb-2 group-hover:scale-110 transition-transform" />
+                <strong className="text-sm font-black text-white block">تفريغ الأفكار</strong>
+                <span className="text-[11px] text-gray-500">Notion Brain Dump</span>
               </button>
 
               <button
@@ -796,10 +810,16 @@ export default function DashboardClient({
           <DeepFocusClient />
         )}
 
-        {/* ===================== 4. TASKS ===================== */}
+        {/* ===================== 4. BRAIN DUMP & QUICK NOTES ===================== */}
+        {mainTab === 'notes' && userRole !== 'assistant' && (
+          <BrainDumpClient lang={lang} />
+        )}
+
+        {/* ===================== 5. TASKS ===================== */}
         {mainTab === 'tasks' && userRole !== 'assistant' && (
           <TaskClient />
         )}
+
 
         {/* ===================== 5. FINANCE ===================== */}
         {mainTab === 'finance' && userRole !== 'assistant' && (

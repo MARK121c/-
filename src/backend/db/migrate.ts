@@ -61,6 +61,9 @@ export async function ensureTables() {
     await client.execute(`CREATE TABLE IF NOT EXISTS academic_users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, role TEXT NOT NULL, display_name TEXT DEFAULT '', active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS academic_sync_log (id INTEGER PRIMARY KEY AUTOINCREMENT, synced_by TEXT, sync_type TEXT DEFAULT 'full', items_synced INTEGER DEFAULT 0, synced_at TEXT)`);
 
+    // 11. Brain Dump & Quick Notes OS (تفريغ الأفكار)
+    await client.execute(`CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT DEFAULT '', content TEXT NOT NULL, category TEXT DEFAULT 'عام', color TEXT DEFAULT 'orange', tags TEXT DEFAULT '[]', is_pinned INTEGER DEFAULT 0, is_archived INTEGER DEFAULT 0, checklist TEXT DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT)`);
+
     // Indexes
     await client.execute(`CREATE INDEX IF NOT EXISTS idx_acad_lec_subj ON academic_lectures(subject_id)`);
     await client.execute(`CREATE INDEX IF NOT EXISTS idx_acad_asgn_subj ON academic_assignments(subject_id)`);

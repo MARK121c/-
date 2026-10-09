@@ -30,6 +30,8 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+import { TimerProvider } from '@/frontend/context/TimerContext';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -38,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className={`${outfit.variable} ${cairo.variable} h-full antialiased dark`}>
       <body className="min-h-full bg-super-dark font-sans selection:bg-emerald-500/30 text-white">
-        {children}
+        <TimerProvider>{children}</TimerProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `

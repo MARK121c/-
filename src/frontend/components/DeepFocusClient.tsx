@@ -1,45 +1,109 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { TimerContext } from '@/frontend/context/TimerContext';
 import {
   Play, Pause, RotateCcw, Volume2, VolumeX, Flame, Zap, Clock,
   Calendar, CheckCircle2, Award, Sparkles, BarChart2, Plus, Coffee, Brain
 } from 'lucide-react';
 
-interface DeepFocusProps {
+export interface DeepFocusProps {
   workTracking?: any[];
   privacyActive?: boolean;
+  timerMode?: 'pomodoro' | 'deep' | 'shortBreak' | 'longBreak' | 'custom';
+  totalSeconds?: number;
+  secondsLeft?: number;
+  timerRunning?: boolean;
+  customMinutes?: number;
+  soundEnabled?: boolean;
+  stopwatchRunning?: boolean;
+  stopwatchSeconds?: number;
+  onToggleTimer?: () => void;
+  onSelectMode?: (mode: 'pomodoro' | 'deep' | 'shortBreak' | 'longBreak' | 'custom') => void;
+  onCustomChange?: (mins: number) => void;
+  onToggleSound?: () => void;
+  onToggleStopwatch?: () => void;
+  onResetStopwatch?: () => void;
 }
 
-export default function DeepFocusClient({ workTracking = [], privacyActive = false }: DeepFocusProps) {
-  // --- TIMER STATE ---
-  const [timerMode, setTimerMode] = useState<'pomodoro' | 'deep' | 'shortBreak' | 'longBreak' | 'custom'>('pomodoro');
-  const [totalSeconds, setTotalSeconds] = useState(25 * 60);
-  const [secondsLeft, setSecondsLeft] = useState(25 * 60);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [customMinutes, setCustomMinutes] = useState(45);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+export default function DeepFocusClient(props: DeepFocusProps) {
+  const { workTracking = [], privacyActive = false } = props;
 
-  // --- STOPWATCH STATE ---
-  const [stopwatchRunning, setStopwatchRunning] = useState(false);
-  const [stopwatchSeconds, setStopwatchSeconds] = useState(0);
+  const { timerMode, setTimerMode, totalSeconds, setTotalSeconds, secondsLeft, setSecondsLeft, timerRunning, setTimerRunning, customMinutes, setCustomMinutes, soundEnabled, setSoundEnabled, stopwatchRunning, setStopwatchRunning, stopwatchSeconds, setStopwatchSeconds } = React.useContext(TimerContext);
+
+  // Removed local fallback state; using global context values directly
+
+  // Ensure timer interval runs based on context state
+  useEffect(() => {
+    let interval: any = null;
+    if (timerRunning && secondsLeft > 0) {
+      interval = setInterval(() => {
+        setSecondsLeft(prev => prev - 1);
+      }, 1000);
+    } else if (timerRunning && secondsLeft === 0) {
+      setTimerRunning(false);
+      playAlertSound();
+    }
+    return () => clearInterval(interval);
+  }, [timerRunning, secondsLeft, playAlertSound]);
+
+  // Stopwatch interval using context state
+  useEffect(() => {
+    let interval: any = null;
+    if (stopwatchRunning) {
+      interval = setInterval(() => {
+        setStopwatchSeconds(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [stopwatchRunning]);
+
+  // Handlers now update context state directly
+  const handleSelectMode = (mode: 'pomodoro' | 'deep' | 'shortBreak' | 'longBreak' | 'custom') => {
+    setTimerRunning(false);
+    setTimerMode(mode);
+    let sec = 25 * 60;
+    if (mode === 'pomodoro') sec = 25 * 60;
+    else if (mode === 'deep') sec = 50 * 60;
+    else if (mode === 'shortBreak') sec = 5 * 60;
+    else if (mode === 'longBreak') sec = 15 * 60;
+    else if (mode === 'custom') sec = (customMinutes || 45) * 60;
+    setTotalSeconds(sec);
+    setSecondsLeft(sec);
+  };
+
+  const handleCustomChange = (mins: number) => {
+    setCustomMinutes(mins);
+    if (timerMode === 'custom') {
+      setTotalSeconds(mins * 60);
+      setSecondsLeft(mins * 60);
+    }
+  };
+
+  const handleToggleTimer = () => setTimerRunning(!timerRunning);
+  const handleToggleSound = () => setSoundEnabled(!soundEnabled);
+  const handleToggleStopwatch = () => setStopwatchRunning(!stopwatchRunning);
+  const handleResetStopwatch = () => {
+    setStopwatchRunning(false);
+    setStopwatchSeconds(0);
+  };
+
   const [workLogs, setWorkLogs] = useState<any[]>(workTracking);
   const [savingLog, setSavingLog] = useState(false);
   const [noteInput, setNoteInput] = useState('');
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize audio
   useEffect(() => {
-    audioRef.current = new Audio('/alert.mp3');
+    try {
+      audioRef.current = new Audio('/alert.mp3');
+    } catch {}
   }, []);
 
   const playAlertSound = useCallback(() => {
     if (soundEnabled && audioRef.current) {
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(() => {
-        // Fallback Web Audio synth beep
         try {
           const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
           const osc = ctx.createOscillator();
@@ -56,50 +120,81 @@ export default function DeepFocusClient({ workTracking = [], privacyActive = fal
     }
   }, [soundEnabled]);
 
-  // Pomodoro timer tick
-  useEffect(() => {
-    let interval: any = null;
-    if (timerRunning && secondsLeft > 0) {
-      interval = setInterval(() => {
-        setSecondsLeft(prev => prev - 1);
-      }, 1000);
-    } else if (timerRunning && secondsLeft === 0) {
-      setTimerRunning(false);
-      playAlertSound();
-    }
-    return () => clearInterval(interval);
-  }, [timerRunning, secondsLeft, playAlertSound]);
+  // Local fallback timer effect removed – using global TimerContext
+  // This placeholder maintains component structure.
 
-  // Stopwatch tick
+
   useEffect(() => {
+    if (props.onToggleStopwatch) return; // Managed globally
     let interval: any = null;
-    if (stopwatchRunning) {
+    if (localStopwatchRunning) {
       interval = setInterval(() => {
-        setStopwatchSeconds(prev => prev + 1);
+        setLocalStopwatchSeconds(prev => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [stopwatchRunning]);
+  }, [localStopwatchRunning, props.onToggleStopwatch]);
 
-  // Select timer mode
-  const selectMode = (mode: 'pomodoro' | 'deep' | 'shortBreak' | 'longBreak' | 'custom') => {
-    setTimerRunning(false);
-    setTimerMode(mode);
-    let sec = 25 * 60;
-    if (mode === 'pomodoro') sec = 25 * 60;
-    else if (mode === 'deep') sec = 50 * 60;
-    else if (mode === 'shortBreak') sec = 5 * 60;
-    else if (mode === 'longBreak') sec = 15 * 60;
-    else if (mode === 'custom') sec = (customMinutes || 30) * 60;
-    setTotalSeconds(sec);
-    setSecondsLeft(sec);
+  // Actions
+  const handleSelectMode = (mode: 'pomodoro' | 'deep' | 'shortBreak' | 'longBreak' | 'custom') => {
+    if (props.onSelectMode) {
+      props.onSelectMode(mode);
+    } else {
+      setLocalTimerRunning(false);
+      setLocalTimerMode(mode);
+      let sec = 25 * 60;
+      if (mode === 'pomodoro') sec = 25 * 60;
+      else if (mode === 'deep') sec = 50 * 60;
+      else if (mode === 'shortBreak') sec = 5 * 60;
+      else if (mode === 'longBreak') sec = 15 * 60;
+      else if (mode === 'custom') sec = (localCustomMinutes || 45) * 60;
+      setLocalTotalSeconds(sec);
+      setLocalSecondsLeft(sec);
+    }
   };
 
   const handleCustomChange = (mins: number) => {
-    setCustomMinutes(mins);
-    if (timerMode === 'custom') {
-      setTotalSeconds(mins * 60);
-      setSecondsLeft(mins * 60);
+    if (props.onCustomChange) {
+      props.onCustomChange(mins);
+    } else {
+      setLocalCustomMinutes(mins);
+      if (timerMode === 'custom') {
+        setLocalTotalSeconds(mins * 60);
+        setLocalSecondsLeft(mins * 60);
+      }
+    }
+  };
+
+  const handleToggleTimer = () => {
+    if (props.onToggleTimer) {
+      props.onToggleTimer();
+    } else {
+      setLocalTimerRunning(!localTimerRunning);
+    }
+  };
+
+  const handleToggleSound = () => {
+    if (props.onToggleSound) {
+      props.onToggleSound();
+    } else {
+      setLocalSoundEnabled(!localSoundEnabled);
+    }
+  };
+
+  const handleToggleStopwatch = () => {
+    if (props.onToggleStopwatch) {
+      props.onToggleStopwatch();
+    } else {
+      setLocalStopwatchRunning(!localStopwatchRunning);
+    }
+  };
+
+  const handleResetStopwatch = () => {
+    if (props.onResetStopwatch) {
+      props.onResetStopwatch();
+    } else {
+      setLocalStopwatchRunning(false);
+      setLocalStopwatchSeconds(0);
     }
   };
 
@@ -184,7 +279,7 @@ export default function DeepFocusClient({ workTracking = [], privacyActive = fal
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
+              onClick={handleToggleSound}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-xs font-bold transition-all ${
                 soundEnabled
                   ? 'border-orange-500/40 bg-orange-500/10 text-orange-400'
@@ -252,7 +347,7 @@ export default function DeepFocusClient({ workTracking = [], privacyActive = fal
               ].map(m => (
                 <button
                   key={m.id}
-                  onClick={() => selectMode(m.id as any)}
+                  onClick={() => handleSelectMode(m.id as any)}
                   className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition-all ${
                     timerMode === m.id
                       ? 'bg-orange-500 text-white shadow-[0_0_15px_rgba(255,85,0,0.5)]'
@@ -310,15 +405,15 @@ export default function DeepFocusClient({ workTracking = [], privacyActive = fal
           {/* Timer Controls */}
           <div className="flex items-center justify-center gap-4 pt-4 border-t border-white/10">
             <button
-              onClick={() => setTimerRunning(!timerRunning)}
+              onClick={handleToggleTimer}
               className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-[#FF3300] hover:from-orange-400 hover:to-orange-600 text-white font-black text-lg transition-all shadow-[0_0_30px_rgba(255,85,0,0.45)] hover:scale-105 active:scale-95 cursor-pointer"
             >
               {timerRunning ? <Pause size={22} /> : <Play size={22} />}
               <span>{timerRunning ? 'إيقاف مؤقت' : 'بدء التركيز'}</span>
             </button>
             <button
-              onClick={() => selectMode(timerMode)}
-              className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 transition-all"
+              onClick={() => handleSelectMode(timerMode)}
+              className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 transition-all cursor-pointer"
               title="إعادة تعيين"
             >
               <RotateCcw size={22} />
@@ -367,8 +462,8 @@ export default function DeepFocusClient({ workTracking = [], privacyActive = fal
           <div className="space-y-3 pt-4 border-t border-white/10">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setStopwatchRunning(!stopwatchRunning)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all shadow-lg ${
+                onClick={handleToggleStopwatch}
+                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all shadow-lg cursor-pointer ${
                   stopwatchRunning
                     ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                     : 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'
@@ -378,11 +473,8 @@ export default function DeepFocusClient({ workTracking = [], privacyActive = fal
                 <span>{stopwatchRunning ? 'إيقاف مؤقت' : 'بدء العداد'}</span>
               </button>
               <button
-                onClick={() => {
-                  setStopwatchRunning(false);
-                  setStopwatchSeconds(0);
-                }}
-                className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10"
+                onClick={handleResetStopwatch}
+                className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 cursor-pointer"
                 title="تصفير"
               >
                 <RotateCcw size={18} />

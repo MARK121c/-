@@ -428,4 +428,20 @@ export const courseProgress = sqliteTable('course_progress', {
   completedAt: text('completed_at').notNull(),
 });
 
+// --- BRAIN DUMP & QUICK NOTES OS (تفريغ الأفكار) ---
+export const notes = sqliteTable('notes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').default(''),
+  content: text('content').notNull(),
+  category: text('category').default('عام'),
+  color: text('color').default('orange'),
+  tags: text('tags').default('[]'),
+  isPinned: integer('is_pinned', { mode: 'boolean' }).default(false),
+  isArchived: integer('is_archived', { mode: 'boolean' }).default(false),
+  checklist: text('checklist').default('[]'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at'),
+});
+
+
 
