@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ListTodo, Plus, Trash2, CheckCircle2, Circle, Clock, AlertCircle, Filter, Calendar } from 'lucide-react';
+import { ListTodo, Plus, Trash2, CheckCircle2, Circle, Clock, AlertCircle, Filter, Calendar, Edit2, X } from 'lucide-react';
 
 interface Task {
   id: number;
@@ -22,9 +22,18 @@ export default function TaskClient() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [form, setForm] = useState({
+    title: '',
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
+    type: 'today',
+    estimatedTime: 30,
+  });
+
+  const [editForm, setEditForm] = useState({
+    id: 0,
     title: '',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
     type: 'today',
@@ -59,6 +68,25 @@ export default function TaskClient() {
       if (res.ok) {
         setForm({ title: '', priority: 'medium', type: 'today', estimatedTime: 30 });
         setShowForm(false);
+        fetchTasks();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function handleUpdateTask(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editForm.id || !editForm.title.trim()) return;
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        setEditingTask(null);
         fetchTasks();
       }
     } catch (e) {
@@ -123,7 +151,7 @@ export default function TaskClient() {
             <ListTodo size={26} className="text-orange-400" />
             <span>إدارة المهام والأولويات</span>
           </h2>
-          <p className="text-xs text-gray-400 mt-1">تتبع وإنجاز مهامك اليومية مع تحديث فوري للحالة</p>
+          <p className="text-xs text-gray-400 mt-1">تتبع وإنجاز وتعديل مهامك اليومية مع تحديث فوري للحالة</p>
         </div>
 
         <button
@@ -229,7 +257,7 @@ export default function TaskClient() {
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-5 py-2 rounded-xl text-xs font-bold text-gray-400 border border-white/10"
+              className="px-5 py-2 rounded-xl text-xs font-bold text-gray-400 border border-white/10 hover:text-white"
             >
               إلغاء
             </button>
@@ -242,6 +270,85 @@ export default function TaskClient() {
           </div>
         </motion.form>
       )}
+
+      {/* Edit Task Modal */}
+      <AnimatePresence>
+        {editingTask && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#0d0e12] p-6 sm:p-8 space-y-6 shadow-2xl"
+            >
+              <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                  <Edit2 size={18} className="text-orange-400" />
+                  <span>تعديل المهمة</span>
+                </h3>
+                <button onClick={() => setEditingTask(null)} className="p-2 text-gray-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateTask} className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 block mb-1">عنوان المهمة</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.title}
+                    onChange={e => setEditForm({ ...editForm, title: e.target.value })}
+                    className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 block mb-1">الأولوية</label>
+                    <select
+                      value={editForm.priority}
+                      onChange={e => setEditForm({ ...editForm, priority: e.target.value as any })}
+                      className="w-full px-4 py-3 rounded-2xl bg-[#14161f] border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                    >
+                      <option value="critical">🔴 أولوية حرجة</option>
+                      <option value="high">🔥 أولوية عالية</option>
+                      <option value="medium">🟡 أولوية متوسطة</option>
+                      <option value="low">🟢 أولوية منخفضة</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 block mb-1">المدة (دقيقة)</label>
+                    <input
+                      type="number"
+                      value={editForm.estimatedTime}
+                      onChange={e => setEditForm({ ...editForm, estimatedTime: parseInt(e.target.value) || 15 })}
+                      className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setEditingTask(null)}
+                    className="px-5 py-2.5 rounded-xl border border-white/10 text-xs font-bold text-gray-400 hover:text-white"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-orange-500 text-white font-black text-xs hover:bg-orange-400 shadow-lg"
+                  >
+                    حفظ التعديلات
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Task List */}
       <div className="space-y-3">
@@ -293,15 +400,35 @@ export default function TaskClient() {
                 </div>
               </div>
 
-              {/* Delete Button */}
-              <button
-                type="button"
-                onClick={() => deleteTask(task.id)}
-                className="p-2 text-gray-600 hover:text-rose-400 transition-colors shrink-0"
-                title="حذف المهمة"
-              >
-                <Trash2 size={16} />
-              </button>
+              {/* Action Buttons: Edit & Delete */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingTask(task);
+                    setEditForm({
+                      id: task.id,
+                      title: task.title,
+                      priority: task.priority,
+                      type: task.type,
+                      estimatedTime: task.estimatedTime || 30,
+                    });
+                  }}
+                  className="p-2 text-gray-500 hover:text-orange-400 transition-colors"
+                  title="تعديل المهمة"
+                >
+                  <Edit2 size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => deleteTask(task.id)}
+                  className="p-2 text-gray-600 hover:text-rose-400 transition-colors"
+                  title="حذف المهمة"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </motion.div>
           );
         })}

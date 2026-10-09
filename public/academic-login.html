@@ -98,17 +98,18 @@
       object-fit: cover;
       object-position: top;
       box-shadow: 0 0 50px rgba(255,85,0,0.45);
-      background: #0c0d12;
     }
     .form-side {
-      flex: 1;
-      max-width: 480px;
+      max-width: 440px;
+      width: 100%;
       display: flex;
       flex-direction: column;
       gap: 20px;
     }
     .badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      align-self: flex-start;
       padding: 4px 12px;
       border-radius: 8px;
       background: rgba(255,85,0,0.15);
@@ -117,75 +118,22 @@
       font-size: 11px;
       font-weight: 900;
       font-family: 'JetBrains Mono', monospace;
-      width: fit-content;
     }
     @media (max-width: 900px) {
-      .badge { margin: 0 auto; }
+      .badge { align-self: center; }
     }
     .title {
-      font-size: 42px;
+      font-size: 38px;
       font-weight: 900;
-      color: #fff;
       line-height: 1.1;
       text-transform: uppercase;
-      letter-spacing: -1px;
+      letter-spacing: -0.5px;
     }
     .subtitle {
       font-size: 14px;
       color: #888;
       font-weight: 600;
     }
-    .touch-id-btn {
-      width: 100%;
-      background: linear-gradient(135deg, #FF5500, #FF3300);
-      color: #fff;
-      border: 1px solid rgba(255,100,0,0.5);
-      padding: 18px 24px;
-      border-radius: 24px;
-      font-size: 18px;
-      font-weight: 900;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 0 35px rgba(255,85,0,0.5);
-      transition: all 0.3s ease;
-    }
-    .touch-id-btn:hover {
-      transform: scale(1.02);
-      box-shadow: 0 0 55px rgba(255,85,0,0.7);
-    }
-    .touch-id-btn:active { transform: scale(0.98); }
-    .touch-left {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      text-align: right;
-    }
-    .touch-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-    }
-    .switch-btn {
-      background: none;
-      border: none;
-      color: #888;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin: 8px auto 0;
-      transition: color 0.2s;
-    }
-    .switch-btn:hover { color: #FF5500; }
     .password-form {
       display: flex;
       flex-direction: column;
@@ -254,40 +202,17 @@
 
     <!-- Controls -->
     <div class="form-side">
-      <div class="badge">PERSONAL OS V4.0</div>
+      <div class="badge">MARK OS V4.0</div>
       <h1 class="title">GOAL TRACKER</h1>
-      <p class="subtitle">نظام التتبع والإنتاجية الشخصي المتكامل</p>
+      <p class="subtitle">نظام التتبع والإنتاجية والكورسات المتكامل</p>
 
       <div id="errorBox" class="error-msg"></div>
-
-      <!-- Touch ID Method (Shown only if registered) -->
-      <div id="touchIdStage" style="display: none;">
-        <button type="button" class="touch-id-btn" onclick="handleTouchIdLogin()">
-          <div class="touch-left">
-            <div class="touch-icon">👆</div>
-            <div>
-              <div style="font-size: 17px; font-weight: 900;">Unlock with Touch ID</div>
-              <div style="font-size: 11px; font-weight: 600; opacity: 0.9;">دخول سريع باستخدام البصمة المسجلة</div>
-            </div>
-          </div>
-          <span style="font-size: 20px;">‹</span>
-        </button>
-
-        <div style="text-align: center;">
-          <button type="button" class="switch-btn" onclick="togglePasswordForm(true)">
-            🔒 أو تسجيل الدخول بالبريد وكلمة المرور
-          </button>
-        </div>
-      </div>
 
       <!-- Default / Primary: Email + Password Only -->
       <form id="passwordStage" class="password-form" onsubmit="handlePasswordLogin(event)">
         <input type="text" id="loginEmail" class="input-field" placeholder="البريد الإلكتروني أو اسم المستخدم" required>
         <input type="password" id="loginPassword" class="input-field" placeholder="كلمة المرور" required>
         <button type="submit" id="submitBtn" class="submit-btn">تسجيل الدخول للنظام</button>
-        <button type="button" id="backToTouchBtn" class="switch-btn" style="display: none;" onclick="togglePasswordForm(false)">
-          👆 العودة للدخول بالبصمة
-        </button>
       </form>
     </div>
   </main>
@@ -297,58 +222,6 @@
   </footer>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const isRegistered = localStorage.getItem('touch_id_enabled') === 'true';
-      if (isRegistered) {
-        document.getElementById('touchIdStage').style.display = 'block';
-        document.getElementById('passwordStage').style.display = 'none';
-        document.getElementById('backToTouchBtn').style.display = 'inline-flex';
-      } else {
-        document.getElementById('touchIdStage').style.display = 'none';
-        document.getElementById('passwordStage').style.display = 'flex';
-      }
-    });
-
-    function togglePasswordForm(show) {
-      document.getElementById('touchIdStage').style.display = show ? 'none' : 'block';
-      document.getElementById('passwordStage').style.display = show ? 'flex' : 'none';
-      document.getElementById('errorBox').style.display = 'none';
-    }
-
-    async function handleTouchIdLogin() {
-      const errorBox = document.getElementById('errorBox');
-      errorBox.style.display = 'none';
-
-      try {
-        if (window.PublicKeyCredential) {
-          try {
-            const challenge = new Uint8Array(32);
-            window.crypto.getRandomValues(challenge);
-            await navigator.credentials.get({
-              publicKey: { challenge, timeout: 60000, userVerification: 'preferred' }
-            }).catch(() => null);
-          } catch (_) {}
-        }
-
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: 'admin', password: 'password123' })
-        });
-
-        const data = await res.json();
-        if (res.ok && (data.success || data.token)) {
-          if (data.token) localStorage.setItem('academic_token', data.token);
-          if (data.user) localStorage.setItem('academic_user', JSON.stringify(data.user));
-          window.location.href = '/';
-        } else {
-          togglePasswordForm(true);
-        }
-      } catch {
-        togglePasswordForm(true);
-      }
-    }
-
     async function handlePasswordLogin(e) {
       e.preventDefault();
       const email = document.getElementById('loginEmail').value.trim();

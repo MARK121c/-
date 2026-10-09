@@ -9,6 +9,11 @@ const getClient = () => createClient({ url: process.env.DATABASE_URL || 'file:./
 export async function GET() {
   const client = getClient();
   try {
+    // Ensure drive_folder_url column exists
+    try {
+      await client.execute(`ALTER TABLE academic_subjects ADD COLUMN drive_folder_url TEXT DEFAULT ''`);
+    } catch {}
+
     const subjectsRes = await client.execute(`SELECT * FROM academic_subjects ORDER BY sort_order ASC, id ASC`);
     const subjects = subjectsRes.rows;
 
@@ -41,6 +46,7 @@ export async function GET() {
 
         return {
           ...sub,
+          drive_folder_url: sub.drive_folder_url || '',
           stats: {
             lectures: lTotal,
             assignments: aTotal,
@@ -64,16 +70,21 @@ export async function POST(req: NextRequest) {
   const client = getClient();
   try {
     const body = await req.json();
-    const { name, code, color, icon } = body;
+    const { name, code, color, icon, driveFolderUrl, drive_folder_url } = body;
     if (!name) return NextResponse.json({ success: false, error: 'Subject name is required' }, { status: 400 });
+
+    try {
+      await client.execute(`ALTER TABLE academic_subjects ADD COLUMN drive_folder_url TEXT DEFAULT ''`);
+    } catch {}
 
     const maxOrderRes = await client.execute(`SELECT MAX(sort_order) as max FROM academic_subjects`);
     const nextOrder = (Number(maxOrderRes.rows[0]?.max) || 0) + 1;
     const now = new Date().toISOString();
+    const driveUrl = driveFolderUrl || drive_folder_url || '';
 
     const insertRes = await client.execute({
-      sql: `INSERT INTO academic_subjects (name, code, color, icon, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      args: [name, code || '', color || '#FF6B00', icon || '📘', nextOrder, now, now]
+      sql: `INSERT INTO academic_subjects (name, code, color, icon, drive_folder_url, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [name, code || '', color || '#FF6B00', icon || '📘', driveUrl, nextOrder, now, now]
     });
 
     const sub = await client.execute({

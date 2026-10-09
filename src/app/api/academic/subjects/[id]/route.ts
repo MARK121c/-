@@ -68,19 +68,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const client = getClient();
   try {
     const body = await req.json();
-    const { name, code, color, icon } = body;
+    const { name, code, color, icon, drive_folder_url, driveFolderUrl } = body;
 
     const subjectRes = await client.execute({ sql: `SELECT * FROM academic_subjects WHERE id = ?`, args: [id] });
     const subject = subjectRes.rows[0];
     if (!subject) return NextResponse.json({ success: false, error: 'Subject not found' }, { status: 404 });
 
+    const driveUrl = drive_folder_url !== undefined ? drive_folder_url : (driveFolderUrl !== undefined ? driveFolderUrl : subject.drive_folder_url);
+
     await client.execute({
-      sql: `UPDATE academic_subjects SET name = ?, code = ?, color = ?, icon = ?, updated_at = datetime('now') WHERE id = ?`,
+      sql: `UPDATE academic_subjects SET name = ?, code = ?, color = ?, icon = ?, drive_folder_url = ?, updated_at = datetime('now') WHERE id = ?`,
       args: [
         name || subject.name,
         code !== undefined ? code : subject.code,
         color || subject.color,
         icon || subject.icon,
+        driveUrl || '',
         id
       ]
     });

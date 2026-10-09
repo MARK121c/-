@@ -294,6 +294,7 @@ export const academicSubjects = sqliteTable('academic_subjects', {
   code: text('code').default(''),
   color: text('color').default('#FF6B00'),
   icon: text('icon').default('📘'),
+  driveFolderUrl: text('drive_folder_url').default(''),
   sortOrder: integer('sort_order').default(0),
   createdAt: text('created_at'),
   updatedAt: text('updated_at'),
@@ -381,4 +382,50 @@ export const academicSyncLog = sqliteTable('academic_sync_log', {
   itemsSynced: integer('items_synced').default(0),
   syncedAt: text('synced_at'),
 });
+
+// --- COURSES & LEARNING HUB (CLASSROOM OS - SKOOL STYLE) ---
+export const courses = sqliteTable('courses', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  description: text('description').default(''),
+  thumbnailUrl: text('thumbnail_url').default(''),
+  category: text('category').default('general'),
+  instructor: text('instructor').default('Mark Emad'),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at'),
+});
+
+export const courseModules = sqliteTable('course_modules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courseId: integer('course_id').notNull(),
+  title: text('title').notNull(),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: text('created_at').notNull(),
+});
+
+export const courseLessons = sqliteTable('course_lessons', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courseId: integer('course_id').notNull(),
+  moduleId: integer('module_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description').default(''),
+  videoUrl: text('video_url').default(''), // YouTube / Loom / Vimeo / Drive embed
+  duration: text('duration').default(''),
+  notes: text('notes').default(''),
+  attachments: text('attachments').default('[]'), // JSON array of { name, url, type }
+  completed: integer('completed', { mode: 'boolean' }).default(false),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: text('created_at').notNull(),
+});
+
+export const courseProgress = sqliteTable('course_progress', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  courseId: integer('course_id').notNull(),
+  lessonId: integer('lesson_id').notNull(),
+  userId: text('user_id').default('owner'),
+  completed: integer('completed', { mode: 'boolean' }).default(true),
+  completedAt: text('completed_at').notNull(),
+});
+
 
