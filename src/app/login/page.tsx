@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Mail, Shield, Eye, EyeOff, Globe, LogIn, Camera, Upload, Check } from 'lucide-react';
+import { Lock, Mail, Shield, Eye, EyeOff, Globe, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
@@ -12,11 +12,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('/profile-hero.png');
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const avatarFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Check saved avatar from localStorage or backend
+    // Load avatar set from inside the system (localStorage or profile API)
     try {
       const saved = localStorage.getItem('user_avatar');
       if (saved) setAvatarUrl(saved);
@@ -32,37 +30,6 @@ export default function LoginPage() {
       })
       .catch(() => {});
   }, []);
-
-  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Instant local preview
-    const localUrl = URL.createObjectURL(file);
-    setAvatarUrl(localUrl);
-
-    setUploadingAvatar(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (res.ok && data.url) {
-        setAvatarUrl(data.url);
-        try { localStorage.setItem('user_avatar', data.url); } catch {}
-        // Also sync profile in backend
-        await fetch('/api/settings/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ avatarUrl: data.url }),
-        }).catch(() => {});
-      }
-    } catch {
-      // Keep local preview if offline
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
 
   const isRtl = lang === 'ar';
 
@@ -131,8 +98,8 @@ export default function LoginPage() {
       dir={isRtl ? 'rtl' : 'ltr'}
     >
       {/* Background ambient lighting */}
-      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[#FF5500]/10 rounded-full blur-[140px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-[#FF3300]/8 rounded-full blur-[160px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[#FF5500]/12 rounded-full blur-[140px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-[#FF3300]/10 rounded-full blur-[160px] pointer-events-none" />
 
       {/* Top Header Controls */}
       <header className="w-full flex items-center justify-between z-20 max-w-6xl mx-auto">
@@ -153,68 +120,31 @@ export default function LoginPage() {
         </button>
       </header>
 
-      {/* Main Full-Page Stage (Direct on page, no boxed card container) */}
+      {/* Main Full-Page Stage */}
       <main className="w-full max-w-6xl mx-auto my-auto py-8 z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         
-        {/* Left/Hero Image Side: Large Circular Avatar with Fire Orange Radial Glow & Interactive Upload */}
-        <div className="lg:col-span-5 flex flex-col justify-center items-center gap-4">
+        {/* Left/Hero Image Side: Photo on Radiant Solid Orange Background (Without Circular Frame) */}
+        <div className="lg:col-span-5 flex justify-center items-center">
           <div className="relative flex items-center justify-center">
-            {/* Outer neon rings */}
-            <div className="absolute w-80 h-80 sm:w-96 sm:h-96 rounded-full border border-orange-500/20 animate-pulse pointer-events-none" />
-            <div className="absolute w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] rounded-full border border-dashed border-orange-500/15 pointer-events-none" />
-            
-            {/* Ambient Radial Glow */}
-            <div className="absolute w-72 h-72 sm:w-88 sm:h-88 rounded-full bg-gradient-to-b from-[#FF5500]/30 to-[#FF3300]/5 blur-2xl pointer-events-none" />
+            {/* Ambient Orange Glow Behind */}
+            <div className="absolute -inset-6 bg-gradient-to-tr from-[#FF5500] to-[#FF3300] rounded-[3rem] blur-3xl opacity-45 pointer-events-none animate-pulse" />
 
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={avatarFileRef}
-              accept="image/*"
-              onChange={handleAvatarFile}
-              className="hidden"
-            />
-
-            {/* Giant Circular Avatar with Clickable Edit Overlay */}
-            <div 
-              onClick={() => avatarFileRef.current?.click()}
-              className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full overflow-hidden border-2 border-orange-500 shadow-[0_0_50px_rgba(255,85,0,0.45)] bg-[#0c0d12] flex items-center justify-center group cursor-pointer"
-              title="اضغط لتغيير الصورة من جهازك"
-            >
-              <img
-                src={avatarUrl}
-                alt="Mark Emad"
-                className="w-full h-full object-cover object-top scale-105 group-hover:scale-110 transition-transform duration-700"
-                onError={(e: any) => { e.target.src = '/profile-hero.png'; }}
-              />
-
-              {/* Hover Edit Overlay */}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-xs text-white">
-                <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg">
-                  <Camera size={22} />
-                </div>
-                <span className="text-xs font-black">
-                  {uploadingAvatar ? 'جاري التحديث...' : 'تغيير الصورة من جهازك'}
-                </span>
-                <span className="text-[10px] text-gray-300">اضغط لاختيار صورة</span>
+            {/* Glowing Orange Backdrop Frame (No Circle) */}
+            <div className="relative w-64 h-84 sm:w-80 sm:h-[420px] rounded-[2.5rem] p-1 bg-gradient-to-tr from-[#FF6600] via-[#FF3300] to-[#FFAA00] shadow-[0_0_60px_rgba(255,85,0,0.55)] overflow-hidden">
+              {/* Inner Orange Gradient Canvas */}
+              <div className="w-full h-full rounded-[2.3rem] overflow-hidden bg-gradient-to-b from-[#FF5500] via-[#c03900] to-[#120703] flex items-end justify-center relative">
+                <img
+                  src={avatarUrl}
+                  alt="Mark Emad"
+                  className="w-full h-full object-cover object-top"
+                  onError={(e: any) => { e.target.src = '/profile-hero.png'; }}
+                />
+                
+                {/* Sleek bottom shadow gradient for depth */}
+                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
               </div>
             </div>
-
-            {/* Quick Upload Badge Button */}
-            <button
-              type="button"
-              onClick={() => avatarFileRef.current?.click()}
-              disabled={uploadingAvatar}
-              className="absolute -bottom-2 sm:bottom-0 right-4 sm:right-6 z-20 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-gradient-to-r from-orange-500 to-[#FF3300] hover:scale-105 text-white text-xs font-black shadow-[0_0_20px_rgba(255,85,0,0.6)] cursor-pointer"
-            >
-              <Camera size={14} />
-              <span>{uploadingAvatar ? 'جاري الرفع...' : 'تعديل الصورة'}</span>
-            </button>
           </div>
-
-          <span className="text-[11px] text-gray-400 font-bold">
-            💡 يمكنك الضغط على الدائرة لتغيير الصورة الشخصية من جهازك مباشرة
-          </span>
         </div>
 
         {/* Right/Form Side */}
