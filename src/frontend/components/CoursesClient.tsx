@@ -1046,89 +1046,82 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
             {/* ─── MAIN CONTENT: LESSON PLAYER & NOTES (COL 5-12) ─── */}
             <div className="lg:col-span-8 space-y-6">
               {activeLesson ? (
-                (() => {
-                  const lessonVideo = (activeLesson.video_url || (activeLesson as any).videoUrl || '').trim();
-                  return (
-                    <div className="space-y-6">
-                      {/* Video Player Container */}
-                      <div className="relative rounded-3xl border border-white/10 bg-black/60 overflow-hidden shadow-2xl">
-                        {/* ── Resume Progress Banner ── */}
-                        {showResumeBar && lessonVideo && (
-                          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between gap-3 px-4 py-2.5 bg-black/90 backdrop-blur-sm border-b border-emerald-500/30">
-                            <div className="flex items-center gap-2 text-xs text-emerald-300 font-bold">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                              <span>
-                                ▶ استكمال من الدقيقة {Math.floor(videoResumeSeconds / 60)}:{String(Math.floor(videoResumeSeconds % 60)).padStart(2, '0')}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => {
-                                  clearResumeTime(activeLesson.id);
-                                  setVideoResumeSeconds(0);
-                                  setShowResumeBar(false);
-                                }}
-                                className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-gray-300 hover:text-white transition-all"
-                              >
-                                ابدأ من الأول
-                              </button>
-                              <button
-                                onClick={() => setShowResumeBar(false)}
-                                className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-xs font-bold text-emerald-300 hover:text-black border border-emerald-500/40 transition-all"
-                              >
-                                ✓ استكمال من دقيقة {Math.floor(videoResumeSeconds / 60)}:{String(Math.floor(videoResumeSeconds % 60)).padStart(2, '0')}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        {lessonVideo ? (
-                          <div className={`relative w-full aspect-video ${showResumeBar ? 'pt-10' : ''}`}>
-                            <iframe
-                              ref={iframeRef}
-                              key={`${activeLesson.id}-${lessonVideo}-${videoResumeSeconds}`}
-                              src={parseVideoEmbedUrl(lessonVideo, videoResumeSeconds) || ''}
-                              title={activeLesson.title}
-                              className="w-full h-full border-0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-full aspect-video flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white/[0.03] to-transparent">
-                            <Video size={56} className="text-gray-600 mb-3" />
-                            <h4 className="text-base font-bold text-white mb-1">{t.noVideo}</h4>
-                            <p className="text-xs text-gray-400 max-w-sm mb-4">{t.addVideoPrompt}</p>
-                            <button
-                              onClick={() => {
-                                setEditingLesson(activeLesson);
-                                setTargetModuleId(activeLesson.module_id || (activeLesson as any).moduleId);
-                                setLessonForm({
-                                  title: activeLesson.title,
-                                  description: activeLesson.description || '',
-                                  video_url: lessonVideo,
-                                  notes: activeLesson.notes || '',
-                                  attachmentName: '',
-                                  attachmentUrl: '',
-                                });
-                                try {
-                                  setAttachmentsList(typeof activeLesson.attachments === 'string' ? JSON.parse(activeLesson.attachments) : activeLesson.attachments || []);
-                                } catch {
-                                  setAttachmentsList([]);
-                                }
-                                setShowAddLessonModal(true);
-                              }}
-                              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/10 transition-all"
-                            >
-                              + إضافة رابط الفيديو
-                            </button>
-                          </div>
-                        )}
+                <div className="space-y-6">
+                  {/* Video Player Container */}
+                  <div className="relative rounded-3xl border border-white/10 bg-black/60 overflow-hidden shadow-2xl">
+                    {/* ── Resume Progress Banner ── */}
+                    {showResumeBar && activeLessonVideoUrl && (
+                      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between gap-3 px-4 py-2.5 bg-black/90 backdrop-blur-sm border-b border-emerald-500/30">
+                        <div className="flex items-center gap-2 text-xs text-emerald-300 font-bold">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>
+                            ▶ استكمال من الدقيقة {Math.floor(videoResumeSeconds / 60)}:{String(Math.floor(videoResumeSeconds % 60)).padStart(2, '0')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              clearResumeTime(activeLesson.id);
+                              setVideoResumeSeconds(0);
+                              setShowResumeBar(false);
+                            }}
+                            className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-gray-300 hover:text-white transition-all"
+                          >
+                            ابدأ من الأول
+                          </button>
+                          <button
+                            onClick={() => setShowResumeBar(false)}
+                            className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-xs font-bold text-emerald-300 hover:text-black border border-emerald-500/40 transition-all"
+                          >
+                            ✓ استكمال من دقيقة {Math.floor(videoResumeSeconds / 60)}:{String(Math.floor(videoResumeSeconds % 60)).padStart(2, '0')}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()
-              ) : null}
+                    )}
+
+                    {activeLessonVideoUrl ? (
+                      <div className={`relative w-full aspect-video ${showResumeBar ? 'pt-10' : ''}`}>
+                        <iframe
+                          ref={iframeRef}
+                          key={`${activeLesson.id}-${activeLessonVideoUrl}-${videoResumeSeconds}`}
+                          src={parseVideoEmbedUrl(activeLessonVideoUrl, videoResumeSeconds) || ''}
+                          title={activeLesson.title}
+                          className="w-full h-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full aspect-video flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white/[0.03] to-transparent">
+                        <Video size={56} className="text-gray-600 mb-3" />
+                        <h4 className="text-base font-bold text-white mb-1">{t.noVideo}</h4>
+                        <p className="text-xs text-gray-400 max-w-sm mb-4">{t.addVideoPrompt}</p>
+                        <button
+                          onClick={() => {
+                            setEditingLesson(activeLesson);
+                            setTargetModuleId(activeLesson.module_id || (activeLesson as any).moduleId);
+                            setLessonForm({
+                              title: activeLesson.title,
+                              description: activeLesson.description || '',
+                              video_url: activeLessonVideoUrl,
+                              notes: activeLesson.notes || '',
+                              attachmentName: '',
+                              attachmentUrl: '',
+                            });
+                            try {
+                              setAttachmentsList(typeof activeLesson.attachments === 'string' ? JSON.parse(activeLesson.attachments) : activeLesson.attachments || []);
+                            } catch {
+                              setAttachmentsList([]);
+                            }
+                            setShowAddLessonModal(true);
+                          }}
+                          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/10 transition-all"
+                        >
+                          + إضافة رابط الفيديو
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Lesson Controls & Completion Bar */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl">
