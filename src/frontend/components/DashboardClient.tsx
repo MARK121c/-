@@ -8,7 +8,7 @@ import {
   Plus, Trash2, Clock, CheckCircle, GraduationCap, Eye, EyeOff, 
   Globe, Flame, ArrowUpRight, ArrowDownRight, UploadCloud, Calendar as CalendarIcon,
   Trophy, Gift, PartyPopper, Check, Edit3, X, Image as ImageIcon, Link as LinkIcon, LogOut,
-  Upload
+  Upload, Camera
 } from 'lucide-react';
 
 import TaskClient from './TaskClient';
@@ -75,6 +75,10 @@ export default function DashboardClient({
 
   const handleAvatarUpload = async (file: File) => {
     if (!file) return;
+    // Instant preview
+    const localUrl = URL.createObjectURL(file);
+    setAvatarUrl(localUrl);
+
     setUploadingAvatar(true);
     try {
       const formData = new FormData();
@@ -86,7 +90,14 @@ export default function DashboardClient({
       const data = await res.json();
       if (res.ok && data.url) {
         setAvatarUrl(data.url);
-        setProfileSuccessMsg(isRtl ? '✅ تم رفع الصورة بنجاح! اضغط حفظ التعديلات لاعتمادها.' : '✅ Avatar uploaded successfully! Click save.');
+        try { localStorage.setItem('user_avatar', data.url); } catch {}
+        // Auto-save in DB
+        await fetch('/api/settings/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatarUrl: data.url }),
+        }).catch(() => {});
+        setProfileSuccessMsg(isRtl ? '✅ تم تحديث الصورة الشخصية في كامل النظام بنجاح!' : '✅ Profile avatar updated across the system!');
       } else {
         setProfileSuccessMsg(data.error || 'فشل رفع الصورة');
       }
@@ -104,6 +115,12 @@ export default function DashboardClient({
 
   // Persistent Tab & Auth Check
   useEffect(() => {
+    // Check saved avatar from localStorage
+    try {
+      const savedAvatar = localStorage.getItem('user_avatar');
+      if (savedAvatar) setAvatarUrl(savedAvatar);
+    } catch {}
+
     // Check if logged in as Assistant
     try {
       const storedUser = localStorage.getItem('academic_user');
@@ -135,7 +152,10 @@ export default function DashboardClient({
         if (data.email) setProfileEmail(data.email);
         if (data.notionUrl) setProfileNotionUrl(data.notionUrl);
         if (data.googleCalendarUrl) setGoogleCalendarUrl(data.googleCalendarUrl);
-        if (data.avatarUrl) setAvatarUrl(data.avatarUrl);
+        if (data.avatarUrl) {
+          setAvatarUrl(data.avatarUrl);
+          try { localStorage.setItem('user_avatar', data.avatarUrl); } catch {}
+        }
       })
       .catch(() => {});
 
@@ -520,8 +540,12 @@ export default function DashboardClient({
 
             {/* Profile Avatar & Logout Pill */}
             <div className="flex items-center gap-2 p-1 pr-2.5 rounded-xl bg-white/[0.03] border border-white/10">
-              <div className="w-7 h-7 rounded-lg overflow-hidden border border-orange-500/40 bg-orange-500/20 flex items-center justify-center">
-                <img src={avatarUrl || "/profile-hero.png"} alt="User" className="w-full h-full object-cover" onError={(e:any)=>{e.target.src='/icon-192.png';}} />
+              <div 
+                onClick={() => avatarFileInputRef.current?.click()}
+                className="w-7 h-7 rounded-lg overflow-hidden border border-orange-500/40 bg-orange-500/20 flex items-center justify-center cursor-pointer hover:border-orange-500 transition-colors"
+                title="اضغط لتغيير الصورة الشخصية من جهازك"
+              >
+                <img src={avatarUrl || "/profile-hero.png"} alt="User" className="w-full h-full object-cover" onError={(e:any)=>{e.target.src='/profile-hero.png';}} />
               </div>
               <span className="text-xs font-black text-gray-200 hidden lg:inline">{userDisplayName}</span>
               <button
@@ -579,13 +603,34 @@ export default function DashboardClient({
               <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-5">
                   <div className="relative shrink-0">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl overflow-hidden border-2 border-orange-500/50 shadow-[0_0_30px_rgba(255,85,0,0.3)] bg-gradient-to-br from-orange-500/20 to-black p-0.5">
+                    <input
+                      type="file"
+                      ref={avatarFileInputRef}
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleAvatarUpload(e.target.files[0]);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <div 
+                      onClick={() => avatarFileInputRef.current?.click()}
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl overflow-hidden border-2 border-orange-500/50 shadow-[0_0_30px_rgba(255,85,0,0.3)] bg-gradient-to-br from-orange-500/20 to-black p-0.5 cursor-pointer relative group"
+                      title="اضغط لتغيير الصورة الشخصية من جهازك"
+                    >
                       <img
                         src={avatarUrl || "/profile-hero.png"}
                         alt="Mark Emad"
                         className="w-full h-full object-cover rounded-[1.4rem]"
-                        onError={(e: any) => { e.target.src = '/icon-512.png'; }}
+                        onError={(e: any) => { e.target.src = '/profile-hero.png'; }}
                       />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white rounded-[1.4rem] backdrop-blur-xs">
+                        <Camera size={18} className="text-orange-400" />
+                        <span className="text-[9px] font-black">
+                          {uploadingAvatar ? 'جاري الرفع...' : 'تغيير الصورة'}
+                        </span>
+                      </div>
                     </div>
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-black" title="Active" />
                   </div>
