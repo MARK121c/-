@@ -10,17 +10,15 @@ export async function POST(req: NextRequest) {
   const client = getClient();
   try {
     const body = await req.json();
-    const {
-      courseId,
-      moduleId,
-      title,
-      description = '',
-      videoUrl = '',
-      duration = '',
-      notes = '',
-      attachments = '[]',
-      sortOrder = 0,
-    } = body;
+    const courseId = body.courseId ?? body.course_id;
+    const moduleId = body.moduleId ?? body.module_id;
+    const title = body.title;
+    const description = body.description || '';
+    const videoUrl = (body.videoUrl ?? body.video_url ?? '').trim();
+    const duration = body.duration || '';
+    const notes = body.notes || '';
+    const attachments = body.attachments || '[]';
+    const sortOrder = body.sortOrder ?? body.sort_order ?? 0;
 
     if (!courseId || !moduleId || !title) {
       return NextResponse.json({ error: 'courseId, moduleId, and title are required' }, { status: 400 });
@@ -45,15 +43,18 @@ export async function PUT(req: NextRequest) {
   const client = getClient();
   try {
     const body = await req.json();
-    const { id, title, description, videoUrl, duration, notes, attachments, completed, sortOrder } = body;
+    const { id, title, description, notes, attachments, completed, sortOrder, sort_order } = body;
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+
+    const videoUrl = body.videoUrl !== undefined ? body.videoUrl : body.video_url;
+    const duration = body.duration;
 
     const fields: string[] = [];
     const args: any[] = [];
 
     if (title !== undefined) { fields.push('title = ?'); args.push(title); }
     if (description !== undefined) { fields.push('description = ?'); args.push(description); }
-    if (videoUrl !== undefined) { fields.push('video_url = ?'); args.push(videoUrl); }
+    if (videoUrl !== undefined) { fields.push('video_url = ?'); args.push(videoUrl.trim()); }
     if (duration !== undefined) { fields.push('duration = ?'); args.push(duration); }
     if (notes !== undefined) { fields.push('notes = ?'); args.push(notes); }
     if (attachments !== undefined) {
@@ -68,7 +69,6 @@ export async function PUT(req: NextRequest) {
 
       // Also update course_progress
       if (isCompleted) {
-        // Find courseId for this lesson
         const lessonRes = await client.execute({ sql: `SELECT course_id FROM course_lessons WHERE id = ?`, args: [id] });
         if (lessonRes.rows.length > 0) {
           const cId = lessonRes.rows[0].course_id;
@@ -86,7 +86,8 @@ export async function PUT(req: NextRequest) {
         }).catch(() => {});
       }
     }
-    if (sortOrder !== undefined) { fields.push('sort_order = ?'); args.push(sortOrder); }
+    const sOrder = sortOrder !== undefined ? sortOrder : sort_order;
+    if (sOrder !== undefined) { fields.push('sort_order = ?'); args.push(sOrder); }
 
     if (fields.length === 0) return NextResponse.json({ success: true });
 

@@ -87,8 +87,8 @@ function parseVideoEmbedUrl(url: string, startSeconds: number = 0): string | nul
   const cleanUrl = url.trim();
   const startParam = startSeconds > 3 ? startSeconds : 0;
 
-  // YouTube standard or short
-  const ytMatch = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  // YouTube standard, short, embed, shorts, or live
+  const ytMatch = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/);
   if (ytMatch && ytMatch[1]) {
     const base = `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?rel=0&modestbranding=1&enablejsapi=1`;
     return startParam > 0 ? `${base}&start=${startParam}` : base;
@@ -114,9 +114,16 @@ function parseVideoEmbedUrl(url: string, startSeconds: number = 0): string | nul
       return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
     }
   }
+  if (cleanUrl.includes('drive.google.com/open?id=') || cleanUrl.includes('drive.google.com/uc?id=')) {
+    const idMatch = cleanUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (idMatch && idMatch[1]) {
+      return `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+    }
+  }
 
   return cleanUrl;
 }
+
 
 
 export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
@@ -160,13 +167,14 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
     title: '',
     description: '',
     video_url: '',
-    duration: '',
     notes: '',
     attachmentName: '',
     attachmentUrl: '',
   });
 
   const [attachmentsList, setAttachmentsList] = useState<Attachment[]>([]);
+
+  const activeLessonVideoUrl = (activeLesson?.video_url || (activeLesson as any)?.videoUrl || '').trim();
 
   // ── YouTube IFrame postMessage listener for time tracking ──────────────────
   React.useEffect(() => {
@@ -193,12 +201,11 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
 
   // ── Auto-save current time every 5 seconds while a video lesson is open ────
   React.useEffect(() => {
-    // Ask YouTube player for current time every 5 seconds
     if (saveIntervalRef.current) {
       clearInterval(saveIntervalRef.current);
     }
 
-    if (activeLesson?.video_url) {
+    if (activeLesson && activeLessonVideoUrl) {
       activeLessonIdRef.current = activeLesson.id;
 
       saveIntervalRef.current = setInterval(() => {
@@ -233,7 +240,7 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
         saveIntervalRef.current = null;
       }
     };
-  }, [activeLesson?.id]);
+  }, [activeLesson?.id, activeLessonVideoUrl]);
 
   // ── When activeLesson changes, load saved resume time ──────────────────────
   React.useEffect(() => {
@@ -248,6 +255,7 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
     setVideoResumeSeconds(saved);
     setShowResumeBar(saved > 5); // show resume bar only if meaningful progress (> 5 secs)
   }, [activeLesson?.id]);
+
 
 
 
@@ -473,11 +481,12 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
     e.preventDefault();
     if (!selectedCourse || !targetModuleId || !lessonForm.title.trim()) return;
     try {
+      const trimmedVideo = lessonForm.video_url.trim();
       const payload = {
-        title: lessonForm.title,
-        description: lessonForm.description,
-        videoUrl: lessonForm.video_url,
-        duration: lessonForm.duration,
+        title: lessonForm.title.trim(),
+        description: lessonForm.description.trim(),
+        videoUrl: trimmedVideo,
+        video_url: trimmedVideo,
         notes: lessonForm.notes,
         attachments: attachmentsList,
       };
@@ -494,7 +503,9 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             courseId: selectedCourse.id,
+            course_id: selectedCourse.id,
             moduleId: targetModuleId,
+            module_id: targetModuleId,
             sortOrder: 0,
             ...payload,
           }),
@@ -503,7 +514,7 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
 
       setShowAddLessonModal(false);
       setEditingLesson(null);
-      setLessonForm({ title: '', description: '', video_url: '', duration: '', notes: '', attachmentName: '', attachmentUrl: '' });
+      setLessonForm({ title: '', description: '', video_url: '', notes: '', attachmentName: '', attachmentUrl: '' });
       setAttachmentsList([]);
       await fetchCourses();
     } catch (err) {
@@ -914,7 +925,7 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                                 e.stopPropagation();
                                 setTargetModuleId(mod.id);
                                 setEditingLesson(null);
-                                setLessonForm({ title: '', description: '', video_url: '', duration: '', notes: '', attachmentName: '', attachmentUrl: '' });
+                                setLessonForm({ title: '', description: '', video_url: '', notes: '', attachmentName: '', attachmentUrl: '' });
                                 setAttachmentsList([]);
                                 setShowAddLessonModal(true);
                               }}
@@ -978,11 +989,6 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                                         <p className={`text-xs font-medium truncate ${isDone ? 'line-through text-gray-400' : ''}`}>
                                           {lesson.title}
                                         </p>
-                                        {lesson.duration && (
-                                          <span className="text-[10px] text-gray-500 font-mono block">
-                                            {lesson.duration}
-                                          </span>
-                                        )}
                                       </div>
                                     </div>
 
@@ -996,8 +1002,7 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                                           setLessonForm({
                                             title: lesson.title,
                                             description: lesson.description || '',
-                                            video_url: lesson.video_url || '',
-                                            duration: lesson.duration || '',
+                                            video_url: lesson.video_url || (lesson as any).videoUrl || '',
                                             notes: lesson.notes || '',
                                             attachmentName: '',
                                             attachmentUrl: '',
@@ -1041,83 +1046,89 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
             {/* ─── MAIN CONTENT: LESSON PLAYER & NOTES (COL 5-12) ─── */}
             <div className="lg:col-span-8 space-y-6">
               {activeLesson ? (
-                <div className="space-y-6">
-                  {/* Video Player Container */}
-                  <div className="relative rounded-3xl border border-white/10 bg-black/60 overflow-hidden shadow-2xl">
-                    {/* ── Resume Progress Banner ── */}
-                    {showResumeBar && activeLesson.video_url && (
-                      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between gap-3 px-4 py-2.5 bg-black/90 backdrop-blur-sm border-b border-emerald-500/30">
-                        <div className="flex items-center gap-2 text-xs text-emerald-300 font-bold">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>
-                            ▶ استكمال من الدقيقة {Math.floor(videoResumeSeconds / 60)}:{String(Math.floor(videoResumeSeconds % 60)).padStart(2, '0')}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              clearResumeTime(activeLesson.id);
-                              setVideoResumeSeconds(0);
-                              setShowResumeBar(false);
-                            }}
-                            className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-gray-300 hover:text-white transition-all"
-                          >
-                            ابدأ من الأول
-                          </button>
-                          <button
-                            onClick={() => setShowResumeBar(false)}
-                            className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-xs font-bold text-emerald-300 hover:text-black border border-emerald-500/40 transition-all"
-                          >
-                            ✓ استكمال من دقيقة {Math.floor(videoResumeSeconds / 60)}:{String(Math.floor(videoResumeSeconds % 60)).padStart(2, '0')}
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                (() => {
+                  const lessonVideo = (activeLesson.video_url || (activeLesson as any).videoUrl || '').trim();
+                  return (
+                    <div className="space-y-6">
+                      {/* Video Player Container */}
+                      <div className="relative rounded-3xl border border-white/10 bg-black/60 overflow-hidden shadow-2xl">
+                        {/* ── Resume Progress Banner ── */}
+                        {showResumeBar && lessonVideo && (
+                          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between gap-3 px-4 py-2.5 bg-black/90 backdrop-blur-sm border-b border-emerald-500/30">
+                            <div className="flex items-center gap-2 text-xs text-emerald-300 font-bold">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                              <span>
+                                ▶ استكمال من الدقيقة {Math.floor(videoResumeSeconds / 60)}:{String(Math.floor(videoResumeSeconds % 60)).padStart(2, '0')}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  clearResumeTime(activeLesson.id);
+                                  setVideoResumeSeconds(0);
+                                  setShowResumeBar(false);
+                                }}
+                                className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-gray-300 hover:text-white transition-all"
+                              >
+                                ابدأ من الأول
+                              </button>
+                              <button
+                                onClick={() => setShowResumeBar(false)}
+                                className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-xs font-bold text-emerald-300 hover:text-black border border-emerald-500/40 transition-all"
+                              >
+                                ✓ استكمال من دقيقة {Math.floor(videoResumeSeconds / 60)}:{String(Math.floor(videoResumeSeconds % 60)).padStart(2, '0')}
+                              </button>
+                            </div>
+                          </div>
+                        )}
 
-                    {activeLesson.video_url ? (
-                      <div className={`relative w-full aspect-video ${showResumeBar ? 'pt-10' : ''}`}>
-                        <iframe
-                          ref={iframeRef}
-                          key={`${activeLesson.id}-${videoResumeSeconds}`}
-                          src={parseVideoEmbedUrl(activeLesson.video_url, videoResumeSeconds) || ''}
-                          title={activeLesson.title}
-                          className="w-full h-full border-0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          allowFullScreen
-                        />
+                        {lessonVideo ? (
+                          <div className={`relative w-full aspect-video ${showResumeBar ? 'pt-10' : ''}`}>
+                            <iframe
+                              ref={iframeRef}
+                              key={`${activeLesson.id}-${lessonVideo}-${videoResumeSeconds}`}
+                              src={parseVideoEmbedUrl(lessonVideo, videoResumeSeconds) || ''}
+                              title={activeLesson.title}
+                              className="w-full h-full border-0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-full aspect-video flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white/[0.03] to-transparent">
+                            <Video size={56} className="text-gray-600 mb-3" />
+                            <h4 className="text-base font-bold text-white mb-1">{t.noVideo}</h4>
+                            <p className="text-xs text-gray-400 max-w-sm mb-4">{t.addVideoPrompt}</p>
+                            <button
+                              onClick={() => {
+                                setEditingLesson(activeLesson);
+                                setTargetModuleId(activeLesson.module_id || (activeLesson as any).moduleId);
+                                setLessonForm({
+                                  title: activeLesson.title,
+                                  description: activeLesson.description || '',
+                                  video_url: lessonVideo,
+                                  notes: activeLesson.notes || '',
+                                  attachmentName: '',
+                                  attachmentUrl: '',
+                                });
+                                try {
+                                  setAttachmentsList(typeof activeLesson.attachments === 'string' ? JSON.parse(activeLesson.attachments) : activeLesson.attachments || []);
+                                } catch {
+                                  setAttachmentsList([]);
+                                }
+                                setShowAddLessonModal(true);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/10 transition-all"
+                            >
+                              + إضافة رابط الفيديو
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="w-full aspect-video flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white/[0.03] to-transparent">
-                        <Video size={56} className="text-gray-600 mb-3" />
-                        <h4 className="text-base font-bold text-white mb-1">{t.noVideo}</h4>
-                        <p className="text-xs text-gray-400 max-w-sm mb-4">{t.addVideoPrompt}</p>
-                        <button
-                          onClick={() => {
-                            setEditingLesson(activeLesson);
-                            setTargetModuleId(activeLesson.module_id);
-                            setLessonForm({
-                              title: activeLesson.title,
-                              description: activeLesson.description || '',
-                              video_url: activeLesson.video_url || '',
-                              duration: activeLesson.duration || '',
-                              notes: activeLesson.notes || '',
-                              attachmentName: '',
-                              attachmentUrl: '',
-                            });
-                            try {
-                              setAttachmentsList(typeof activeLesson.attachments === 'string' ? JSON.parse(activeLesson.attachments) : activeLesson.attachments || []);
-                            } catch {
-                              setAttachmentsList([]);
-                            }
-                            setShowAddLessonModal(true);
-                          }}
-                          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/10 transition-all"
-                        >
-                          + إضافة رابط الفيديو
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  );
+                })()
+              ) : null}
 
                   {/* Lesson Controls & Completion Bar */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl">
@@ -1467,28 +1478,15 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 block mb-1">{t.videoUrl}</label>
-                    <input
-                      type="text"
-                      value={lessonForm.video_url}
-                      onChange={e => setLessonForm({ ...lessonForm, video_url: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                      placeholder="https://youtube.com/watch?v=... أو Drive/Loom"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 block mb-1">{t.duration}</label>
-                    <input
-                      type="text"
-                      value={lessonForm.duration}
-                      onChange={e => setLessonForm({ ...lessonForm, duration: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                      placeholder="12:45"
-                    />
-                  </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 block mb-1">{t.videoUrl}</label>
+                  <input
+                    type="text"
+                    value={lessonForm.video_url}
+                    onChange={e => setLessonForm({ ...lessonForm, video_url: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    placeholder="https://youtube.com/watch?v=... أو Drive/Loom/Vimeo"
+                  />
                 </div>
 
                 <div>
