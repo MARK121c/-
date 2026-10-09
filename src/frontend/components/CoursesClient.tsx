@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   GraduationCap, BookOpen, Play, CheckCircle2, Circle, Plus, Edit, Trash2,
   ChevronDown, ChevronRight, ArrowLeft, ArrowRight, ExternalLink, Download,
-  FileText, Video, Sparkles, FolderPlus, Check, Award, Layers, Search, RefreshCw, X, Link as LinkIcon
+  FileText, Video, Sparkles, FolderPlus, Check, Award, Layers, Search, RefreshCw, X, Link as LinkIcon,
+  Upload
 } from 'lucide-react';
 
 interface Attachment {
@@ -173,6 +174,33 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
   });
 
   const [attachmentsList, setAttachmentsList] = useState<Attachment[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+    setUploadingImage(true);
+    setUploadError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setCourseForm(prev => ({ ...prev, thumbnail_url: data.url }));
+      } else {
+        setUploadError(data.error || 'فشل رفع الصورة');
+      }
+    } catch (err: any) {
+      setUploadError(err.message || 'حدث خطأ أثناء رفع الصورة');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const activeLessonVideoUrl = (activeLesson?.video_url || (activeLesson as any)?.videoUrl || '').trim();
 
@@ -1288,22 +1316,69 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-gray-400 block">{t.thumbnailUrl}</label>
-                    <span className="text-[10px] text-emerald-400 font-mono">يدعم روابط الصور المباشرة و Unsplash</span>
+                <div className="space-y-3">
+                  {/* Dimension Guidelines Banner */}
+                  <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-emerald-300 font-bold">
+                      <Sparkles size={16} className="text-emerald-400 shrink-0" />
+                      <span>المقاس المثالي للغلاف: <strong>1280 × 720 بكسل</strong> (نسبة 16:9 العريضة)</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-400/80 font-mono">JPG, PNG, WebP • أقصى حجم 5MB</span>
                   </div>
+
+                  {/* Device File Upload Button + Direct Link Options */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/png, image/jpeg, image/webp, image/gif"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleImageUpload(e.target.files[0]);
+                        }
+                      }}
+                      className="hidden"
+                    />
+
+                    <button
+                      type="button"
+                      disabled={uploadingImage}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {uploadingImage ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          <span>جاري رفع الصورة من جهازك...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={15} />
+                          <span>📤 رفع غلاف من الجهاز</span>
+                        </>
+                      )}
+                    </button>
+
+                    <span className="text-[11px] text-gray-400 font-bold text-center sm:text-start">أو ضع رابط مباشر أدناه:</span>
+                  </div>
+
+                  {uploadError && (
+                    <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-bold">
+                      ⚠️ {uploadError}
+                    </div>
+                  )}
+
                   <input
                     type="url"
                     value={courseForm.thumbnail_url}
                     onChange={e => setCourseForm({ ...courseForm, thumbnail_url: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                    placeholder="https://images.unsplash.com/... أو أي رابط صورة مباشر"
+                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-emerald-500 placeholder-gray-500"
+                    placeholder="https://images.unsplash.com/... أو /uploads/courses/..."
                   />
 
                   {/* One-click preset banners */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    <span className="text-[10px] text-gray-500 py-1">أغلفة جاهزة:</span>
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] text-gray-400 py-1 font-bold">أغلفة جاهزة فورية:</span>
                     {[
                       { label: '🎬 مونتاج وفيديو', url: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?q=80&w=800&auto=format&fit=crop' },
                       { label: '🤖 ذكاء اصطناعي وبرمجة', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop' },
@@ -1315,7 +1390,7 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                         key={pIdx}
                         type="button"
                         onClick={() => setCourseForm({ ...courseForm, thumbnail_url: preset.url })}
-                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-gray-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/40 text-[10px] font-bold transition-all"
+                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-gray-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/40 text-[10px] font-bold transition-all cursor-pointer"
                       >
                         {preset.label}
                       </button>
@@ -1324,7 +1399,7 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
 
                   {/* Live Thumbnail Preview Box */}
                   {courseForm.thumbnail_url && (
-                    <div className="mt-2 rounded-2xl overflow-hidden border border-white/10 aspect-video relative bg-black/50">
+                    <div className="mt-2 rounded-2xl overflow-hidden border border-emerald-500/30 aspect-video relative bg-black/60 shadow-lg">
                       <img
                         src={courseForm.thumbnail_url}
                         alt="Preview"
@@ -1336,8 +1411,9 @@ export default function CoursesClient({ lang = 'ar' }: CoursesClientProps) {
                           target.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop';
                         }}
                       />
-                      <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/80 text-[10px] text-emerald-400 font-bold backdrop-blur-md">
-                        معاينة الغلاف الحية ✓
+                      <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/85 text-[10px] text-emerald-400 font-bold backdrop-blur-md border border-emerald-500/30 flex items-center gap-1.5">
+                        <Check size={12} />
+                        <span>معاينة الغلاف الحية (16:9)</span>
                       </div>
                     </div>
                   )}

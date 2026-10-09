@@ -49,7 +49,7 @@ function parseEmbedPreviewUrl(url: string): { embedUrl: string; type: 'youtube' 
   const clean = url.trim();
 
   // YouTube
-  const ytMatch = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  const ytMatch = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/);
   if (ytMatch && ytMatch[1]) {
     return {
       embedUrl: `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?rel=0&modestbranding=1`,
@@ -58,14 +58,29 @@ function parseEmbedPreviewUrl(url: string): { embedUrl: string; type: 'youtube' 
   }
 
   // Google Drive File
-  if (clean.includes('drive.google.com/file/d/')) {
-    const fileIdMatch = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
-    if (fileIdMatch && fileIdMatch[1]) {
+  if (clean.includes('drive.google.com')) {
+    let fileId: string | null = null;
+    const matchD = clean.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchD && matchD[1]) fileId = matchD[1];
+    if (!fileId) {
+      const matchParam = clean.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (matchParam && matchParam[1]) fileId = matchParam[1];
+    }
+    if (fileId) {
       return {
-        embedUrl: `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`,
+        embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
         type: 'drive',
       };
     }
+  }
+
+  // Google Docs / Sheets / Slides
+  if (clean.includes('docs.google.com')) {
+    const previewUrl = clean.replace(/\/edit.*$/, '/preview');
+    return {
+      embedUrl: previewUrl,
+      type: 'drive',
+    };
   }
 
   return { embedUrl: clean, type: 'generic' };
@@ -1427,16 +1442,16 @@ export default function AcademicClient() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-5xl rounded-[2rem] border border-white/10 bg-[#0c0d12] p-6 space-y-4 shadow-2xl flex flex-col max-h-[92vh]"
+              className="w-full max-w-6xl rounded-[2rem] border border-white/10 bg-[#0c0d12] p-5 sm:p-6 space-y-4 shadow-2xl flex flex-col max-h-[95vh]"
             >
               <div className="flex justify-between items-center border-b border-white/10 pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-                    <Eye size={18} />
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                    <Eye size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white truncate max-w-md">{previewModal.title}</h3>
-                    <span className="text-[11px] text-gray-400 font-mono block truncate max-w-sm">{previewModal.url}</span>
+                    <h3 className="text-lg font-black text-white truncate max-w-lg">{previewModal.title}</h3>
+                    <span className="text-[11px] text-gray-400 font-mono block truncate max-w-md">{previewModal.url}</span>
                   </div>
                 </div>
 
@@ -1459,12 +1474,12 @@ export default function AcademicClient() {
                 </div>
               </div>
 
-              {/* Embedded Frame */}
-              <div className="relative flex-1 w-full min-h-[60vh] rounded-2xl overflow-hidden bg-black border border-white/10">
+              {/* Embedded Frame with Guaranteed Full Height */}
+              <div className="relative w-full h-[72vh] min-h-[480px] rounded-2xl overflow-hidden bg-black border border-white/10 shadow-inner">
                 <iframe
                   src={previewModal.embedUrl || previewModal.url}
                   title={previewModal.title}
-                  className="w-full h-full border-0"
+                  className="absolute inset-0 w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                 />

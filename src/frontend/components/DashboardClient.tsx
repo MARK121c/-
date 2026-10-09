@@ -7,7 +7,8 @@ import {
   ListTodo, CreditCard, Sparkles, Users, BookOpen, Brain, 
   Plus, Trash2, Clock, CheckCircle, GraduationCap, Eye, EyeOff, 
   Globe, Flame, ArrowUpRight, ArrowDownRight, UploadCloud, Calendar as CalendarIcon,
-  Trophy, Gift, PartyPopper, Check, Edit3, X, Image as ImageIcon, Link as LinkIcon, LogOut
+  Trophy, Gift, PartyPopper, Check, Edit3, X, Image as ImageIcon, Link as LinkIcon, LogOut,
+  Upload
 } from 'lucide-react';
 
 import TaskClient from './TaskClient';
@@ -69,6 +70,32 @@ export default function DashboardClient({
   const [avatarUrl, setAvatarUrl] = useState('/profile-hero.png');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setAvatarUrl(data.url);
+        setProfileSuccessMsg(isRtl ? '✅ تم رفع الصورة بنجاح! اضغط حفظ التعديلات لاعتمادها.' : '✅ Avatar uploaded successfully! Click save.');
+      } else {
+        setProfileSuccessMsg(data.error || 'فشل رفع الصورة');
+      }
+    } catch {
+      setProfileSuccessMsg('حدث خطأ أثناء رفع الصورة');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   // Backup & Restore State
   const [backupLoading, setBackupLoading] = useState(false);
@@ -970,17 +997,45 @@ export default function DashboardClient({
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-gray-300 block mb-1">رابط الصورة الشخصية (Avatar Image URL)</label>
-                  <input
-                    type="text"
-                    value={avatarUrl}
-                    onChange={e => setAvatarUrl(e.target.value)}
-                    placeholder="/profile-hero.png أو رابط صورة خارجي"
-                    className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
-                  />
-                  <span className="text-[11px] text-gray-500 mt-1 block">
-                    يمكنك وضع رابط صورة مباشر لتغيير الأفاتار في الهيدر والداشبورد فوراً.
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-300 block">الصورة الشخصية (Avatar Photo)</label>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <input
+                      type="file"
+                      ref={avatarFileInputRef}
+                      accept="image/png, image/jpeg, image/webp"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleAvatarUpload(e.target.files[0]);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      disabled={uploadingAvatar}
+                      onClick={() => avatarFileInputRef.current?.click()}
+                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white font-black text-xs shadow-lg shadow-orange-500/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      {uploadingAvatar ? (
+                        <span>جاري الرفع...</span>
+                      ) : (
+                        <>
+                          <Upload size={14} />
+                          <span>📤 رفع صورة من جهازك</span>
+                        </>
+                      )}
+                    </button>
+                    <input
+                      type="text"
+                      value={avatarUrl}
+                      onChange={e => setAvatarUrl(e.target.value)}
+                      placeholder="/profile-hero.png أو رابط صورة خارجي"
+                      className="flex-1 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-bold text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <span className="text-[11px] text-gray-500 block">
+                    يمكنك رفع صورة من جهازك مباشرة أو وضع رابط صورة خارجي لتغيير صورتك الشخصية في كامل النظام.
                   </span>
                 </div>
 
