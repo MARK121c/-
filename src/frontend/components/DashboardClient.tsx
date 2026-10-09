@@ -75,9 +75,17 @@ export default function DashboardClient({
 
   const handleAvatarUpload = async (file: File) => {
     if (!file) return;
-    // Instant preview
-    const localUrl = URL.createObjectURL(file);
-    setAvatarUrl(localUrl);
+
+    // 1. Instant preview with Base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Url = e.target?.result as string;
+      if (base64Url) {
+        setAvatarUrl(base64Url);
+        try { localStorage.setItem('user_avatar', base64Url); } catch {}
+      }
+    };
+    reader.readAsDataURL(file);
 
     setUploadingAvatar(true);
     try {
@@ -88,16 +96,19 @@ export default function DashboardClient({
         body: formData,
       });
       const data = await res.json();
-      if (res.ok && data.url) {
-        setAvatarUrl(data.url);
-        try { localStorage.setItem('user_avatar', data.url); } catch {}
+      const targetUrl = data.dataUrl || data.url;
+
+      if (res.ok && targetUrl) {
+        setAvatarUrl(targetUrl);
+        try { localStorage.setItem('user_avatar', targetUrl); } catch {}
+        
         // Auto-save in DB
         await fetch('/api/settings/profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ avatarUrl: data.url }),
+          body: JSON.stringify({ avatarUrl: targetUrl }),
         }).catch(() => {});
-        setProfileSuccessMsg(isRtl ? '✅ تم تحديث الصورة الشخصية في كامل النظام بنجاح!' : '✅ Profile avatar updated across the system!');
+        setProfileSuccessMsg(isRtl ? '✅ تم تحديث صورتك الشخصية في كامل النظام بنجاح!' : '✅ Profile avatar updated across the system!');
       } else {
         setProfileSuccessMsg(data.error || 'فشل رفع الصورة');
       }
@@ -476,6 +487,19 @@ export default function DashboardClient({
 
   return (
     <div className="min-h-screen bg-[#050608] text-white selection:bg-orange-500/30 selection:text-orange-200" dir={isRtl ? 'rtl' : 'ltr'}>
+      {/* ── GLOBAL HIDDEN AVATAR FILE PICKER (Available in all tabs) ── */}
+      <input
+        type="file"
+        ref={avatarFileInputRef}
+        accept="image/png, image/jpeg, image/webp, image/gif"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleAvatarUpload(e.target.files[0]);
+            e.target.value = '';
+          }
+        }}
+        className="hidden"
+      />
       
       {/* ── TOP LUXURY NAVIGATION BAR (HEADER TABS) ── */}
       <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#050608]/90 backdrop-blur-2xl px-4 sm:px-6 py-2.5 space-y-2">
@@ -603,17 +627,6 @@ export default function DashboardClient({
               <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-5">
                   <div className="relative shrink-0">
-                    <input
-                      type="file"
-                      ref={avatarFileInputRef}
-                      accept="image/*"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleAvatarUpload(e.target.files[0]);
-                        }
-                      }}
-                      className="hidden"
-                    />
                     <div 
                       onClick={() => avatarFileInputRef.current?.click()}
                       className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl overflow-hidden border-2 border-orange-500/50 shadow-[0_0_30px_rgba(255,85,0,0.3)] bg-gradient-to-br from-orange-500/20 to-black p-0.5 cursor-pointer relative group"
@@ -1045,17 +1058,6 @@ export default function DashboardClient({
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-300 block">الصورة الشخصية (Avatar Photo)</label>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <input
-                      type="file"
-                      ref={avatarFileInputRef}
-                      accept="image/png, image/jpeg, image/webp"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleAvatarUpload(e.target.files[0]);
-                        }
-                      }}
-                      className="hidden"
-                    />
                     <button
                       type="button"
                       disabled={uploadingAvatar}

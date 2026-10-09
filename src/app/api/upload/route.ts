@@ -30,13 +30,17 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     const publicUrl = `/uploads/courses/${uniqueName}`;
+    const base64Data = buffer.toString('base64');
+    const mime = file.type || 'image/png';
+    const dataUrl = `data:${mime};base64,${base64Data}`;
 
     return NextResponse.json({
       success: true,
       url: publicUrl,
+      dataUrl: dataUrl,
       fileName: uniqueName,
       size: file.size,
-      mimeType: file.type,
+      mimeType: mime,
     });
   } catch (error: any) {
     console.error('File upload error:', error);
