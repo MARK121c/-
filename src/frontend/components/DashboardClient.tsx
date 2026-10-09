@@ -550,17 +550,31 @@ export default function DashboardClient({
               <div className="absolute top-0 right-0 w-80 h-80 bg-[#FF5500]/15 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
               
               <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 font-mono text-xs font-black">
-                    <Sparkles size={13} />
-                    <span>CENTRAL OVERVIEW • MARK OS</span>
+                <div className="flex items-center gap-5">
+                  <div className="relative shrink-0">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl overflow-hidden border-2 border-orange-500/50 shadow-[0_0_30px_rgba(255,85,0,0.3)] bg-gradient-to-br from-orange-500/20 to-black p-0.5">
+                      <img
+                        src={avatarUrl || "/profile-hero.png"}
+                        alt="Mark Emad"
+                        className="w-full h-full object-cover rounded-[1.4rem]"
+                        onError={(e: any) => { e.target.src = '/icon-512.png'; }}
+                      />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-black" title="Active" />
                   </div>
-                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white uppercase">
-                    GOAL TRACKER & LIFE OS
-                  </h1>
-                  <p className="text-xs sm:text-sm text-gray-400 max-w-xl leading-relaxed">
-                    تتبع أهدافك الكبرى، العادات اليومية، وساعات التركيز في واجهة موحدة.
-                  </p>
+
+                  <div className="space-y-1.5">
+                    <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 font-mono text-xs font-black">
+                      <Sparkles size={13} />
+                      <span>CENTRAL OVERVIEW • MARK OS</span>
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white uppercase">
+                      GOAL TRACKER & LIFE OS
+                    </h1>
+                    <p className="text-xs sm:text-sm text-gray-400 max-w-xl leading-relaxed">
+                      تتبع أهدافك الكبرى، العادات اليومية، وساعات التركيز في واجهة موحدة.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Date Picker Filter */}
