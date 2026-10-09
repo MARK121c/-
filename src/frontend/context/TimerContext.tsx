@@ -1,12 +1,7 @@
 'use client';
 
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 
-/**
- * TimerContext provides a global state for the Deep Focus timer and stopwatch.
- * The state is persisted to localStorage so that the timer continues running
- * across page navigation and browser reloads.
- */
 export interface TimerState {
   timerMode: 'pomodoro' | 'deep' | 'shortBreak' | 'longBreak' | 'custom';
   totalSeconds: number;
@@ -27,6 +22,14 @@ export interface TimerContextProps extends TimerState {
   setSoundEnabled: (enabled: boolean) => void;
   setStopwatchRunning: (running: boolean) => void;
   setStopwatchSeconds: (sec: number) => void;
+  toggleTimer: () => void;
+  selectMode: (mode: TimerState['timerMode']) => void;
+  changeCustom: (mins: number) => void;
+  toggleSound: () => void;
+  toggleStopwatch: () => void;
+  resetStopwatch: () => void;
+  resetTimer: () => void;
+  playAlertSound: () => void;
 }
 
 const defaultState: TimerContextProps = {
@@ -38,7 +41,6 @@ const defaultState: TimerContextProps = {
   soundEnabled: true,
   stopwatchRunning: false,
   stopwatchSeconds: 0,
-  // No‑op setters – will be overwritten by the provider
   setTimerMode: () => {},
   setTotalSeconds: () => {},
   setSecondsLeft: () => {},
@@ -47,30 +49,77 @@ const defaultState: TimerContextProps = {
   setSoundEnabled: () => {},
   setStopwatchRunning: () => {},
   setStopwatchSeconds: () => {},
+  toggleTimer: () => {},
+  selectMode: () => {},
+  changeCustom: () => {},
+  toggleSound: () => {},
+  toggleStopwatch: () => {},
+  resetStopwatch: () => {},
+  resetTimer: () => {},
+  playAlertSound: () => {},
 };
 
 export const TimerContext = createContext<TimerContextProps>(defaultState);
 
-interface ProviderProps {
-  children: ReactNode;
-}
-
-export const TimerProvider: React.FC<ProviderProps> = ({ children }) => {
+export const TimerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [timerMode, setTimerMode] = useState<TimerState['timerMode']>('pomodoro');
-  const [totalSeconds, setTotalSeconds] = useState(25 * 60);
-  const [secondsLeft, setSecondsLeft] = useState(25 * 60);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [customMinutes, setCustomMinutes] = useState(45);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [stopwatchRunning, setStopwatchRunning] = useState(false);
-  const [stopwatchSeconds, setStopwatchSeconds] = useState(0);
+  const [totalSeconds, setTotalSeconds] = useState<number>(25 * 60);
+  const [secondsLeft, setSecondsLeft] = useState<number>(25 * 60);
+  const [timerRunning, setTimerRunning] = useState<boolean>(false);
+  const [customMinutes, setCustomMinutes] = useState<number>(45);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [stopwatchRunning, setStopwatchRunning] = useState<boolean>(false);
+  const [stopwatchSeconds, setStopwatchSeconds] = useState<number>(0);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
-  // Load persisted state on mount
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize sound safely
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('timer_state');
+      audioRef.current = new Audio('/alert.mp3');
+    } catch {}
+  }, []);
+
+  const playAlertSound = useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {
+          triggerBeep();
+        });
+      } else {
+        triggerBeep();
+      }
+    } catch {
+      triggerBeep();
+    }
+  }, [soundEnabled]);
+
+  const triggerBeep = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
+    } catch {}
+  };
+
+  // 1. Hydrate from localStorage on client mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('timer_state_v2');
       if (saved) {
-        const data = JSON.parse(saved) as Partial<TimerState>;
+        const data = JSON.parse(saved);
         if (data.timerMode) setTimerMode(data.timerMode);
         if (typeof data.totalSeconds === 'number') setTotalSeconds(data.totalSeconds);
         if (typeof data.secondsLeft === 'number') setSecondsLeft(data.secondsLeft);
@@ -81,24 +130,27 @@ export const TimerProvider: React.FC<ProviderProps> = ({ children }) => {
         if (typeof data.stopwatchSeconds === 'number') setStopwatchSeconds(data.stopwatchSeconds);
       }
     } catch {}
+    setIsLoaded(true);
   }, []);
 
-  // Persist on any change
+  // 2. Persist state to localStorage whenever it changes
   useEffect(() => {
-    const payload: TimerState = {
-      timerMode,
-      totalSeconds,
-      secondsLeft,
-      timerRunning,
-      customMinutes,
-      soundEnabled,
-      stopwatchRunning,
-      stopwatchSeconds,
-    };
+    if (!isLoaded) return;
     try {
-      localStorage.setItem('timer_state', JSON.stringify(payload));
+      const payload = {
+        timerMode,
+        totalSeconds,
+        secondsLeft,
+        timerRunning,
+        customMinutes,
+        soundEnabled,
+        stopwatchRunning,
+        stopwatchSeconds,
+      };
+      localStorage.setItem('timer_state_v2', JSON.stringify(payload));
     } catch {}
   }, [
+    isLoaded,
     timerMode,
     totalSeconds,
     secondsLeft,
@@ -108,6 +160,83 @@ export const TimerProvider: React.FC<ProviderProps> = ({ children }) => {
     stopwatchRunning,
     stopwatchSeconds,
   ]);
+
+  // 3. GLOBAL BACKGROUND INTERVAL: Timer countdown (Runs anywhere in the app)
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (timerRunning) {
+      interval = setInterval(() => {
+        setSecondsLeft(prev => {
+          if (prev <= 1) {
+            setTimerRunning(false);
+            playAlertSound();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [timerRunning, playAlertSound]);
+
+  // 4. GLOBAL BACKGROUND INTERVAL: Stopwatch (Runs anywhere in the app)
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (stopwatchRunning) {
+      interval = setInterval(() => {
+        setStopwatchSeconds(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [stopwatchRunning]);
+
+  // Helper Actions
+  const toggleTimer = useCallback(() => {
+    setTimerRunning(prev => !prev);
+  }, []);
+
+  const selectMode = useCallback((mode: TimerState['timerMode']) => {
+    setTimerRunning(false);
+    setTimerMode(mode);
+    let sec = 25 * 60;
+    if (mode === 'pomodoro') sec = 25 * 60;
+    else if (mode === 'deep') sec = 50 * 60;
+    else if (mode === 'shortBreak') sec = 5 * 60;
+    else if (mode === 'longBreak') sec = 15 * 60;
+    else if (mode === 'custom') sec = (customMinutes || 45) * 60;
+    setTotalSeconds(sec);
+    setSecondsLeft(sec);
+  }, [customMinutes]);
+
+  const changeCustom = useCallback((mins: number) => {
+    setCustomMinutes(mins);
+    if (timerMode === 'custom') {
+      setTotalSeconds(mins * 60);
+      setSecondsLeft(mins * 60);
+    }
+  }, [timerMode]);
+
+  const resetTimer = useCallback(() => {
+    setTimerRunning(false);
+    selectMode(timerMode);
+  }, [selectMode, timerMode]);
+
+  const toggleSound = useCallback(() => {
+    setSoundEnabled(prev => !prev);
+  }, []);
+
+  const toggleStopwatch = useCallback(() => {
+    setStopwatchRunning(prev => !prev);
+  }, []);
+
+  const resetStopwatch = useCallback(() => {
+    setStopwatchRunning(false);
+    setStopwatchSeconds(0);
+  }, []);
 
   const value: TimerContextProps = {
     timerMode,
@@ -126,6 +255,14 @@ export const TimerProvider: React.FC<ProviderProps> = ({ children }) => {
     setSoundEnabled,
     setStopwatchRunning,
     setStopwatchSeconds,
+    toggleTimer,
+    selectMode,
+    changeCustom,
+    toggleSound,
+    toggleStopwatch,
+    resetStopwatch,
+    resetTimer,
+    playAlertSound,
   };
 
   return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>;

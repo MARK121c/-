@@ -807,8 +807,9 @@ export default function DashboardClient({
 
         {/* ===================== 3. DEEP FOCUS ===================== */}
         {mainTab === 'focus' && userRole !== 'assistant' && (
-          <DeepFocusClient />
+          <DeepFocusClient workTracking={workTracking} privacyActive={privacyActive} />
         )}
+
 
         {/* ===================== 4. BRAIN DUMP & QUICK NOTES ===================== */}
         {mainTab === 'notes' && userRole !== 'assistant' && (
