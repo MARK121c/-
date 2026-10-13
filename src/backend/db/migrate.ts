@@ -77,13 +77,16 @@ export async function ensureTables() {
       logs.push('SEEDED: Academic settings default');
     }
 
-    // Seed default admin and assistant test accounts for academic users if missing
+    // Seed default admin, assistant, and viewer test accounts for academic users if missing
     const acadUserCheck = await client.execute(`SELECT id FROM academic_users LIMIT 1`);
     if (acadUserCheck.rows.length === 0) {
       await client.execute(`INSERT OR IGNORE INTO academic_users (username, password_hash, role, display_name, active, created_at, updated_at) VALUES ('admin', '$2a$10$8K1p/a0dR1xqM8cE1gXkmeQKdXeJX2fz1Z1hYVOHZ3TCSHnGmQH6G', 'owner', 'Mark Emad (Owner)', 1, datetime('now'), datetime('now'))`);
-      await client.execute(`INSERT OR IGNORE INTO academic_users (username, password_hash, role, display_name, active, created_at, updated_at) VALUES ('assistant_test', '$2a$10$8K1p/a0dR1xqM8cE1gXkmeQKdXeJX2fz1Z1hYVOHZ3TCSHnGmQH6G', 'assistant', 'Test Assistant', 1, datetime('now'), datetime('now'))`);
-      logs.push('SEEDED: Academic owner & test assistant users created');
+      await client.execute(`INSERT OR IGNORE INTO academic_users (username, password_hash, role, display_name, active, created_at, updated_at) VALUES ('assistant_test', '$2a$10$8K1p/a0dR1xqM8cE1gXkmeQKdXeJX2fz1Z1hYVOHZ3TCSHnGmQH6G', 'assistant', 'Test Assistant (مساعد)', 1, datetime('now'), datetime('now'))`);
+      await client.execute(`INSERT OR IGNORE INTO academic_users (username, password_hash, role, display_name, active, created_at, updated_at) VALUES ('viewer_test', '$2a$10$8K1p/a0dR1xqM8cE1gXkmeQKdXeJX2fz1Z1hYVOHZ3TCSHnGmQH6G', 'viewer', 'Test Viewer (عرض فقط)', 1, datetime('now'), datetime('now'))`);
+      logs.push('SEEDED: Academic owner, test assistant & test viewer users created');
     }
+
+
 
     // 4. Seed default wallets if missing
     const walletCheck = await client.execute(`SELECT id FROM wallets LIMIT 1`);

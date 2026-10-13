@@ -16,21 +16,24 @@ function hashPassword(password: string): string {
 export async function GET() {
   const client = getClient();
   try {
-    const res = await client.execute(`SELECT id, username, role, display_name, active, created_at FROM academic_users WHERE role = 'assistant' ORDER BY id DESC`);
+    const res = await client.execute(`SELECT id, username, role, display_name, active, created_at FROM academic_users WHERE role IN ('assistant', 'viewer') ORDER BY id DESC`);
     return NextResponse.json({ success: true, assistants: res.rows });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 
+
 export async function POST(req: NextRequest) {
   const client = getClient();
   try {
     const body = await req.json();
-    const { username, password, display_name } = body;
+    const { username, password, display_name, role = 'assistant' } = body;
     if (!username || !password) {
       return NextResponse.json({ success: false, error: 'Username and password are required' }, { status: 400 });
     }
+
+    const assignedRole = role === 'viewer' ? 'viewer' : 'assistant';
 
     const existing = await client.execute({
       sql: `SELECT id FROM academic_users WHERE username = ?`,
@@ -44,8 +47,8 @@ export async function POST(req: NextRequest) {
     const now = new Date().toISOString();
 
     const insertRes = await client.execute({
-      sql: `INSERT INTO academic_users (username, password_hash, role, display_name, active, created_at, updated_at) VALUES (?, ?, 'assistant', ?, 1, ?, ?)`,
-      args: [username, passwordHash, display_name || username, now, now]
+      sql: `INSERT INTO academic_users (username, password_hash, role, display_name, active, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)`,
+      args: [username, passwordHash, assignedRole, display_name || username, now, now]
     });
 
     const userRes = await client.execute({
@@ -63,12 +66,12 @@ export async function PUT(req: NextRequest) {
   const client = getClient();
   try {
     const body = await req.json();
-    const { id, password, display_name, active } = body;
+    const { id, password, display_name, active, role } = body;
     if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
 
-    const userRes = await client.execute({ sql: `SELECT * FROM academic_users WHERE id = ? AND role = 'assistant'`, args: [id] });
+    const userRes = await client.execute({ sql: `SELECT * FROM academic_users WHERE id = ? AND role IN ('assistant', 'viewer')`, args: [id] });
     const user = userRes.rows[0];
-    if (!user) return NextResponse.json({ success: false, error: 'Assistant not found' }, { status: 404 });
+    if (!user) return NextResponse.json({ success: false, error: 'Account not found' }, { status: 404 });
 
     if (password) {
       const hash = hashPassword(password);
@@ -79,6 +82,10 @@ export async function PUT(req: NextRequest) {
     }
     if (active !== undefined) {
       await client.execute({ sql: `UPDATE academic_users SET active = ?, updated_at = datetime('now') WHERE id = ?`, args: [active ? 1 : 0, id] });
+    }
+    if (role !== undefined) {
+      const assignedRole = role === 'viewer' ? 'viewer' : 'assistant';
+      await client.execute({ sql: `UPDATE academic_users SET role = ?, updated_at = datetime('now') WHERE id = ?`, args: [assignedRole, id] });
     }
 
     const updated = await client.execute({ sql: `SELECT id, username, role, display_name, active, created_at, updated_at FROM academic_users WHERE id = ?`, args: [id] });
@@ -94,9 +101,10 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
 
   try {
-    await client.execute({ sql: `DELETE FROM academic_users WHERE id = ? AND role = 'assistant'`, args: [id] });
+    await client.execute({ sql: `DELETE FROM academic_users WHERE id = ? AND role IN ('assistant', 'viewer')`, args: [id] });
     return NextResponse.json({ success: true });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
+

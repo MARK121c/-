@@ -86,6 +86,15 @@ export async function POST(request: Request) {
       userId = 'assistant_test';
     }
 
+    // Check against Test Viewer Accounts
+    const validViewerIdentifiers = ['viewer', 'viewer_test', 'test_viewer', 'viewer@os.com'];
+    if (!authenticated && validViewerIdentifiers.includes(identifier) && validAssistantPasswords.includes(password)) {
+      authenticated = true;
+      userRole = 'viewer';
+      displayName = 'Test Viewer (عرض فقط)';
+      userId = 'viewer_test';
+    }
+
     // 3. Check against Database (academic_users)
     if (!authenticated) {
       try {
@@ -120,11 +129,15 @@ export async function POST(request: Request) {
       .setExpirationTime('7d')
       .sign(key);
 
-    // Record session in DB
+    // Record session in DB (Enforce MAX 2 active devices: if >= 2, kick out oldest device)
     try {
       const userSessions = await db.select().from(sessions).where(eq(sessions.userId, userId)).orderBy(asc(sessions.createdAt));
-      if (userSessions.length >= 3) {
-        await db.delete(sessions).where(eq(sessions.id, userSessions[0].id));
+      if (userSessions.length >= 2) {
+        const removeCount = userSessions.length - 1; // keep only 1 before adding the new one
+        const toRemove = userSessions.slice(0, removeCount);
+        for (const s of toRemove) {
+          await db.delete(sessions).where(eq(sessions.id, s.id));
+        }
       }
 
       await db.insert(sessions).values({
@@ -138,6 +151,7 @@ export async function POST(request: Request) {
     } catch (sessionErr) {
       console.error('Session error (non-critical):', sessionErr);
     }
+
 
     const response = NextResponse.json({
       success: true,

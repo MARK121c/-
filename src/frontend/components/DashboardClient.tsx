@@ -43,7 +43,7 @@ export default function DashboardClient({
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   // Role-Based Access Control
-  const [userRole, setUserRole] = useState<'owner' | 'assistant'>('owner');
+  const [userRole, setUserRole] = useState<'owner' | 'assistant' | 'viewer'>('owner');
   const [userDisplayName, setUserDisplayName] = useState<string>('Mark Emad');
 
   // Dynamic Live Stats for Life Goals
@@ -134,7 +134,7 @@ export default function DashboardClient({
       if (savedAvatar) setAvatarUrl(savedAvatar);
     } catch {}
 
-    // Check if logged in as Assistant
+    // Check if logged in as Assistant or Viewer
     try {
       const storedUser = localStorage.getItem('academic_user');
       if (storedUser) {
@@ -142,6 +142,11 @@ export default function DashboardClient({
         if (u.role === 'assistant') {
           setUserRole('assistant');
           setUserDisplayName(u.displayName || u.username || 'مساعد الكلية');
+          setMainTab('academic');
+          return;
+        } else if (u.role === 'viewer') {
+          setUserRole('viewer');
+          setUserDisplayName(u.displayName || u.username || 'حساب عرض فقط');
           setMainTab('academic');
           return;
         } else {
@@ -215,8 +220,33 @@ export default function DashboardClient({
     } catch {}
   }
 
+  // 2-Device Limit Heartbeat: kicks out oldest device if 3rd device logs in
   useEffect(() => {
-    if (userRole !== 'assistant') {
+    const checkSessionStatus = async () => {
+      try {
+        const token = localStorage.getItem('academic_token');
+        if (!token) return;
+        const res = await fetch('/api/auth/session', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) {
+          const data = await res.json().catch(() => ({}));
+          if (data.kickedOut) {
+            localStorage.removeItem('academic_token');
+            localStorage.removeItem('academic_user');
+            alert('⚠️ تم تسجيل الخروج تلقائياً: تم تسجيل الدخول من جهاز آخر. الحد الأقصى للجلسات النشطة هو جهازين فقط.');
+            window.location.href = '/login?kicked=true';
+          }
+        }
+      } catch {}
+    };
+
+    const interval = setInterval(checkSessionStatus, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (userRole === 'owner') {
       localStorage.setItem('mainTab', mainTab);
     }
     localStorage.setItem('privacyActive', String(privacyActive));
@@ -439,9 +469,10 @@ export default function DashboardClient({
     { id: 'settings', icon: <Settings size={15} />, label: t.tabSettings },
   ];
 
-  // If Assistant role: strictly restrict navigation to Academic tab only
-  const navItems = userRole === 'assistant'
-    ? [{ id: 'academic', icon: <BookOpen size={15} />, label: t.tabAcademic, badge: 'PORTAL' }]
+  // If Assistant or Viewer role: strictly restrict navigation to Academic tab only
+  const isRestrictedRole = userRole === 'assistant' || userRole === 'viewer';
+  const navItems = isRestrictedRole
+    ? [{ id: 'academic', icon: <BookOpen size={15} />, label: t.tabAcademic, badge: userRole === 'viewer' ? 'عرض فقط' : 'PORTAL' }]
     : allNavItems;
 
   // Dynamic Live Life Goals
@@ -523,13 +554,18 @@ export default function DashboardClient({
                     {t.assistantModeBadge}
                   </span>
                 )}
+                {userRole === 'viewer' && (
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[10px] border border-purple-500/30">
+                    حساب عرض فقط (مشاهدة فقط)
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Google Calendar Direct Link Button (Opens custom or standard link) */}
-            {userRole !== 'assistant' && (
+            {userRole === 'owner' && (
               <a
                 href={googleCalendarUrl || 'https://calendar.google.com'}
                 target="_blank"
@@ -544,7 +580,7 @@ export default function DashboardClient({
             )}
 
             {/* Full Privacy Blur Toggle */}
-            {userRole !== 'assistant' && (
+            {userRole === 'owner' && (
               <button
                 onClick={() => setPrivacyActive(!privacyActive)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-black transition-all cursor-pointer shadow-sm ${
@@ -623,7 +659,7 @@ export default function DashboardClient({
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
 
         {/* ===================== 1. GOALS & OVERVIEW ===================== */}
-        {mainTab === 'overview' && userRole !== 'assistant' && (
+        {mainTab === 'overview' && userRole === 'owner' && (
           <div className="space-y-8">
             {/* Top Central Hero Banner */}
             <div className="relative overflow-hidden rounded-[2.5rem] border border-orange-500/30 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 sm:p-8 backdrop-blur-2xl shadow-[0_0_50px_rgba(255,85,0,0.12)]">
@@ -801,29 +837,29 @@ export default function DashboardClient({
         )}
 
         {/* ===================== 2. COURSES & LEARNING HUB (SKOOL STYLE) ===================== */}
-        {mainTab === 'courses' && userRole !== 'assistant' && (
+        {mainTab === 'courses' && userRole === 'owner' && (
           <CoursesClient lang={lang} />
         )}
 
         {/* ===================== 3. DEEP FOCUS ===================== */}
-        {mainTab === 'focus' && userRole !== 'assistant' && (
+        {mainTab === 'focus' && userRole === 'owner' && (
           <DeepFocusClient workTracking={workTracking} privacyActive={privacyActive} />
         )}
 
 
         {/* ===================== 4. BRAIN DUMP & QUICK NOTES ===================== */}
-        {mainTab === 'notes' && userRole !== 'assistant' && (
+        {mainTab === 'notes' && userRole === 'owner' && (
           <BrainDumpClient lang={lang} />
         )}
 
         {/* ===================== 5. TASKS ===================== */}
-        {mainTab === 'tasks' && userRole !== 'assistant' && (
+        {mainTab === 'tasks' && userRole === 'owner' && (
           <TaskClient />
         )}
 
 
         {/* ===================== 5. FINANCE ===================== */}
-        {mainTab === 'finance' && userRole !== 'assistant' && (
+        {mainTab === 'finance' && userRole === 'owner' && (
           <div className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/10 backdrop-blur-2xl">
               <div>
@@ -903,16 +939,16 @@ export default function DashboardClient({
 
         {/* ===================== 6. ACADEMIC & COLLEGE HUB ===================== */}
         {mainTab === 'academic' && (
-          <AcademicClient />
+          <AcademicClient userRole={userRole} />
         )}
 
         {/* ===================== 7. SUBSCRIPTIONS ===================== */}
-        {mainTab === 'subscriptions' && userRole !== 'assistant' && (
+        {mainTab === 'subscriptions' && userRole === 'owner' && (
           <SubscriptionClient />
         )}
 
         {/* ===================== 8. WISHLIST ===================== */}
-        {mainTab === 'wishlist' && userRole !== 'assistant' && (
+        {mainTab === 'wishlist' && userRole === 'owner' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/10 backdrop-blur-2xl">
               <div>
@@ -997,12 +1033,12 @@ export default function DashboardClient({
         )}
 
         {/* ===================== 9. KNOWLEDGE LIBRARY ===================== */}
-        {mainTab === 'library' && userRole !== 'assistant' && (
+        {mainTab === 'library' && userRole === 'owner' && (
           <LibraryClient />
         )}
 
         {/* ===================== 10. SETTINGS ===================== */}
-        {mainTab === 'settings' && userRole !== 'assistant' && (
+        {mainTab === 'settings' && userRole === 'owner' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 max-w-4xl mx-auto">
             <div className="flex items-center gap-3 p-6 sm:p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/10 backdrop-blur-2xl">
               <div className="w-12 h-12 rounded-2xl bg-orange-500/20 border border-orange-500/40 text-orange-400 flex items-center justify-center">

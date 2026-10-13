@@ -86,8 +86,26 @@ function parseEmbedPreviewUrl(url: string): { embedUrl: string; type: 'youtube' 
   return { embedUrl: clean, type: 'generic' };
 }
 
-export default function AcademicClient() {
+interface AcademicClientProps {
+  userRole?: 'owner' | 'assistant' | 'viewer';
+}
+
+export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
+  const [role, setRole] = useState<'owner' | 'assistant' | 'viewer'>(userRole || 'owner');
+
+  useEffect(() => {
+    if (userRole) {
+      setRole(userRole);
+    } else {
+      try {
+        const u = JSON.parse(localStorage.getItem('academic_user') || '{}');
+        if (u.role) setRole(u.role);
+      } catch {}
+    }
+  }, [userRole]);
+
+  const isViewer = role === 'viewer';
 
   const [settings, setSettings] = useState<AcademicSettings>({
     college_name: '',
@@ -140,7 +158,7 @@ export default function AcademicClient() {
     material_date: new Date().toISOString().split('T')[0],
   });
 
-  const [assistantForm, setAssistantForm] = useState({ username: '', password: '', display_name: '' });
+  const [assistantForm, setAssistantForm] = useState({ username: '', password: '', display_name: '', role: 'assistant' });
 
   const t = {
     ar: {
@@ -307,6 +325,7 @@ export default function AcademicClient() {
   // Save Settings
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewer) return;
     try {
       await fetch('/api/academic/settings', {
         method: 'POST',
@@ -323,7 +342,7 @@ export default function AcademicClient() {
   // Save Subject
   const handleSaveSubject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subjectForm.name.trim()) return;
+    if (isViewer || !subjectForm.name.trim()) return;
 
     try {
       if (editSubjectId) {
@@ -354,7 +373,7 @@ export default function AcademicClient() {
   // Save Material (Lectures / Assignments / Resources / Videos) — 100% Links, Zero Server Storage
   const handleSaveMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentSubject || !materialForm.title.trim()) return;
+    if (isViewer || !currentSubject || !materialForm.title.trim()) return;
 
     const endpointMap: Record<string, string> = {
       lectures: '/api/academic/materials/lectures',
@@ -426,6 +445,8 @@ export default function AcademicClient() {
 
   // Toggle item completion
   const handleToggleCompleted = async (tab: string, id: number, currentVal: boolean) => {
+    if (isViewer) return;
+
     const endpointMap: Record<string, string> = {
       lectures: '/api/academic/materials/lectures',
       assignments: '/api/academic/materials/assignments',
@@ -459,6 +480,7 @@ export default function AcademicClient() {
 
   // Delete item handler
   const executeDelete = async () => {
+    if (isViewer) return;
     const { type, id } = deleteConfirm;
     try {
       if (type === 'subject') {
@@ -487,6 +509,7 @@ export default function AcademicClient() {
 
   // Sync content
   const handleSyncContent = async () => {
+    if (isViewer) return;
     try {
       const res = await fetch('/api/academic/sync', { method: 'POST' }).then(r => r.json());
       if (res.success) {
@@ -512,7 +535,7 @@ export default function AcademicClient() {
   // Create Assistant
   const handleCreateAssistant = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assistantForm.username || !assistantForm.password) return;
+    if (isViewer || !assistantForm.username || !assistantForm.password) return;
     try {
       const res = await fetch('/api/academic/assistants', {
         method: 'POST',
@@ -520,7 +543,7 @@ export default function AcademicClient() {
         body: JSON.stringify(assistantForm),
       }).then(r => r.json());
       if (res.success) {
-        setAssistantForm({ username: '', password: '', display_name: '' });
+        setAssistantForm({ username: '', password: '', display_name: '', role: 'assistant' });
         loadAssistants();
       }
     } catch (e) {
@@ -530,6 +553,7 @@ export default function AcademicClient() {
 
   // Delete Assistant
   const handleDeleteAssistant = async (id: number) => {
+    if (isViewer) return;
     if (!confirm(t.confirmDeleteMsg)) return;
     try {
       await fetch(`/api/academic/assistants?id=${id}`, { method: 'DELETE' });
@@ -569,34 +593,43 @@ export default function AcademicClient() {
 
         {/* Global Action Controls */}
         <div className="flex flex-wrap items-center gap-3">
-          {pendingSync > 0 && (
-            <button
-              onClick={handleSyncContent}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-black shadow-lg animate-pulse"
-            >
-              <RefreshCw size={14} className="animate-spin" />
-              <span>{t.syncNow} ({pendingSync})</span>
-            </button>
+          {isViewer ? (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-bold">
+              <Eye size={15} />
+              <span>وضع العرض فقط (مشاهدة المحتوى فقط - غير متاح التعديل)</span>
+            </div>
+          ) : (
+            <>
+              {pendingSync > 0 && (
+                <button
+                  onClick={handleSyncContent}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-black shadow-lg animate-pulse"
+                >
+                  <RefreshCw size={14} className="animate-spin" />
+                  <span>{t.syncNow} ({pendingSync})</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  loadAssistants();
+                  setShowAssistantsModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all"
+              >
+                <Users size={16} />
+                <span>حسابات المساعدين</span>
+              </button>
+
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all"
+              >
+                <Settings size={16} />
+                <span>إعدادات الكلية</span>
+              </button>
+            </>
           )}
-
-          <button
-            onClick={() => {
-              loadAssistants();
-              setShowAssistantsModal(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all"
-          >
-            <Users size={16} />
-            <span>حسابات المساعدين</span>
-          </button>
-
-          <button
-            onClick={() => setShowSettingsModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all"
-          >
-            <Settings size={16} />
-            <span>إعدادات الكلية</span>
-          </button>
         </div>
       </div>
 
@@ -635,17 +668,19 @@ export default function AcademicClient() {
               />
             </div>
 
-            <button
-              onClick={() => {
-                setEditSubjectId(null);
-                setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘', drive_folder_url: '' });
-                setShowSubjectModal(true);
-              }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02]"
-            >
-              <Plus size={18} />
-              <span>{t.addSubject}</span>
-            </button>
+            {!isViewer && (
+              <button
+                onClick={() => {
+                  setEditSubjectId(null);
+                  setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘', drive_folder_url: '' });
+                  setShowSubjectModal(true);
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02]"
+              >
+                <Plus size={18} />
+                <span>{t.addSubject}</span>
+              </button>
+            )}
           </div>
 
           {loading ? (
@@ -801,31 +836,33 @@ export default function AcademicClient() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setEditSubjectId(currentSubject.id);
-                  setSubjectForm({
-                    name: currentSubject.name,
-                    code: currentSubject.code || '',
-                    color: currentSubject.color || '#FF6B00',
-                    icon: currentSubject.icon || '📘',
-                    drive_folder_url: currentSubject.drive_folder_url || currentSubject.driveFolderUrl || '',
-                  });
-                  setShowSubjectModal(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm font-bold text-gray-300 hover:bg-white/10 hover:text-white"
-              >
-                <Edit2 size={16} />
-                <span>{t.edit}</span>
-              </button>
-              <button
-                onClick={() => setDeleteConfirm({ open: true, type: 'subject', id: currentSubject.id, title: currentSubject.name })}
-                className="p-2.5 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
+            {!isViewer && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setEditSubjectId(currentSubject.id);
+                    setSubjectForm({
+                      name: currentSubject.name,
+                      code: currentSubject.code || '',
+                      color: currentSubject.color || '#FF6B00',
+                      icon: currentSubject.icon || '📘',
+                      drive_folder_url: currentSubject.drive_folder_url || currentSubject.driveFolderUrl || '',
+                    });
+                    setShowSubjectModal(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm font-bold text-gray-300 hover:bg-white/10 hover:text-white"
+                >
+                  <Edit2 size={16} />
+                  <span>{t.edit}</span>
+                </button>
+                <button
+                  onClick={() => setDeleteConfirm({ open: true, type: 'subject', id: currentSubject.id, title: currentSubject.name })}
+                  className="p-2.5 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── GOOGLE DRIVE FOLDER HERO BANNER ── */}
@@ -841,7 +878,7 @@ export default function AcademicClient() {
                 <span className="text-xs text-gray-400 block">
                   {currentSubject.drive_folder_url || currentSubject.driveFolderUrl
                     ? 'تم ربط المجلد السحابي: يمكنك رفع وتصفح الملفات والـ PDFs مباشرة عبر درايف'
-                    : 'لم يتم ربط مجلد درايف بعد — اضغط هنا لتعيين رابط المجلد'}
+                    : 'لم يتم ربط مجلد درايف بعد'}
                 </span>
               </div>
             </div>
@@ -858,6 +895,28 @@ export default function AcademicClient() {
                     <span>🚀 {t.openDriveFolder}</span>
                     <ExternalLink size={14} />
                   </a>
+                  {!isViewer && (
+                    <button
+                      onClick={() => {
+                        setEditSubjectId(currentSubject.id);
+                        setSubjectForm({
+                          name: currentSubject.name,
+                          code: currentSubject.code || '',
+                          color: currentSubject.color || '#FF6B00',
+                          icon: currentSubject.icon || '📘',
+                          drive_folder_url: currentSubject.drive_folder_url || currentSubject.driveFolderUrl || '',
+                        });
+                        setShowSubjectModal(true);
+                      }}
+                      className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white"
+                      title="تعديل رابط المجلد"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                  )}
+                </>
+              ) : (
+                !isViewer && (
                   <button
                     onClick={() => {
                       setEditSubjectId(currentSubject.id);
@@ -866,34 +925,16 @@ export default function AcademicClient() {
                         code: currentSubject.code || '',
                         color: currentSubject.color || '#FF6B00',
                         icon: currentSubject.icon || '📘',
-                        drive_folder_url: currentSubject.drive_folder_url || currentSubject.driveFolderUrl || '',
+                        drive_folder_url: '',
                       });
                       setShowSubjectModal(true);
                     }}
-                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white"
-                    title="تعديل رابط المجلد"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500/20 hover:bg-blue-500 text-blue-300 hover:text-black font-black text-xs border border-blue-500/40 transition-all"
                   >
-                    <Edit2 size={14} />
+                    <FolderPlus size={16} />
+                    <span>+ {t.setDriveFolder}</span>
                   </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => {
-                    setEditSubjectId(currentSubject.id);
-                    setSubjectForm({
-                      name: currentSubject.name,
-                      code: currentSubject.code || '',
-                      color: currentSubject.color || '#FF6B00',
-                      icon: currentSubject.icon || '📘',
-                      drive_folder_url: '',
-                    });
-                    setShowSubjectModal(true);
-                  }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500/20 hover:bg-blue-500 text-blue-300 hover:text-black font-black text-xs border border-blue-500/40 transition-all"
-                >
-                  <FolderPlus size={16} />
-                  <span>+ {t.setDriveFolder}</span>
-                </button>
+                )
               )}
             </div>
           </div>
@@ -925,26 +966,28 @@ export default function AcademicClient() {
               ))}
             </div>
 
-            <button
-              onClick={() => {
-                setEditMaterialId(null);
-                setMaterialForm({
-                  title: '',
-                  description: '',
-                  file_path: '',
-                  url: '',
-                  video_url: '',
-                  video_type: 'youtube',
-                  due_date: '',
-                  material_date: new Date().toISOString().split('T')[0],
-                });
-                setShowMaterialModal(true);
-              }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shadow-lg shrink-0"
-            >
-              <Plus size={16} />
-              <span>{t.add}</span>
-            </button>
+            {!isViewer && (
+              <button
+                onClick={() => {
+                  setEditMaterialId(null);
+                  setMaterialForm({
+                    title: '',
+                    description: '',
+                    file_path: '',
+                    url: '',
+                    video_url: '',
+                    video_type: 'youtube',
+                    due_date: '',
+                    material_date: new Date().toISOString().split('T')[0],
+                  });
+                  setShowMaterialModal(true);
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shadow-lg shrink-0"
+              >
+                <Plus size={16} />
+                <span>{t.add}</span>
+              </button>
+            )}
           </div>
 
           {/* Material Items List */}
@@ -982,8 +1025,11 @@ export default function AcademicClient() {
                     {/* Checkbox and info */}
                     <div className="flex items-start gap-4 w-full sm:w-auto flex-1 min-w-0">
                       <button
-                        onClick={() => handleToggleCompleted(activeTab, item.id, isCompleted)}
+                        disabled={isViewer}
+                        onClick={() => !isViewer && handleToggleCompleted(activeTab, item.id, isCompleted)}
                         className={`mt-1 w-6 h-6 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
+                          isViewer ? 'cursor-default opacity-80 ' : ''
+                        }${
                           isCompleted
                             ? 'bg-emerald-500 border-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.5)]'
                             : 'border-gray-500 hover:border-emerald-400 text-transparent'
@@ -1069,34 +1115,37 @@ export default function AcademicClient() {
                         </a>
                       )}
 
-                      {/* Edit Button */}
-                      <button
-                        onClick={() => {
-                          setEditMaterialId(item.id);
-                          setMaterialForm({
-                            title: item.title,
-                            description: item.description || '',
-                            file_path: item.file_path || item.url || '',
-                            url: item.url || item.file_path || '',
-                            video_url: item.video_url || item.file_path || '',
-                            video_type: item.video_type || 'youtube',
-                            due_date: item.due_date || '',
-                            material_date: item.material_date || '',
-                          });
-                          setShowMaterialModal(true);
-                        }}
-                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
-                      >
-                        <Edit2 size={14} />
-                      </button>
+                      {/* Edit & Delete Buttons for non-viewers only */}
+                      {!isViewer && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setEditMaterialId(item.id);
+                              setMaterialForm({
+                                title: item.title,
+                                description: item.description || '',
+                                file_path: item.file_path || item.url || '',
+                                url: item.url || item.file_path || '',
+                                video_url: item.video_url || item.file_path || '',
+                                video_type: item.video_type || 'youtube',
+                                due_date: item.due_date || '',
+                                material_date: item.material_date || '',
+                              });
+                              setShowMaterialModal(true);
+                            }}
+                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
+                          >
+                            <Edit2 size={14} />
+                          </button>
 
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => setDeleteConfirm({ open: true, type: activeTab, id: item.id, title: item.title })}
-                        className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                          <button
+                            onClick={() => setDeleteConfirm({ open: true, type: activeTab, id: item.id, title: item.title })}
+                            className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -1534,6 +1583,43 @@ export default function AcademicClient() {
                     className="px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white"
                   />
                 </div>
+
+                {/* Account Role Selector: Assistant vs View-Only */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-[11px] font-bold text-gray-400 block">نوع الحساب والصلاحية الممنوحة:</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAssistantForm({ ...assistantForm, role: 'assistant' })}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-between text-right ${
+                        assistantForm.role === 'assistant'
+                          ? 'border-amber-500 bg-amber-500/20 text-amber-300 shadow-md shadow-amber-500/10'
+                          : 'border-white/10 bg-white/5 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>✏️ مساعد (إضافة وتعديل المحتوى)</span>
+                      </div>
+                      {assistantForm.role === 'assistant' && <CheckCircle size={15} className="text-amber-400" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAssistantForm({ ...assistantForm, role: 'viewer' })}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex items-center justify-between text-right ${
+                        assistantForm.role === 'viewer'
+                          ? 'border-purple-500 bg-purple-500/20 text-purple-300 shadow-md shadow-purple-500/10'
+                          : 'border-white/10 bg-white/5 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>👁️ عرض فقط لا غير (مشاهدة المحتوى فقط)</span>
+                      </div>
+                      {assistantForm.role === 'viewer' && <CheckCircle size={15} className="text-purple-400" />}
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-amber-500 text-black text-xs font-black hover:bg-amber-400"
@@ -1544,14 +1630,25 @@ export default function AcademicClient() {
 
               {/* Assistants List */}
               <div className="space-y-3">
-                <h4 className="text-sm font-bold text-gray-400">حسابات المساعدين المسجلة</h4>
+                <h4 className="text-sm font-bold text-gray-400">الحسابات المسجلة</h4>
                 {assistants.length === 0 ? (
                   <p className="text-xs text-gray-500">{t.noAssistants}</p>
                 ) : (
                   assistants.map(asst => (
                     <div key={asst.id} className="flex items-center justify-between p-3.5 rounded-xl border border-white/10 bg-white/[0.02]">
                       <div>
-                        <strong className="text-sm text-white block">{asst.display_name || asst.username}</strong>
+                        <div className="flex items-center gap-2">
+                          <strong className="text-sm text-white block">{asst.display_name || asst.username}</strong>
+                          {asst.role === 'viewer' ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                              👁️ عرض فقط لا غير
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              ✏️ مساعد
+                            </span>
+                          )}
+                        </div>
                         <span className="text-xs font-mono text-gray-500">@{asst.username}</span>
                       </div>
                       <button

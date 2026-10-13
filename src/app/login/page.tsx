@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Mail, Shield, Eye, EyeOff, Globe, LogIn } from 'lucide-react';
+import { Lock, Mail, Shield, Eye, EyeOff, Globe, LogIn, Smartphone, Laptop, Apple, X, CheckCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
@@ -12,8 +12,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('/profile-hero.png');
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   useEffect(() => {
+    // Check if kicked out due to 2-device session limit
+    if (typeof window !== 'undefined' && window.location.search.includes('kicked=true')) {
+      setError('⚠️ تم تسجيل خروج هذا الجهاز تلقائياً بسبب تسجيل الدخول من جهاز جديد (الحد الأقصى المسموح به هو جهازين فقط في نفس الوقت).');
+    }
+
     // Load avatar set from inside the system (localStorage or profile API)
     try {
       const saved = localStorage.getItem('user_avatar');
@@ -110,14 +116,26 @@ export default function LoginPage() {
           <span className="font-black text-sm tracking-widest text-orange-400 uppercase font-mono">MARK OS</span>
         </div>
 
-        {/* Language Switcher */}
-        <button
-          onClick={() => setLang(l => (l === 'ar' ? 'en' : 'ar'))}
-          className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-white/10 bg-white/[0.03] text-xs font-bold text-gray-300 hover:text-white hover:border-orange-500/40 transition-all cursor-pointer"
-        >
-          <Globe size={15} className="text-orange-400" />
-          <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
-        </button>
+        {/* Top Header Actions */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowInstallModal(true)}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl border border-orange-500/40 bg-orange-500/10 hover:bg-orange-500/20 text-xs font-bold text-orange-300 hover:text-white transition-all cursor-pointer shadow-[0_0_15px_rgba(255,85,0,0.15)]"
+          >
+            <Smartphone size={15} className="text-orange-400" />
+            <span>{lang === 'ar' ? '📱 تنزيل التطبيق (آيفون • كمبيوتر)' : '📱 Install App'}</span>
+          </button>
+
+          {/* Language Switcher */}
+          <button
+            onClick={() => setLang(l => (l === 'ar' ? 'en' : 'ar'))}
+            className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-white/10 bg-white/[0.03] text-xs font-bold text-gray-300 hover:text-white hover:border-orange-500/40 transition-all cursor-pointer"
+          >
+            <Globe size={15} className="text-orange-400" />
+            <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Full-Page Stage */}
@@ -238,6 +256,78 @@ export default function LoginPage() {
       <footer className="w-full text-center text-[11px] font-mono text-gray-600 z-20">
         {t.footer} • {new Date().getFullYear()}
       </footer>
+
+      {/* App Installation Guide Modal */}
+      {showInstallModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-xl rounded-[2.5rem] border border-orange-500/30 bg-[#0c0d12] p-6 sm:p-8 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-orange-500/20 border border-orange-500/40 text-orange-400 flex items-center justify-center">
+                  <Smartphone size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white">تثبيت MARK OS كتطبيق مستقل</h3>
+                  <p className="text-xs text-gray-400">يعمل بدون متصفح وبكامل الشاشة على جميع الأجهزة</p>
+                </div>
+              </div>
+              <button onClick={() => setShowInstallModal(false)} className="p-2 text-gray-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-start">
+              {/* iOS / iPhone */}
+              <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] space-y-2">
+                <div className="flex items-center gap-2 text-white font-black text-sm">
+                  <Apple size={18} className="text-white" />
+                  <span>آيفون وآيباد (iPhone / iPad - Safari):</span>
+                </div>
+                <ol className="list-decimal list-inside text-xs text-gray-300 space-y-1.5 leading-relaxed">
+                  <li>افتح هذا الرابط في متصفح <strong>Safari</strong> على الآيفون.</li>
+                  <li>اضغط على زر المشاركة <strong>Share (مربع بسهم لأعلى ⎋)</strong> في أسفل الشاشة.</li>
+                  <li>انزل بالقائمة واختر <strong>"إضافة إلى الشاشة الرئيسية" (Add to Home Screen ➕)</strong>.</li>
+                  <li>اضغط <strong>"إضافة" (Add)</strong> في أعلى الزاوية. سيظهر التطبيق فوراً بأيقونته الرسمية على شاشة هاتفك ويعمل كتطبيق كامل!</li>
+                </ol>
+              </div>
+
+              {/* Android */}
+              <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] space-y-2">
+                <div className="flex items-center gap-2 text-emerald-400 font-black text-sm">
+                  <Smartphone size={18} />
+                  <span>أندرويد (Android - Chrome):</span>
+                </div>
+                <ol className="list-decimal list-inside text-xs text-gray-300 space-y-1.5 leading-relaxed">
+                  <li>افتح الموقع في متصفح <strong>Chrome</strong>.</li>
+                  <li>اضغط على أيقونة الثلاث نقاط (⋮) في أعلى المتصفح.</li>
+                  <li>اختر <strong>"تثبيت التطبيق" (Install App)</strong> أو "إضافة إلى الشاشة الرئيسية".</li>
+                </ol>
+              </div>
+
+              {/* Mac & Windows */}
+              <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] space-y-2">
+                <div className="flex items-center gap-2 text-cyan-400 font-black text-sm">
+                  <Laptop size={18} />
+                  <span>الكمبيوتر واللابتوب (Mac & Windows):</span>
+                </div>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  في متصفح Chrome أو Edge، اضغط على أيقونة التثبيت <strong>(Install ⊕)</strong> الموجودة مباشرة في شريط عنوان الموقع بالأعلى لتشغيله في نافذة مستقلة سريعة وخفيفة.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => setShowInstallModal(false)}
+                className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-400 text-white font-black text-xs transition-all"
+              >
+                فهمت، إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
