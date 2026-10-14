@@ -92,7 +92,16 @@ interface AcademicClientProps {
 
 export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
-  const [role, setRole] = useState<'owner' | 'assistant' | 'viewer'>(userRole || 'owner');
+  const [role, setRole] = useState<'owner' | 'assistant' | 'viewer'>(() => {
+    if (userRole) return userRole;
+    if (typeof window !== 'undefined') {
+      try {
+        const u = JSON.parse(localStorage.getItem('academic_user') || '{}');
+        if (u.role === 'assistant' || u.role === 'viewer' || u.role === 'owner') return u.role;
+      } catch {}
+    }
+    return 'owner';
+  });
 
   useEffect(() => {
     if (userRole) {
@@ -105,6 +114,8 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
     }
   }, [userRole]);
 
+  const isOwner = role === 'owner';
+  const isAssistant = role === 'assistant';
   const isViewer = role === 'viewer';
 
   const [settings, setSettings] = useState<AcademicSettings>({
@@ -325,7 +336,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
   // Save Settings
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isViewer) return;
+    if (!isOwner) return;
     try {
       await fetch('/api/academic/settings', {
         method: 'POST',
@@ -532,10 +543,10 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
     }
   };
 
-  // Create Assistant
+  // Create Assistant (Owner Only)
   const handleCreateAssistant = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isViewer || !assistantForm.username || !assistantForm.password) return;
+    if (!isOwner || !assistantForm.username || !assistantForm.password) return;
     try {
       const res = await fetch('/api/academic/assistants', {
         method: 'POST',
@@ -551,9 +562,9 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
     }
   };
 
-  // Delete Assistant
+  // Delete Assistant (Owner Only)
   const handleDeleteAssistant = async (id: number) => {
-    if (isViewer) return;
+    if (!isOwner) return;
     if (!confirm(t.confirmDeleteMsg)) return;
     try {
       await fetch(`/api/academic/assistants?id=${id}`, { method: 'DELETE' });
@@ -593,23 +604,18 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
 
         {/* Global Action Controls */}
         <div className="flex flex-wrap items-center gap-3">
-          {isViewer ? (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-bold">
-              <Eye size={15} />
-              <span>وضع العرض فقط (مشاهدة المحتوى فقط - غير متاح التعديل)</span>
-            </div>
-          ) : (
-            <>
-              {pendingSync > 0 && (
-                <button
-                  onClick={handleSyncContent}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-black shadow-lg animate-pulse"
-                >
-                  <RefreshCw size={14} className="animate-spin" />
-                  <span>{t.syncNow} ({pendingSync})</span>
-                </button>
-              )}
+          {pendingSync > 0 && !isViewer && (
+            <button
+              onClick={handleSyncContent}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-black shadow-lg animate-pulse"
+            >
+              <RefreshCw size={14} className="animate-spin" />
+              <span>{t.syncNow} ({pendingSync})</span>
+            </button>
+          )}
 
+          {isOwner && (
+            <>
               <button
                 onClick={() => {
                   loadAssistants();
@@ -694,12 +700,14 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                 📚
               </div>
               <h3 className="text-lg font-bold text-white">{t.noSubjects}</h3>
-              <button
-                onClick={() => setShowSubjectModal(true)}
-                className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-bold text-sm hover:bg-amber-400 shadow-lg"
-              >
-                + {t.addSubject}
-              </button>
+              {!isViewer && (
+                <button
+                  onClick={() => setShowSubjectModal(true)}
+                  className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-bold text-sm hover:bg-amber-400 shadow-lg"
+                >
+                  + {t.addSubject}
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

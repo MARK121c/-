@@ -43,7 +43,15 @@ export default function DashboardClient({
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   // Role-Based Access Control
-  const [userRole, setUserRole] = useState<'owner' | 'assistant' | 'viewer'>('owner');
+  const [userRole, setUserRole] = useState<'owner' | 'assistant' | 'viewer'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const u = JSON.parse(localStorage.getItem('academic_user') || '{}');
+        if (u.role === 'assistant' || u.role === 'viewer' || u.role === 'owner') return u.role;
+      } catch {}
+    }
+    return 'owner';
+  });
   const [userDisplayName, setUserDisplayName] = useState<string>('Mark Emad');
 
   // Dynamic Live Stats for Life Goals
@@ -472,7 +480,7 @@ export default function DashboardClient({
   // If Assistant or Viewer role: strictly restrict navigation to Academic tab only
   const isRestrictedRole = userRole === 'assistant' || userRole === 'viewer';
   const navItems = isRestrictedRole
-    ? [{ id: 'academic', icon: <BookOpen size={15} />, label: t.tabAcademic, badge: userRole === 'viewer' ? 'عرض فقط' : 'PORTAL' }]
+    ? [{ id: 'academic', icon: <BookOpen size={15} />, label: t.tabAcademic, badge: userRole === 'assistant' ? 'PORTAL' : undefined }]
     : allNavItems;
 
   // Dynamic Live Life Goals
@@ -552,11 +560,6 @@ export default function DashboardClient({
                 {userRole === 'assistant' && (
                   <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold text-[10px] border border-blue-500/30">
                     {t.assistantModeBadge}
-                  </span>
-                )}
-                {userRole === 'viewer' && (
-                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[10px] border border-purple-500/30">
-                    حساب عرض فقط (مشاهدة فقط)
                   </span>
                 )}
               </div>

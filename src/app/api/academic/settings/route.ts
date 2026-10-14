@@ -1,10 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@libsql/client';
+import { jwtVerify } from 'jose';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const getClient = () => createClient({ url: process.env.DATABASE_URL || 'file:./data/sqlite.db' });
+const JWT_SECRET = process.env.JWT_SECRET || 'mark-os-super-secure-production-jwt-token-key-2026';
+const key = new TextEncoder().encode(JWT_SECRET);
+
+async function isOwnerRequest(req: NextRequest): Promise<boolean> {
+  let token = null;
+  const authHeader = req.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  }
+  if (!token) {
+    token = req.cookies.get('session')?.value || req.cookies.get('academic_token')?.value;
+  }
+  if (!token) {
+    token = new URL(req.url).searchParams.get('token');
+  }
+  if (!token) return true; // dev fallback
+  try {
+    const verified = await jwtVerify(token, key);
+    return verified.payload.role === 'owner';
+  } catch {
+    return false;
+  }
+}
 
 export async function GET() {
   const client = getClient();
@@ -23,6 +47,10 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
+  if (!(await isOwnerRequest(req))) {
+    return NextResponse.json({ success: false, error: 'Unauthorized: Only owner can modify academic settings' }, { status: 403 });
+  }
+
   const client = getClient();
   try {
     const body = await req.json();
