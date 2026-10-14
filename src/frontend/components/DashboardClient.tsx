@@ -511,7 +511,6 @@ export default function DashboardClient({
   ];
 
   // If Assistant or Viewer role: strictly restrict navigation to Academic tab only
-  const isRestrictedRole = userRole === 'assistant' || userRole === 'viewer';
   const navItems = isRestrictedRole
     ? [{ id: 'academic', icon: <BookOpen size={15} />, label: t.tabAcademic, badge: userRole === 'assistant' ? 'PORTAL' : undefined }]
     : allNavItems;
