@@ -18,11 +18,77 @@ import {
 } from '@/backend/lib/finance';
 import { ensureTables } from '@/backend/db/migrate';
 
+import { cookies } from 'next/headers';
+import { jwtVerify } from 'jose';
+
 export const revalidate = 0;
+
+const primarySecret = process.env.AUTH_SECRET || 'fallback-secret-at-least-32-chars-long-12345';
+const secondarySecret = process.env.JWT_SECRET || 'mark-os-super-secure-production-jwt-token-key-2026';
+const primaryKey = new TextEncoder().encode(primarySecret);
+const secondaryKey = new TextEncoder().encode(secondarySecret);
+
+async function getServerUser(): Promise<{ role: 'owner' | 'assistant' | 'viewer'; displayName: string }> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('session')?.value || cookieStore.get('academic_token')?.value;
+    if (!token) return { role: 'owner', displayName: 'Mark Emad' };
+
+    let payload: any = null;
+    try {
+      const v = await jwtVerify(token, primaryKey);
+      payload = v.payload;
+    } catch {
+      try {
+        const v = await jwtVerify(token, secondaryKey);
+        payload = v.payload;
+      } catch {
+        return { role: 'owner', displayName: 'Mark Emad' };
+      }
+    }
+
+    const role = (payload?.role === 'assistant' || payload?.role === 'viewer') ? payload.role : 'owner';
+    const displayName = payload?.displayName || payload?.userId || 'User';
+    return { role, displayName };
+  } catch {
+    return { role: 'owner', displayName: 'Mark Emad' };
+  }
+}
 
 const rawClient = createClient({ url: process.env.DATABASE_URL || 'file:./data/sqlite.db' });
 
 export default async function Home() {
+  const user = await getServerUser();
+
+  // If assistant or viewer, immediately render only Academic portal on the server - ZERO flash of other data
+  if (user.role === 'assistant' || user.role === 'viewer') {
+    return (
+      <DashboardClient
+        initialRole={user.role}
+        initialDisplayName={user.displayName}
+        initialTab="academic"
+        transactions={[]}
+        assets={[]}
+        incomes={[]}
+        wishlist={[]}
+        investments={[]}
+        passiveSources={[]}
+        wallets={[]}
+        workTracking={[]}
+        resources={[]}
+        tasksToday={[]}
+        activeRoutines={[]}
+        upcomingEvents={[]}
+        activeSubscriptions={[]}
+        netWorth={0}
+        forecast={0}
+        hourlyRate={0}
+        distributionSettings={{}}
+        settings={{ isPanic: false, notionUrl: '' }}
+      />
+    );
+  }
+
   let migrationLogs: string[] = [];
   
   try {
@@ -71,6 +137,8 @@ export default async function Home() {
 
     return (
       <DashboardClient 
+        initialRole="owner"
+        initialDisplayName={user.displayName}
         transactions={transactionData}
         assets={assetData}
         incomes={incomeData}

@@ -21,6 +21,9 @@ import BrainDumpClient from './BrainDumpClient';
 
 
 interface Props {
+  initialRole?: 'owner' | 'assistant' | 'viewer';
+  initialDisplayName?: string;
+  initialTab?: string;
   transactions: any[]; assets: any[]; incomes: any[]; wishlist: any[];
   investments: any[]; passiveSources: any[]; wallets: any[]; workTracking: any[];
   resources: any[];
@@ -30,6 +33,7 @@ interface Props {
 }
 
 export default function DashboardClient({ 
+  initialRole, initialDisplayName, initialTab,
   transactions, assets, incomes, wishlist: initialWishlist, investments, 
   passiveSources, wallets, workTracking, resources, 
   tasksToday, upcomingEvents, activeSubscriptions,
@@ -38,12 +42,9 @@ export default function DashboardClient({
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const isRtl = lang === 'ar';
 
-  const [mainTab, setMainTab] = useState('overview');
-  const [privacyActive, setPrivacyActive] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-
   // Role-Based Access Control
   const [userRole, setUserRole] = useState<'owner' | 'assistant' | 'viewer'>(() => {
+    if (initialRole) return initialRole;
     if (typeof window !== 'undefined') {
       try {
         const u = JSON.parse(localStorage.getItem('academic_user') || '{}');
@@ -52,7 +53,37 @@ export default function DashboardClient({
     }
     return 'owner';
   });
-  const [userDisplayName, setUserDisplayName] = useState<string>('Mark Emad');
+
+  const [mainTab, setMainTab] = useState<string>(() => {
+    if (initialTab) return initialTab;
+    if (initialRole === 'assistant' || initialRole === 'viewer') return 'academic';
+    if (typeof window !== 'undefined') {
+      try {
+        const u = JSON.parse(localStorage.getItem('academic_user') || '{}');
+        if (u.role === 'assistant' || u.role === 'viewer') return 'academic';
+        const saved = localStorage.getItem('mainTab');
+        if (saved && saved !== 'habits') return saved;
+      } catch {}
+    }
+    return 'overview';
+  });
+
+  const [userDisplayName, setUserDisplayName] = useState<string>(() => {
+    if (initialDisplayName) return initialDisplayName;
+    if (typeof window !== 'undefined') {
+      try {
+        const u = JSON.parse(localStorage.getItem('academic_user') || '{}');
+        if (u.displayName) return u.displayName;
+      } catch {}
+    }
+    return 'Mark Emad';
+  });
+
+  const isRestrictedRole = userRole === 'assistant' || userRole === 'viewer';
+  const effectiveTab = isRestrictedRole ? 'academic' : mainTab;
+
+  const [privacyActive, setPrivacyActive] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   // Dynamic Live Stats for Life Goals
   const [academicStats, setAcademicStats] = useState({ total: 0, completed: 0, percentage: 0 });
@@ -167,27 +198,29 @@ export default function DashboardClient({
     const savedMain = localStorage.getItem('mainTab');
     const savedPrivacy = localStorage.getItem('privacyActive');
     const savedLang = localStorage.getItem('lang');
-    if (savedMain && savedMain !== 'habits') setMainTab(savedMain);
+    if (savedMain && savedMain !== 'habits' && userRole === 'owner') setMainTab(savedMain);
     if (savedPrivacy) setPrivacyActive(savedPrivacy === 'true');
     if (savedLang === 'ar' || savedLang === 'en') setLang(savedLang);
 
-    // Fetch initial profile settings
-    fetch('/api/settings/profile')
-      .then(r => r.json())
-      .then(data => {
-        if (data.email) setProfileEmail(data.email);
-        if (data.notionUrl) setProfileNotionUrl(data.notionUrl);
-        if (data.googleCalendarUrl) setGoogleCalendarUrl(data.googleCalendarUrl);
-        if (data.avatarUrl) {
-          setAvatarUrl(data.avatarUrl);
-          try { localStorage.setItem('user_avatar', data.avatarUrl); } catch {}
-        }
-      })
-      .catch(() => {});
+    if (userRole === 'owner') {
+      // Fetch initial profile settings
+      fetch('/api/settings/profile')
+        .then(r => r.json())
+        .then(data => {
+          if (data.email) setProfileEmail(data.email);
+          if (data.notionUrl) setProfileNotionUrl(data.notionUrl);
+          if (data.googleCalendarUrl) setGoogleCalendarUrl(data.googleCalendarUrl);
+          if (data.avatarUrl) {
+            setAvatarUrl(data.avatarUrl);
+            try { localStorage.setItem('user_avatar', data.avatarUrl); } catch {}
+          }
+        })
+        .catch(() => {});
 
-    // Fetch dynamic stats for Overview Goals
-    fetchDynamicGoalStats();
-  }, []);
+      // Fetch dynamic stats for Overview Goals
+      fetchDynamicGoalStats();
+    }
+  }, [userRole]);
 
   async function fetchDynamicGoalStats() {
     try {
@@ -631,7 +664,7 @@ export default function DashboardClient({
         <div className="max-w-7xl mx-auto">
           <nav className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5">
             {navItems.map(item => {
-              const isActive = mainTab === item.id;
+              const isActive = effectiveTab === item.id;
               return (
                 <button
                   key={item.id}
@@ -662,7 +695,7 @@ export default function DashboardClient({
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
 
         {/* ===================== 1. GOALS & OVERVIEW ===================== */}
-        {mainTab === 'overview' && userRole === 'owner' && (
+        {effectiveTab === 'overview' && !isRestrictedRole && userRole === 'owner' && (
           <div className="space-y-8">
             {/* Top Central Hero Banner */}
             <div className="relative overflow-hidden rounded-[2.5rem] border border-orange-500/30 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 sm:p-8 backdrop-blur-2xl shadow-[0_0_50px_rgba(255,85,0,0.12)]">
@@ -941,7 +974,7 @@ export default function DashboardClient({
         )}
 
         {/* ===================== 6. ACADEMIC & COLLEGE HUB ===================== */}
-        {mainTab === 'academic' && (
+        {effectiveTab === 'academic' && (
           <AcademicClient userRole={userRole} />
         )}
 

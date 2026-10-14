@@ -86,7 +86,12 @@ export default function LoginPage() {
       const data = await response.json();
       if (response.ok && (data.success || data.token)) {
         if (data.token) localStorage.setItem('academic_token', data.token);
-        if (data.user) localStorage.setItem('academic_user', JSON.stringify(data.user));
+        if (data.user) {
+          localStorage.setItem('academic_user', JSON.stringify(data.user));
+          if (data.user.role === 'assistant' || data.user.role === 'viewer') {
+            localStorage.setItem('mainTab', 'academic');
+          }
+        }
         window.location.href = '/';
       } else {
         setError(data.error || t.serverError);

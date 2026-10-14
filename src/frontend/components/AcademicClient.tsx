@@ -757,9 +757,9 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                     onClick={() => handleSelectSubject(sub)}
                     className="group relative flex flex-col justify-between rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-amber-500/40 hover:shadow-2xl hover:shadow-amber-500/5 transition-all cursor-pointer overflow-hidden"
                   >
-                    {/* Cover Image */}
+                    {/* Cover Image - 16:9 YouTube Thumbnail ratio */}
                     {sub.cover_image && (
-                      <div className="relative w-full h-32 overflow-hidden">
+                      <div className="relative w-full aspect-video overflow-hidden bg-black/40">
                         <img
                           src={sub.cover_image}
                           alt={sub.name}
@@ -857,9 +857,9 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
       ) : (
         /* ── SUBJECT DETAIL VIEW ── */
         <div className="space-y-6">
-          {/* Cover Image Banner */}
+          {/* Cover Image Banner - YouTube 16:9 Thumbnail Ratio */}
           {currentSubject.cover_image && (
-            <div className="relative w-full h-40 sm:h-52 rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
+            <div className="relative w-full aspect-video max-h-72 rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl bg-black/50">
               <img
                 src={currentSubject.cover_image}
                 alt={currentSubject.name}
@@ -867,7 +867,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-6">
                 <span className="px-3 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-xs font-bold text-white/80">
-                  كفر المادة الأكاديمية
+                  كفر المادة الأكاديمية (16:9)
                 </span>
               </div>
             </div>
@@ -1321,18 +1321,18 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-lg rounded-[2.5rem] border border-white/10 bg-[#0c0d12] p-6 sm:p-8 space-y-6 shadow-2xl"
+              className="w-full max-w-lg max-h-[82vh] flex flex-col rounded-[2.5rem] border border-white/10 bg-[#0c0d12] p-6 sm:p-7 shadow-2xl overflow-hidden"
             >
-              <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                <h3 className="text-xl font-black text-white">
+              <div className="flex justify-between items-center border-b border-white/10 pb-3.5 shrink-0">
+                <h3 className="text-lg font-black text-white">
                   {editSubjectId ? t.editSubject : t.addSubject}
                 </h3>
                 <button onClick={() => setShowSubjectModal(false)} className="p-2 text-gray-400 hover:text-white">
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveSubject} className="space-y-4">
+              <form onSubmit={handleSaveSubject} className="space-y-4 overflow-y-auto flex-1 py-3 pr-1 pl-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <div>
                   <label className="text-xs font-bold text-gray-400 block mb-1">{t.subjectName}</label>
                   <input
@@ -1340,7 +1340,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                     required
                     value={subjectForm.name}
                     onChange={e => setSubjectForm({ ...subjectForm, name: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-amber-500"
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-amber-500"
                     placeholder="مثال: هندسة الإلكترونيات"
                   />
                 </div>
@@ -1351,13 +1351,13 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                     type="text"
                     value={subjectForm.code}
                     onChange={e => setSubjectForm({ ...subjectForm, code: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-amber-500"
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-amber-500"
                     placeholder="مثال: ELEC101"
                   />
                 </div>
 
                 {/* Google Drive Folder Link */}
-                <div className="space-y-1.5 p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20">
+                <div className="space-y-1.5 p-3.5 rounded-2xl bg-blue-500/5 border border-blue-500/20">
                   <label className="text-xs font-black text-blue-400 flex items-center gap-1.5">
                     <Folder size={14} />
                     <span>{t.driveFolderUrl}</span>
@@ -1366,7 +1366,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                     type="url"
                     value={subjectForm.drive_folder_url}
                     onChange={e => setSubjectForm({ ...subjectForm, drive_folder_url: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white focus:outline-none focus:border-blue-400"
+                    className="w-full px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-xs text-white focus:outline-none focus:border-blue-400"
                     placeholder="https://drive.google.com/drive/folders/..."
                   />
                   <span className="text-[10px] text-gray-400 block">
@@ -1374,21 +1374,24 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                   </span>
                 </div>
 
-                {/* Cover Image Upload */}
-                <div className="space-y-2 p-4 rounded-2xl bg-purple-500/5 border border-purple-500/20">
-                  <label className="text-xs font-black text-purple-400 flex items-center gap-1.5">
-                    <Camera size={14} />
-                    <span>صورة غلاف المادة (اختياري)</span>
-                  </label>
+                {/* Cover Image Upload - YouTube 16:9 Thumbnail Ratio */}
+                <div className="space-y-2 p-3.5 rounded-2xl bg-purple-500/5 border border-purple-500/20">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-purple-400 flex items-center gap-1.5">
+                      <Camera size={14} />
+                      <span>صورة غلاف المادة (حجم يوتيوب 16:9)</span>
+                    </label>
+                    <span className="text-[10px] text-gray-500 font-mono">16:9 • اختياري</span>
+                  </div>
 
                   {subjectForm.cover_image ? (
-                    <div className="relative group">
+                    <div className="relative group rounded-xl overflow-hidden aspect-video w-full border border-white/10 bg-black/60 shadow-lg">
                       <img
                         src={subjectForm.cover_image}
                         alt="Cover"
-                        className="w-full h-36 object-cover rounded-xl border border-white/10"
+                        className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all rounded-xl flex items-center justify-center gap-3">
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3">
                         <label className="cursor-pointer p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all">
                           <Upload size={18} />
                           <input
@@ -1414,18 +1417,19 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                           type="button"
                           onClick={() => setSubjectForm({ ...subjectForm, cover_image: '' })}
                           className="p-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-all"
+                          title="حذف الكفر"
                         >
                           <Trash2 size={18} />
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <label className="cursor-pointer flex flex-col items-center justify-center gap-2 p-6 rounded-xl border-2 border-dashed border-white/10 hover:border-purple-500/40 bg-white/[0.02] hover:bg-purple-500/5 transition-all">
-                      <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                        <ImageIcon size={24} className="text-purple-400" />
+                    <label className="cursor-pointer flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border-2 border-dashed border-white/10 hover:border-purple-500/40 bg-white/[0.02] hover:bg-purple-500/5 transition-all aspect-video w-full max-h-36">
+                      <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                        <ImageIcon size={18} className="text-purple-400" />
                       </div>
-                      <span className="text-xs font-bold text-gray-400">اضغط لاختيار صورة غلاف</span>
-                      <span className="text-[10px] text-gray-500">PNG, JPG, WEBP — حد أقصى 5MB</span>
+                      <span className="text-xs font-bold text-gray-300">رفع كفر للمادة (16:9)</span>
+                      <span className="text-[9px] text-gray-500">حجم صورة يوتيوب المصغرة • حد أقصى 5MB</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -1457,13 +1461,13 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                 {/* Color Selection */}
                 <div>
                   <label className="text-xs font-bold text-gray-400 block mb-2">{t.color}</label>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-2.5">
                     {COLORS.map(c => (
                       <button
                         key={c}
                         type="button"
                         onClick={() => setSubjectForm({ ...subjectForm, color: c })}
-                        className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        className={`w-7 h-7 rounded-full border-2 transition-all ${
                           subjectForm.color === c ? 'scale-125 border-white shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
                         }`}
                         style={{ backgroundColor: c }}
@@ -1475,13 +1479,13 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                 {/* Emoji Icon Selection */}
                 <div>
                   <label className="text-xs font-bold text-gray-400 block mb-2">{t.icon}</label>
-                  <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-white/[0.02] border border-white/5 max-h-32 overflow-y-auto">
+                  <div className="flex flex-wrap gap-2 p-2.5 rounded-2xl bg-white/[0.02] border border-white/5 max-h-24 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     {EMOJIS.map(em => (
                       <button
                         key={em}
                         type="button"
                         onClick={() => setSubjectForm({ ...subjectForm, icon: em })}
-                        className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
+                        className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all ${
                           subjectForm.icon === em ? 'bg-amber-500/20 border border-amber-500 scale-110' : 'hover:bg-white/5'
                         }`}
                       >
@@ -1491,17 +1495,17 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                <div className="flex justify-end gap-3 pt-3 border-t border-white/10 shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowSubjectModal(false)}
-                    className="px-5 py-2.5 rounded-xl border border-white/10 text-sm font-bold text-gray-400 hover:text-white"
+                    className="px-5 py-2.5 rounded-xl border border-white/10 text-xs font-bold text-gray-400 hover:text-white"
                   >
                     {t.cancel}
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-black text-sm hover:bg-amber-400 shadow-lg"
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-black text-xs hover:bg-amber-400 shadow-lg"
                   >
                     {t.save}
                   </button>
