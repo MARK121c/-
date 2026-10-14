@@ -535,41 +535,75 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
   };
 
   // Load assistants
+  // Load assistants
   const loadAssistants = async () => {
     try {
-      const res = await fetch('/api/academic/assistants').then(r => r.json());
+      const token = typeof window !== 'undefined' ? localStorage.getItem('academic_token') : null;
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/academic/assistants', { headers }).then(r => r.json());
       if (res.success && res.assistants) setAssistants(res.assistants);
     } catch (e) {
       console.error(e);
     }
   };
 
+  const [assistantSubmitting, setAssistantSubmitting] = useState(false);
+  const [assistantFeedback, setAssistantFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+
   // Create Assistant (Owner Only)
   const handleCreateAssistant = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isOwner || !assistantForm.username || !assistantForm.password) return;
+    if (!assistantForm.username.trim() || !assistantForm.password.trim()) {
+      setAssistantFeedback({ type: 'error', message: 'يرجى كتابة اسم المستخدم وكلمة المرور' });
+      return;
+    }
+    setAssistantSubmitting(true);
+    setAssistantFeedback(null);
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('academic_token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch('/api/academic/assistants', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(assistantForm),
       }).then(r => r.json());
+
       if (res.success) {
         setAssistantForm({ username: '', password: '', display_name: '', role: 'assistant' });
+        setAssistantFeedback({ type: 'success', message: 'تم إنشاء الحساب بنجاح! يمكن للمستخدم الآن تسجيل الدخول.' });
         loadAssistants();
+      } else {
+        const errorMsg = res.error === 'Username already exists'
+          ? 'اسم المستخدم مسجل بالفعل، يرجى اختيار اسم مستخدم آخر'
+          : (res.error || 'فشل إنشاء الحساب');
+        setAssistantFeedback({ type: 'error', message: errorMsg });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setAssistantFeedback({ type: 'error', message: e.message || 'حدث خطأ في الاتصال بالخادم' });
+    } finally {
+      setAssistantSubmitting(false);
     }
   };
 
   // Delete Assistant (Owner Only)
   const handleDeleteAssistant = async (id: number) => {
-    if (!isOwner) return;
-    if (!confirm(t.confirmDeleteMsg)) return;
+    if (!confirm(t.confirmDeleteMsg || 'هل أنت متأكد من حذف هذا الحساب؟')) return;
     try {
-      await fetch(`/api/academic/assistants?id=${id}`, { method: 'DELETE' });
-      loadAssistants();
+      const token = typeof window !== 'undefined' ? localStorage.getItem('academic_token') : null;
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/academic/assistants?id=${id}`, { method: 'DELETE', headers }).then(r => r.json());
+      if (res.success) {
+        loadAssistants();
+      } else {
+        alert(res.error || 'فشل حذف الحساب');
+      }
     } catch (e) {
       console.error(e);
     }
@@ -1738,13 +1772,34 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                       {assistantForm.role === 'viewer' && <CheckCircle size={15} className="text-purple-400" />}
                     </button>
                   </div>
+                  <span className="text-[10px] text-gray-500 block">
+                    * الحسابات المُنشأة هنا مقيدة بصلاحية قسم الكلية فقط وممنوعة تماماً من الوصول لأي بيانات أخرى في النظام.
+                  </span>
                 </div>
+
+                {assistantFeedback && (
+                  <div className={`p-3 rounded-xl text-xs font-bold ${
+                    assistantFeedback.type === 'success'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                  }`}>
+                    {assistantFeedback.message}
+                  </div>
+                )}
 
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 text-black text-xs font-black hover:bg-amber-400"
+                  disabled={assistantSubmitting}
+                  className="px-6 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-black hover:bg-amber-400 disabled:opacity-50 transition-all flex items-center gap-2"
                 >
-                  {t.create}
+                  {assistantSubmitting ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>جاري الإضافة...</span>
+                    </>
+                  ) : (
+                    <span>+ {t.create}</span>
+                  )}
                 </button>
               </form>
 

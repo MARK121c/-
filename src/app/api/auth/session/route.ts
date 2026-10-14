@@ -7,8 +7,10 @@ import { jwtVerify } from 'jose';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mark-os-super-secure-production-jwt-token-key-2026';
-const key = new TextEncoder().encode(JWT_SECRET);
+const primarySecret = process.env.AUTH_SECRET || 'fallback-secret-at-least-32-chars-long-12345';
+const secondarySecret = process.env.JWT_SECRET || 'mark-os-super-secure-production-jwt-token-key-2026';
+const primaryKey = new TextEncoder().encode(primarySecret);
+const secondaryKey = new TextEncoder().encode(secondarySecret);
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,7 +19,7 @@ export async function GET(req: NextRequest) {
     // Check header
     const authHeader = req.headers.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
+      token = authHeader.substring(7).trim();
     }
 
     // Check cookie
@@ -37,10 +39,15 @@ export async function GET(req: NextRequest) {
     // Verify JWT
     let payload: any;
     try {
-      const verified = await jwtVerify(token, key);
+      const verified = await jwtVerify(token, primaryKey);
       payload = verified.payload;
     } catch {
-      return NextResponse.json({ valid: false, error: 'Token expired or invalid' }, { status: 401 });
+      try {
+        const verified = await jwtVerify(token, secondaryKey);
+        payload = verified.payload;
+      } catch {
+        return NextResponse.json({ valid: false, error: 'Token expired or invalid' }, { status: 401 });
+      }
     }
 
     // Check if session exists in DB (kicked out if 3rd device logged in)
