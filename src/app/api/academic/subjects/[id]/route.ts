@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@libsql/client';
 import fs from 'fs';
 import path from 'path';
+import { getUserIdFromRequest, getUserCompletedSet, ensureUserProgressTable } from '@/backend/lib/userProgress';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -22,6 +23,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const subject = subjectRes.rows[0];
     if (!subject) return NextResponse.json({ success: false, error: 'Subject not found' }, { status: 404 });
 
+    const userId = await getUserIdFromRequest(req);
+    await ensureUserProgressTable(client);
+    const completedSet = await getUserCompletedSet(client, userId);
+
     const [lecRes, asgnRes, rsrcRes, vidRes] = await Promise.all([
       client.execute({ sql: `SELECT * FROM academic_lectures WHERE subject_id = ? ORDER BY sort_order ASC, id ASC`, args: [id] }),
       client.execute({ sql: `SELECT * FROM academic_assignments WHERE subject_id = ? ORDER BY sort_order ASC, id ASC`, args: [id] }),
@@ -29,14 +34,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       client.execute({ sql: `SELECT * FROM academic_videos WHERE subject_id = ? ORDER BY sort_order ASC, id ASC`, args: [id] }),
     ]);
 
-    const lectures = lecRes.rows;
-    const assignments = asgnRes.rows;
-    const resources = rsrcRes.rows;
-    const videos = vidRes.rows;
+    const lectures = lecRes.rows.map((r: any) => ({ ...r, completed: completedSet.has(`lecture:${r.id}`) ? 1 : 0 }));
+    const assignments = asgnRes.rows.map((r: any) => ({ ...r, completed: completedSet.has(`assignment:${r.id}`) ? 1 : 0 }));
+    const resources = rsrcRes.rows.map((r: any) => ({ ...r, completed: completedSet.has(`resource:${r.id}`) ? 1 : 0 }));
+    const videos = vidRes.rows.map((r: any) => ({ ...r, completed: completedSet.has(`video:${r.id}`) ? 1 : 0 }));
 
     const allItems = [...lectures, ...assignments, ...resources, ...videos];
     const total = allItems.length;
-    const completed = allItems.filter((i: any) => i.completed === 1 || i.completed === true).length;
+    const completed = allItems.filter((i: any) => i.completed === 1).length;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     return NextResponse.json({
@@ -68,22 +73,25 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const client = getClient();
   try {
     const body = await req.json();
-    const { name, code, color, icon, drive_folder_url, driveFolderUrl } = body;
+    const { name, code, color, icon, drive_folder_url, driveFolderUrl, cover_image, coverImage } = body;
 
     const subjectRes = await client.execute({ sql: `SELECT * FROM academic_subjects WHERE id = ?`, args: [id] });
     const subject = subjectRes.rows[0];
     if (!subject) return NextResponse.json({ success: false, error: 'Subject not found' }, { status: 404 });
 
     const driveUrl = drive_folder_url !== undefined ? drive_folder_url : (driveFolderUrl !== undefined ? driveFolderUrl : subject.drive_folder_url);
+    const incomingCover = cover_image !== undefined ? cover_image : coverImage;
+    const coverImg = incomingCover !== undefined ? incomingCover : (subject.cover_image || '');
 
     await client.execute({
-      sql: `UPDATE academic_subjects SET name = ?, code = ?, color = ?, icon = ?, drive_folder_url = ?, updated_at = datetime('now') WHERE id = ?`,
+      sql: `UPDATE academic_subjects SET name = ?, code = ?, color = ?, icon = ?, drive_folder_url = ?, cover_image = ?, updated_at = datetime('now') WHERE id = ?`,
       args: [
         name || subject.name,
         code !== undefined ? code : subject.code,
         color || subject.color,
         icon || subject.icon,
         driveUrl || '',
+        coverImg,
         id
       ]
     });

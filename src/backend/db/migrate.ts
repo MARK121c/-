@@ -60,6 +60,8 @@ export async function ensureTables() {
     await client.execute(`CREATE TABLE IF NOT EXISTS academic_videos (id INTEGER PRIMARY KEY AUTOINCREMENT, subject_id INTEGER NOT NULL, title TEXT NOT NULL, description TEXT DEFAULT '', video_url TEXT DEFAULT '', file_path TEXT DEFAULT '', video_type TEXT DEFAULT 'youtube', duration TEXT DEFAULT '', material_date TEXT, upload_timestamp TEXT, completed INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0, created_by TEXT DEFAULT 'owner', synced INTEGER DEFAULT 1)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS academic_users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, role TEXT NOT NULL, display_name TEXT DEFAULT '', active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS academic_sync_log (id INTEGER PRIMARY KEY AUTOINCREMENT, synced_by TEXT, sync_type TEXT DEFAULT 'full', items_synced INTEGER DEFAULT 0, synced_at TEXT)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS academic_user_progress (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, material_type TEXT NOT NULL, material_id INTEGER NOT NULL, completed INTEGER DEFAULT 1, updated_at TEXT, UNIQUE(user_id, material_type, material_id))`);
+    await client.execute(`CREATE INDEX IF NOT EXISTS idx_acad_uprog ON academic_user_progress(user_id, material_type, material_id)`);
 
     // 11. Brain Dump & Quick Notes OS (تفريغ الأفكار)
     await client.execute(`CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT DEFAULT '', content TEXT NOT NULL, category TEXT DEFAULT 'عام', color TEXT DEFAULT 'orange', tags TEXT DEFAULT '[]', is_pinned INTEGER DEFAULT 0, is_archived INTEGER DEFAULT 0, checklist TEXT DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT)`);
@@ -139,6 +141,8 @@ export async function ensureTables() {
     await addIfMissing('events', 'end_time', `ALTER TABLE events ADD COLUMN end_time TEXT`);
     await addIfMissing('events', 'priority', `ALTER TABLE events ADD COLUMN priority TEXT DEFAULT 'medium'`);
     await addIfMissing('events', 'status', `ALTER TABLE events ADD COLUMN status TEXT DEFAULT 'upcoming'`);
+
+    await addIfMissing('academic_subjects', 'cover_image', `ALTER TABLE academic_subjects ADD COLUMN cover_image TEXT DEFAULT ''`);
 
     logs.push('DONE: All tables verified');
     return { success: true, logs };

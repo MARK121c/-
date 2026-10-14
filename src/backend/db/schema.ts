@@ -295,6 +295,7 @@ export const academicSubjects = sqliteTable('academic_subjects', {
   color: text('color').default('#FF6B00'),
   icon: text('icon').default('📘'),
   driveFolderUrl: text('drive_folder_url').default(''),
+  coverImage: text('cover_image').default(''),
   sortOrder: integer('sort_order').default(0),
   createdAt: text('created_at'),
   updatedAt: text('updated_at'),

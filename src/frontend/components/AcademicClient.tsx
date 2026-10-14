@@ -6,7 +6,8 @@ import {
   GraduationCap, BookOpen, FileText, CheckSquare, Link as LinkIcon, Video,
   Plus, Edit2, Trash2, CheckCircle, Circle, RefreshCw, Settings, Users,
   ArrowLeft, ArrowRight, Download, ExternalLink, Play, Clock, Calendar,
-  AlertCircle, ChevronRight, X, Search, Shield, Sparkles, Folder, Eye, FolderPlus
+  AlertCircle, ChevronRight, X, Search, Shield, Sparkles, Folder, Eye, FolderPlus,
+  ImageIcon, Upload, Camera
 } from 'lucide-react';
 
 interface AcademicSettings {
@@ -26,6 +27,7 @@ interface Subject {
   sort_order: number;
   drive_folder_url?: string;
   driveFolderUrl?: string;
+  cover_image?: string;
   stats?: {
     lectures: number;
     assignments: number;
@@ -156,6 +158,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
     color: '#FF6B00',
     icon: '📘',
     drive_folder_url: '',
+    cover_image: '',
   });
 
   const [materialForm, setMaterialForm] = useState({
@@ -371,7 +374,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
       }
       setShowSubjectModal(false);
       setEditSubjectId(null);
-      setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘', drive_folder_url: '' });
+      setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘', drive_folder_url: '', cover_image: '' });
       fetchData();
       if (currentSubject && currentSubject.id === editSubjectId) {
         loadSubjectDetail(editSubjectId);
@@ -454,10 +457,8 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
     }
   };
 
-  // Toggle item completion
+  // Toggle item completion (per-account progress)
   const handleToggleCompleted = async (tab: string, id: number, currentVal: boolean) => {
-    if (isViewer) return;
-
     const endpointMap: Record<string, string> = {
       lectures: '/api/academic/materials/lectures',
       assignments: '/api/academic/materials/assignments',
@@ -678,7 +679,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
               <button
                 onClick={() => {
                   setEditSubjectId(null);
-                  setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘', drive_folder_url: '' });
+                  setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘', drive_folder_url: '', cover_image: '' });
                   setShowSubjectModal(true);
                 }}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02]"
@@ -720,8 +721,21 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                     key={sub.id}
                     whileHover={{ y: -4 }}
                     onClick={() => handleSelectSubject(sub)}
-                    className="group relative flex flex-col justify-between p-6 rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-amber-500/40 hover:shadow-2xl hover:shadow-amber-500/5 transition-all cursor-pointer space-y-5"
+                    className="group relative flex flex-col justify-between rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-amber-500/40 hover:shadow-2xl hover:shadow-amber-500/5 transition-all cursor-pointer overflow-hidden"
                   >
+                    {/* Cover Image */}
+                    {sub.cover_image && (
+                      <div className="relative w-full h-32 overflow-hidden">
+                        <img
+                          src={sub.cover_image}
+                          alt={sub.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c0d12] via-transparent to-transparent" />
+                      </div>
+                    )}
+
+                    <div className={`p-6 space-y-5 ${sub.cover_image ? 'pt-3' : ''}`}>
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
@@ -799,7 +813,8 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                         <strong className="text-xs font-mono text-white">{sub.stats?.videos || 0}</strong>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
+                </motion.div>
                 );
               })}
             </div>
@@ -808,6 +823,22 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
       ) : (
         /* ── SUBJECT DETAIL VIEW ── */
         <div className="space-y-6">
+          {/* Cover Image Banner */}
+          {currentSubject.cover_image && (
+            <div className="relative w-full h-40 sm:h-52 rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
+              <img
+                src={currentSubject.cover_image}
+                alt={currentSubject.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-6">
+                <span className="px-3 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-xs font-bold text-white/80">
+                  كفر المادة الأكاديمية
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Back & Subject Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-[2rem] border border-white/10 bg-white/[0.03] backdrop-blur-xl">
             <div className="flex items-center gap-4">
@@ -855,6 +886,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                       color: currentSubject.color || '#FF6B00',
                       icon: currentSubject.icon || '📘',
                       drive_folder_url: currentSubject.drive_folder_url || currentSubject.driveFolderUrl || '',
+                      cover_image: currentSubject.cover_image || '',
                     });
                     setShowSubjectModal(true);
                   }}
@@ -913,6 +945,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                           color: currentSubject.color || '#FF6B00',
                           icon: currentSubject.icon || '📘',
                           drive_folder_url: currentSubject.drive_folder_url || currentSubject.driveFolderUrl || '',
+                          cover_image: currentSubject.cover_image || '',
                         });
                         setShowSubjectModal(true);
                       }}
@@ -934,6 +967,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                         color: currentSubject.color || '#FF6B00',
                         icon: currentSubject.icon || '📘',
                         drive_folder_url: '',
+                        cover_image: currentSubject.cover_image || '',
                       });
                       setShowSubjectModal(true);
                     }}
@@ -1033,15 +1067,13 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                     {/* Checkbox and info */}
                     <div className="flex items-start gap-4 w-full sm:w-auto flex-1 min-w-0">
                       <button
-                        disabled={isViewer}
-                        onClick={() => !isViewer && handleToggleCompleted(activeTab, item.id, isCompleted)}
+                        onClick={() => handleToggleCompleted(activeTab, item.id, isCompleted)}
                         className={`mt-1 w-6 h-6 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
-                          isViewer ? 'cursor-default opacity-80 ' : ''
-                        }${
                           isCompleted
                             ? 'bg-emerald-500 border-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.5)]'
                             : 'border-gray-500 hover:border-emerald-400 text-transparent'
                         }`}
+                        title="تحديد كمكتمل لهذا الحساب"
                       >
                         <CheckCircle size={14} className={isCompleted ? 'stroke-[3]' : 'opacity-0'} />
                       </button>
@@ -1306,6 +1338,86 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                   <span className="text-[10px] text-gray-400 block">
                     ضع رابط مجلد درايف المخصص لهذه المادة لفتحه وتخزين كافة المحاضرات والماتريال فيه.
                   </span>
+                </div>
+
+                {/* Cover Image Upload */}
+                <div className="space-y-2 p-4 rounded-2xl bg-purple-500/5 border border-purple-500/20">
+                  <label className="text-xs font-black text-purple-400 flex items-center gap-1.5">
+                    <Camera size={14} />
+                    <span>صورة غلاف المادة (اختياري)</span>
+                  </label>
+
+                  {subjectForm.cover_image ? (
+                    <div className="relative group">
+                      <img
+                        src={subjectForm.cover_image}
+                        alt="Cover"
+                        className="w-full h-36 object-cover rounded-xl border border-white/10"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all rounded-xl flex items-center justify-center gap-3">
+                        <label className="cursor-pointer p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all">
+                          <Upload size={18} />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              try {
+                                const res = await fetch('/api/academic/upload', { method: 'POST', body: formData });
+                                const data = await res.json();
+                                if (data.success) {
+                                  setSubjectForm({ ...subjectForm, cover_image: data.url });
+                                }
+                              } catch (err) { console.error(err); }
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setSubjectForm({ ...subjectForm, cover_image: '' })}
+                          className="p-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer flex flex-col items-center justify-center gap-2 p-6 rounded-xl border-2 border-dashed border-white/10 hover:border-purple-500/40 bg-white/[0.02] hover:bg-purple-500/5 transition-all">
+                      <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                        <ImageIcon size={24} className="text-purple-400" />
+                      </div>
+                      <span className="text-xs font-bold text-gray-400">اضغط لاختيار صورة غلاف</span>
+                      <span className="text-[10px] text-gray-500">PNG, JPG, WEBP — حد أقصى 5MB</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 5 * 1024 * 1024) {
+                            alert('الصورة كبيرة جداً. الحد الأقصى 5MB');
+                            return;
+                          }
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          try {
+                            const res = await fetch('/api/academic/upload', { method: 'POST', body: formData });
+                            const data = await res.json();
+                            if (data.success) {
+                              setSubjectForm({ ...subjectForm, cover_image: data.url });
+                            } else {
+                              alert(data.error || 'فشل رفع الصورة');
+                            }
+                          } catch (err) { console.error(err); }
+                        }}
+                      />
+                    </label>
+                  )}
                 </div>
 
                 {/* Color Selection */}

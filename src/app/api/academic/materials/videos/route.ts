@@ -3,6 +3,7 @@ import { createClient } from '@libsql/client';
 import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import { getUserIdFromRequest, toggleUserProgress } from '@/backend/lib/userProgress';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -153,18 +154,13 @@ export async function PATCH(req: NextRequest) {
     if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
 
     const itemRes = await client.execute({ sql: `SELECT * FROM academic_videos WHERE id = ?`, args: [id] });
-    const item = itemRes.rows[0];
-    if (!item) return NextResponse.json({ success: false, error: 'Video not found' }, { status: 404 });
+    if (!itemRes.rows[0]) return NextResponse.json({ success: false, error: 'Video not found' }, { status: 404 });
 
-    const currentCompleted = Number(item.completed) === 1;
-    const newCompleted = toggle !== undefined ? (currentCompleted ? 0 : 1) : (body.completed ? 1 : 0);
+    const userId = await getUserIdFromRequest(req);
+    const explicitCompleted = toggle !== undefined ? undefined : (body.completed ? true : false);
+    const newCompleted = await toggleUserProgress(client, userId, 'video', Number(id), explicitCompleted);
 
-    await client.execute({
-      sql: `UPDATE academic_videos SET completed = ? WHERE id = ?`,
-      args: [newCompleted, id]
-    });
-
-    return NextResponse.json({ success: true, completed: newCompleted === 1 });
+    return NextResponse.json({ success: true, completed: newCompleted });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
