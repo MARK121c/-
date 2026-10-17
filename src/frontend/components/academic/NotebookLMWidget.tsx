@@ -151,14 +151,14 @@ export default function NotebookLMWidget({
 
             <div className="flex items-center gap-1.5">
               <a
-                href="https://notebook.google.com"
+                href="https://notebooklm.google.com"
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold transition-all border border-white/10"
-                title="فتح موقع Google NotebookLM الرسمي"
+                title="فتح موقع Google NotebookLM"
               >
                 <ExternalLink size={13} />
-                <span className="hidden sm:inline">NotebookLM الرسمي</span>
+                <span className="hidden sm:inline">NotebookLM</span>
               </a>
 
               <button

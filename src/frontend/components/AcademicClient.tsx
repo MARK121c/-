@@ -734,10 +734,10 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600/30 to-purple-600/30 hover:from-blue-600/50 hover:to-purple-600/50 border border-blue-500/40 text-blue-300 hover:text-white text-xs font-black shadow-lg transition-all"
-            title="فتح أداة Google NotebookLM الرسمية"
+            title="فتح أداة Google NotebookLM"
           >
             <Sparkles size={14} className="text-amber-400" />
-            <span>Google NotebookLM الرسمي ↗</span>
+            <span>Google NotebookLM ↗</span>
           </a>
 
           {isOwner && (
@@ -1964,10 +1964,10 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 left-6 z-40 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-black shadow-2xl shadow-blue-600/40 transition-all hover:scale-105 border border-white/20 group"
-        title="فتح أداة Google NotebookLM الرسمية للذكاء الاصطناعي والدراسة"
+        title="فتح أداة Google NotebookLM للذكاء الاصطناعي والدراسة"
       >
         <Sparkles size={16} className="text-yellow-300 animate-pulse" />
-        <span className="font-black">Google NotebookLM الرسمي ↗</span>
+        <span className="font-black">Google NotebookLM ↗</span>
       </a>
 
       {/* ── DELETION APPROVAL MODAL (Owner Only) ── */}

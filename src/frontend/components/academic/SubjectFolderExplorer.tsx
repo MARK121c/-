@@ -1084,7 +1084,7 @@ export default function SubjectFolderExplorer({
                       </div>
                       <div>
                         <h4 className="text-xs font-black text-white">استذكار ذكي مع Google NotebookLM</h4>
-                        <p className="text-[11px] text-gray-300">نسخ المحتوى وفتح الأداة الرسمية لتلخيصه وتوليد أسئلة وبودكاست</p>
+                        <p className="text-[11px] text-gray-300">نسخ المحتوى وفتح الأداة لتلخيصه وتوليد أسئلة وبودكاست</p>
                       </div>
                     </div>
                     <button
@@ -1100,7 +1100,7 @@ export default function SubjectFolderExplorer({
                       className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-black text-xs shadow-lg flex items-center justify-center gap-2 shrink-0 transition-all hover:scale-105"
                     >
                       <Sparkles size={14} className="text-amber-300" />
-                      <span>فتح في NotebookLM الرسمي ↗</span>
+                      <span>فتح في NotebookLM ↗</span>
                     </button>
                   </div>
                 </div>
