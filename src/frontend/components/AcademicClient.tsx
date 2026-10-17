@@ -855,9 +855,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
 
       {/* ── SUBJECTS MODULE ── */}
       {collegeHubTab === 'subjects' && (
-
-      /* ── MAIN CONTENT AREA ── */
-      (!currentSubject ? (
+        !currentSubject ? (
         /* ── SUBJECTS GRID VIEW ── */
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1427,7 +1425,8 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
           </div>
           )}
         </div>
-      ))}
+      )
+    )}
 
       {/* ── MODALS ── */}
 
