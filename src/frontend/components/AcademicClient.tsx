@@ -136,7 +136,8 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
   });
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
-  const [activeTab, setActiveTab] = useState<'folders' | 'lectures' | 'assignments' | 'resources' | 'videos'>('lectures');
+  const [activeTab, setActiveTab] = useState<'folders' | 'lectures' | 'assignments' | 'resources' | 'videos'>('folders');
+  const [openFolderModalOnEnter, setOpenFolderModalOnEnter] = useState<boolean>(false);
   const [overallProgress, setOverallProgress] = useState({ total: 0, completed: 0, percentage: 0 });
   const [pendingSync, setPendingSync] = useState(0);
   const [assistants, setAssistants] = useState<any[]>([]);
@@ -989,24 +990,29 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                       </div>
                     </div>
 
-                    {/* Material Counters Strip */}
-                    <div className="grid grid-cols-4 gap-2 pt-3 border-t border-white/5 text-center">
-                      <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <span className="text-[11px] text-gray-400 block font-bold">محاضرات</span>
-                        <strong className="text-xs font-mono text-white">{sub.stats?.lectures || 0}</strong>
+                    {/* Folders Action Strip - Term 1 and Term 2 */}
+                    <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                          <Folder size={14} />
+                        </div>
+                        <span className="text-xs font-bold text-gray-300">مجلدات المادة</span>
                       </div>
-                      <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <span className="text-[11px] text-gray-400 block font-bold">واجبات</span>
-                        <strong className="text-xs font-mono text-white">{sub.stats?.assignments || 0}</strong>
-                      </div>
-                      <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <span className="text-[11px] text-gray-400 block font-bold">مراجع</span>
-                        <strong className="text-xs font-mono text-white">{sub.stats?.resources || 0}</strong>
-                      </div>
-                      <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <span className="text-[11px] text-gray-400 block font-bold">فيديوهات</span>
-                        <strong className="text-xs font-mono text-white">{sub.stats?.videos || 0}</strong>
-                      </div>
+                      {!isViewer && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentSubject(sub);
+                            setActiveTab('folders');
+                            setOpenFolderModalOnEnter(true);
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all hover:scale-105"
+                        >
+                          <FolderPlus size={13} />
+                          <span>+ إضافة مجلد</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -1038,7 +1044,10 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-[2rem] border border-white/10 bg-white/[0.03] backdrop-blur-xl">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => setCurrentSubject(null)}
+                onClick={() => {
+                  setCurrentSubject(null);
+                  setOpenFolderModalOnEnter(false);
+                }}
                 className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all"
                 title={t.back}
               >
@@ -1236,6 +1245,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
               subjectId={currentSubject.id}
               subjectName={currentSubject.name}
               userRole={role}
+              initialOpenCreateModal={openFolderModalOnEnter}
               onOpenNotebookLM={(title, text) =>
                 setNotebookLMModal({
                   open: true,

@@ -7,9 +7,36 @@ export const revalidate = 0;
 
 const getClient = () => createClient({ url: process.env.DATABASE_URL || 'file:./data/sqlite.db' });
 
+async function ensureFolderItemsTable(client: any) {
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS academic_folder_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        folder_id INTEGER NOT NULL,
+        subject_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT DEFAULT '',
+        item_type TEXT DEFAULT 'lecture',
+        code_snippet TEXT DEFAULT '',
+        code_language TEXT DEFAULT 'python',
+        file_url TEXT DEFAULT '',
+        file_name TEXT DEFAULT '',
+        file_size INTEGER DEFAULT 0,
+        due_date TEXT DEFAULT '',
+        is_completed INTEGER DEFAULT 0,
+        sort_order INTEGER DEFAULT 0,
+        created_at TEXT
+      )
+    `);
+    try { await client.execute(`ALTER TABLE academic_folder_items ADD COLUMN due_date TEXT DEFAULT ''`); } catch {}
+    try { await client.execute(`ALTER TABLE academic_folder_items ADD COLUMN is_completed INTEGER DEFAULT 0`); } catch {}
+  } catch {}
+}
+
 export async function GET(req: NextRequest) {
   const client = getClient();
   try {
+    await ensureFolderItemsTable(client);
     const folderId = req.nextUrl.searchParams.get('folder_id');
     if (!folderId) {
       return NextResponse.json({ success: false, error: 'folder_id is required' }, { status: 400 });
@@ -28,24 +55,27 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getUserSession(req);
-  if (!session) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  if (session && session.role === 'viewer') {
+    return NextResponse.json({ success: false, error: 'حساب المشاهد لا يملك صلاحية إضافة محتوى' }, { status: 403 });
   }
 
   const client = getClient();
   try {
+    await ensureFolderItemsTable(client);
     const body = await req.json();
     const {
       folder_id,
       subject_id,
       title,
       content = '',
-      item_type = 'note',
+      item_type = 'lecture',
       code_snippet = '',
       code_language = 'python',
       file_url = '',
       file_name = '',
-      file_size = 0
+      file_size = 0,
+      due_date = '',
+      is_completed = 0
     } = body;
 
     if (!folder_id || !subject_id || !title) {
@@ -62,8 +92,8 @@ export async function POST(req: NextRequest) {
     const insertRes = await client.execute({
       sql: `
         INSERT INTO academic_folder_items 
-        (folder_id, subject_id, title, content, item_type, code_snippet, code_language, file_url, file_name, file_size, sort_order, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (folder_id, subject_id, title, content, item_type, code_snippet, code_language, file_url, file_name, file_size, due_date, is_completed, sort_order, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       args: [
         folder_id,
@@ -76,6 +106,8 @@ export async function POST(req: NextRequest) {
         file_url,
         file_name,
         file_size,
+        due_date,
+        is_completed ? 1 : 0,
         nextOrder,
         now
       ]
@@ -92,16 +124,47 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function PUT(req: NextRequest) {
+export async function PATCH(req: NextRequest) {
   const session = await getUserSession(req);
-  if (!session) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  if (session && session.role === 'viewer') {
+    return NextResponse.json({ success: false, error: 'حساب المشاهد لا يملك صلاحية تعديل المحتوى' }, { status: 403 });
   }
 
   const client = getClient();
   try {
+    await ensureFolderItemsTable(client);
     const body = await req.json();
-    const { id, title, content, item_type, code_snippet, code_language, file_url, file_name, file_size } = body;
+    const { id, is_completed } = body;
+    if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
+
+    const existingRes = await client.execute({ sql: `SELECT * FROM academic_folder_items WHERE id = ?`, args: [id] });
+    const existing = existingRes.rows[0];
+    if (!existing) return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
+
+    const newCompleted = is_completed !== undefined ? (is_completed ? 1 : 0) : (existing.is_completed ? 0 : 1);
+
+    await client.execute({
+      sql: `UPDATE academic_folder_items SET is_completed = ? WHERE id = ?`,
+      args: [newCompleted, id]
+    });
+
+    return NextResponse.json({ success: true, is_completed: newCompleted });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  const session = await getUserSession(req);
+  if (session && session.role === 'viewer') {
+    return NextResponse.json({ success: false, error: 'حساب المشاهد لا يملك صلاحية تعديل المحتوى' }, { status: 403 });
+  }
+
+  const client = getClient();
+  try {
+    await ensureFolderItemsTable(client);
+    const body = await req.json();
+    const { id, title, content, item_type, code_snippet, code_language, file_url, file_name, file_size, due_date, is_completed } = body;
     if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
 
     const existingRes = await client.execute({ sql: `SELECT * FROM academic_folder_items WHERE id = ?`, args: [id] });
@@ -118,7 +181,9 @@ export async function PUT(req: NextRequest) {
           code_language = ?,
           file_url = ?,
           file_name = ?,
-          file_size = ?
+          file_size = ?,
+          due_date = ?,
+          is_completed = ?
         WHERE id = ?
       `,
       args: [
@@ -130,6 +195,8 @@ export async function PUT(req: NextRequest) {
         file_url !== undefined ? file_url : existing.file_url,
         file_name !== undefined ? file_name : existing.file_name,
         file_size !== undefined ? file_size : existing.file_size,
+        due_date !== undefined ? due_date : existing.due_date,
+        is_completed !== undefined ? (is_completed ? 1 : 0) : existing.is_completed,
         id
       ]
     });

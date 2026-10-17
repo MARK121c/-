@@ -4,25 +4,28 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Folder, FolderPlus, FileText, Code2, Download, ExternalLink,
-  Plus, Edit2, Trash2, ChevronRight, ArrowRight, Copy, Check, File, Sparkles, X
+  Plus, Edit2, Trash2, ChevronRight, ArrowRight, Copy, Check, File, Sparkles, X,
+  CheckSquare, Link2, Video, Calendar, Clock, BookOpen, AlertCircle
 } from 'lucide-react';
 
-interface FolderItem {
+export interface FolderItem {
   id: number;
   folder_id: number;
   subject_id: number;
   title: string;
   content: string;
-  item_type: 'note' | 'code' | 'file' | 'assignment';
+  item_type: 'lecture' | 'assignment' | 'resource' | 'video' | 'note' | 'code' | 'file';
   code_snippet: string;
   code_language: string;
   file_url: string;
   file_name: string;
   file_size: number;
+  due_date?: string;
+  is_completed?: number;
   created_at: string;
 }
 
-interface AcademicFolder {
+export interface AcademicFolder {
   id: number;
   subject_id: number;
   name: string;
@@ -30,19 +33,27 @@ interface AcademicFolder {
   color: string;
   icon: string;
   itemsCount: number;
+  lecturesCount?: number;
+  assignmentsCount?: number;
+  resourcesCount?: number;
+  videosCount?: number;
 }
 
 interface SubjectFolderExplorerProps {
   subjectId: number;
   subjectName: string;
   userRole?: 'owner' | 'assistant' | 'viewer';
+  initialOpenCreateModal?: boolean;
   onOpenNotebookLM?: (title: string, text: string) => void;
 }
+
+type CategoryType = 'lecture' | 'assignment' | 'resource' | 'video';
 
 export default function SubjectFolderExplorer({
   subjectId,
   subjectName,
   userRole = 'owner',
+  initialOpenCreateModal = false,
   onOpenNotebookLM
 }: SubjectFolderExplorerProps) {
   const [folders, setFolders] = useState<AcademicFolder[]>([]);
@@ -51,34 +62,47 @@ export default function SubjectFolderExplorer({
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
+  // Active Category inside currentFolder
+  const [activeCategory, setActiveCategory] = useState<CategoryType>('lecture');
+
   // Modals
-  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [showFolderModal, setShowFolderModal] = useState(initialOpenCreateModal);
   const [folderName, setFolderName] = useState('');
   const [folderDesc, setFolderDesc] = useState('');
+  const [savingFolder, setSavingFolder] = useState(false);
 
   const [showItemModal, setShowItemModal] = useState(false);
+  const [itemCategory, setItemCategory] = useState<CategoryType>('lecture');
   const [itemTitle, setItemTitle] = useState('');
-  const [itemType, setItemType] = useState<'note' | 'code' | 'file'>('note');
   const [itemContent, setItemContent] = useState('');
   const [itemCode, setItemCode] = useState('');
   const [itemLang, setItemLang] = useState('python');
   const [itemFileUrl, setItemFileUrl] = useState('');
   const [itemFileName, setItemFileName] = useState('');
+  const [itemDueDate, setItemDueDate] = useState('');
+  const [savingItem, setSavingItem] = useState(false);
 
-  const [notification, setNotification] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const isViewer = userRole === 'viewer';
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 4000);
+  };
 
   const fetchFolders = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/academic/folders?subject_id=${subjectId}`);
+      const res = await fetch(`/api/academic/folders?subject_id=${subjectId}`, { credentials: 'include' });
       const data = await res.json();
       if (data.success) {
         setFolders(data.folders || []);
+      } else {
+        console.error('Failed to load folders:', data.error);
       }
-    } catch {
-      // ignore
+    } catch (err: any) {
+      console.error('Network error loading folders:', err);
     } finally {
       setLoading(false);
     }
@@ -86,19 +110,25 @@ export default function SubjectFolderExplorer({
 
   const fetchFolderItems = async (folderId: number) => {
     try {
-      const res = await fetch(`/api/academic/folders/items?folder_id=${folderId}`);
+      const res = await fetch(`/api/academic/folders/items?folder_id=${folderId}`, { credentials: 'include' });
       const data = await res.json();
       if (data.success) {
         setItems(data.items || []);
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('Failed to load items:', err);
     }
   };
 
   useEffect(() => {
     fetchFolders();
   }, [subjectId]);
+
+  useEffect(() => {
+    if (initialOpenCreateModal) {
+      setShowFolderModal(true);
+    }
+  }, [initialOpenCreateModal]);
 
   useEffect(() => {
     if (currentFolder) {
@@ -108,102 +138,161 @@ export default function SubjectFolderExplorer({
 
   const handleCreateFolder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!folderName.trim()) return;
+    if (!folderName.trim()) {
+      showToast('يرجى إدخال اسم المجلد', 'error');
+      return;
+    }
 
+    setSavingFolder(true);
     try {
       const res = await fetch('/api/academic/folders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           subject_id: subjectId,
           name: folderName.trim(),
           description: folderDesc.trim()
         })
       });
+
       const data = await res.json();
       if (data.success && data.folder) {
-        setFolders(prev => [...prev, data.folder]);
+        setFolders(prev => [...prev, { ...data.folder, itemsCount: 0 }]);
         setShowFolderModal(false);
         setFolderName('');
         setFolderDesc('');
+        showToast('تم حفظ وإنشاء المجلد بنجاح', 'success');
+      } else {
+        showToast(data.error || 'فشل في حفظ المجلد، تأكد من الصلاحيات', 'error');
       }
-    } catch {
-      // ignore
+    } catch (err: any) {
+      showToast('خطأ بالاتصال أثناء حفظ المجلد: ' + (err?.message || ''), 'error');
+    } finally {
+      setSavingFolder(false);
     }
+  };
+
+  const openAddItemModal = (cat: CategoryType) => {
+    setItemCategory(cat);
+    setItemTitle('');
+    setItemContent('');
+    setItemCode('');
+    setItemFileUrl('');
+    setItemFileName('');
+    setItemDueDate('');
+    setShowItemModal(true);
   };
 
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentFolder || !itemTitle.trim()) return;
+    if (!currentFolder || !itemTitle.trim()) {
+      showToast('يرجى كتابة عنوان العنصر', 'error');
+      return;
+    }
 
+    setSavingItem(true);
     try {
       const res = await fetch('/api/academic/folders/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           folder_id: currentFolder.id,
           subject_id: subjectId,
           title: itemTitle.trim(),
           content: itemContent,
-          item_type: itemType,
+          item_type: itemCategory,
           code_snippet: itemCode,
           code_language: itemLang,
           file_url: itemFileUrl,
-          file_name: itemFileName
+          file_name: itemFileName || (itemFileUrl ? 'رابط ملف' : ''),
+          due_date: itemDueDate
         })
       });
+
       const data = await res.json();
       if (data.success && data.item) {
         setItems(prev => [...prev, data.item]);
         setShowItemModal(false);
-        setItemTitle('');
-        setItemContent('');
-        setItemCode('');
-        setItemFileUrl('');
-        setItemFileName('');
-        fetchFolders();
+        showToast('تمت الإضافة للمجلد بنجاح', 'success');
+        fetchFolders(); // refresh folder count
+      } else {
+        showToast(data.error || 'فشل إضافة العنصر', 'error');
       }
-    } catch {
-      // ignore
+    } catch (err: any) {
+      showToast('خطأ أثناء الإضافة: ' + (err?.message || ''), 'error');
+    } finally {
+      setSavingItem(false);
+    }
+  };
+
+  const handleToggleTaskCompleted = async (item: FolderItem) => {
+    try {
+      const newStatus = item.is_completed ? 0 : 1;
+      const res = await fetch('/api/academic/folders/items', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          id: item.id,
+          is_completed: newStatus
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_completed: newStatus } : i));
+      }
+    } catch (err) {
+      console.error('Error toggling task:', err);
     }
   };
 
   const handleDeleteFolder = async (folderId: number) => {
     if (!confirm('هل أنت متأكد من حذف هذا المجلد بكل ما بداخله؟')) return;
     try {
-      const res = await fetch(`/api/academic/folders?id=${folderId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/academic/folders?id=${folderId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
       const data = await res.json();
       if (data.success) {
         if (data.pendingApproval) {
-          setNotification('تم إرسال طلب حذف المجلد للمالك للموافقة عليه.');
+          showToast('تم إرسال طلب حذف المجلد للمالك للموافقة عليه.', 'success');
         } else {
           setFolders(prev => prev.filter(f => f.id !== folderId));
           if (currentFolder?.id === folderId) setCurrentFolder(null);
-          setNotification('تم حذف المجلد بنجاح.');
+          showToast('تم حذف المجلد بنجاح.', 'success');
         }
-        setTimeout(() => setNotification(null), 4000);
+      } else {
+        showToast(data.error || 'فشل حذف المجلد', 'error');
       }
-    } catch {
-      // ignore
+    } catch (err: any) {
+      showToast('خطأ أثناء الحذف: ' + (err?.message || ''), 'error');
     }
   };
 
   const handleDeleteItem = async (itemId: number) => {
     if (!confirm('هل أنت متأكد من حذف هذا العنصر؟')) return;
     try {
-      const res = await fetch(`/api/academic/folders/items?id=${itemId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/academic/folders/items?id=${itemId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
       const data = await res.json();
       if (data.success) {
         if (data.pendingApproval) {
-          setNotification('تم إرسال طلب حذف الملف للمالك للموافقة عليه.');
+          showToast('تم إرسال طلب حذف العنصر للمالك للموافقة عليه.', 'success');
         } else {
           setItems(prev => prev.filter(i => i.id !== itemId));
-          setNotification('تم حذف العنصر بنجاح.');
+          showToast('تم حذف العنصر بنجاح.', 'success');
+          fetchFolders();
         }
-        setTimeout(() => setNotification(null), 4000);
+      } else {
+        showToast(data.error || 'فشل حذف العنصر', 'error');
       }
-    } catch {
-      // ignore
+    } catch (err: any) {
+      showToast('خطأ أثناء الحذف: ' + (err?.message || ''), 'error');
     }
   };
 
@@ -213,29 +302,91 @@ export default function SubjectFolderExplorer({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Group items inside folder by the 4 required categories
+  const lectureItems = items.filter(i =>
+    i.item_type === 'lecture' || i.item_type === 'note' || i.item_type === 'file' || i.item_type === 'code'
+  );
+  const assignmentItems = items.filter(i => i.item_type === 'assignment');
+  const resourceItems = items.filter(i => i.item_type === 'resource');
+  const videoItems = items.filter(i => i.item_type === 'video');
+
+  const categoriesConfig = [
+    {
+      id: 'lecture' as CategoryType,
+      title: 'المحاضرات والملفات',
+      icon: BookOpen,
+      count: lectureItems.length,
+      color: 'blue',
+      badge: 'سلايدات، ملخصات، أكواد، ملاحظات',
+      items: lectureItems
+    },
+    {
+      id: 'assignment' as CategoryType,
+      title: 'الواجبات والتاسكات',
+      icon: CheckSquare,
+      count: assignmentItems.length,
+      color: 'amber',
+      badge: 'تكليفات، مواعيد تسليم، مهام',
+      items: assignmentItems
+    },
+    {
+      id: 'resource' as CategoryType,
+      title: 'المصادر والروابط',
+      icon: Link2,
+      count: resourceItems.length,
+      color: 'emerald',
+      badge: 'مراجع، روابط خارجية، ملفات درايف',
+      items: resourceItems
+    },
+    {
+      id: 'video' as CategoryType,
+      title: 'الفيديوهات والشروحات',
+      icon: Video,
+      count: videoItems.length,
+      color: 'rose',
+      badge: 'يوتيوب، تسجيلات، شروحات مسجلة',
+      items: videoItems
+    }
+  ];
+
+  const currentCategoryData = categoriesConfig.find(c => c.id === activeCategory) || categoriesConfig[0];
+
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Notification banner */}
+      {/* Toast Notification */}
       {notification && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold shadow-lg">
-          {notification}
+        <div
+          className={`p-4 rounded-2xl border text-xs font-bold shadow-xl flex items-center justify-between ${
+            notification.type === 'error'
+              ? 'bg-red-500/10 border-red-500/30 text-red-300'
+              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+          }`}
+        >
+          <span>{notification.message}</span>
+          <button onClick={() => setNotification(null)} className="opacity-70 hover:opacity-100">
+            <X size={14} />
+          </button>
         </div>
       )}
 
-      {/* Explorer Header / Breadcrumb */}
-      <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-        <div className="flex items-center gap-2 text-xs font-bold">
+      {/* Explorer Breadcrumb Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+        <div className="flex items-center gap-2 text-xs font-bold flex-wrap">
           <button
             type="button"
             onClick={() => setCurrentFolder(null)}
-            className={`hover:text-amber-400 transition-colors ${!currentFolder ? 'text-amber-400 font-black' : 'text-gray-400'}`}
+            className={`transition-colors hover:text-amber-400 ${
+              !currentFolder ? 'text-amber-400 font-black' : 'text-gray-400'
+            }`}
           >
-            مجلدات المادة ({subjectName})
+            مجلدات مادة ({subjectName})
           </button>
           {currentFolder && (
             <>
               <ChevronRight size={14} className="text-gray-600 rotate-180" />
-              <span className="text-white font-black">{currentFolder.name}</span>
+              <span className="text-white font-black bg-white/5 px-2.5 py-1 rounded-lg">
+                📁 {currentFolder.name}
+              </span>
             </>
           )}
         </div>
@@ -247,19 +398,19 @@ export default function SubjectFolderExplorer({
                 <button
                   type="button"
                   onClick={() => setShowFolderModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-lg shadow-blue-600/20 transition-all hover:scale-105"
                 >
-                  <FolderPlus size={14} />
-                  <span>مجلد جديد</span>
+                  <FolderPlus size={15} />
+                  <span>إنشاء مجلد جديد</span>
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={() => setShowItemModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shadow-md transition-all"
+                  onClick={() => openAddItemModal(activeCategory)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shadow-lg shadow-amber-500/20 transition-all hover:scale-105"
                 >
-                  <Plus size={14} />
-                  <span>إضافة ملف / كود / ملاحظة</span>
+                  <Plus size={15} />
+                  <span>+ إضافة {currentCategoryData.title}</span>
                 </button>
               )}
             </>
@@ -267,17 +418,29 @@ export default function SubjectFolderExplorer({
         </div>
       </div>
 
-      {/* Level 1: Folders Grid */}
+      {/* VIEW LEVEL 1: LIST OF FOLDERS */}
       {!currentFolder ? (
         loading ? (
-          <div className="py-12 text-center text-gray-400 text-xs">جاري تحميل مجلدات المادة...</div>
+          <div className="py-16 text-center text-gray-400 text-xs">جاري تحميل مجلدات المادة...</div>
         ) : folders.length === 0 ? (
-          <div className="py-12 text-center rounded-3xl bg-white/[0.02] border border-white/5">
-            <Folder size={36} className="mx-auto text-gray-600 mb-2" />
-            <p className="text-xs font-bold text-gray-400">لا توجد مجلدات منظمة لهذه المادة بعد</p>
-            <p className="text-[11px] text-gray-500 mt-1">
-              أنشئ مجلدات مثل "محاضرة 1"، "معمل الخوارزميات"، أو "ملخصات الميدترم"
+          <div className="py-16 text-center rounded-3xl bg-white/[0.02] border border-white/5 space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center mx-auto text-2xl">
+              <Folder size={32} />
+            </div>
+            <p className="text-sm font-black text-white">لا توجد مجلدات لهذه المادة بعد</p>
+            <p className="text-xs text-gray-400 max-w-md mx-auto">
+              اضغط على زر <strong className="text-blue-400">"إنشاء مجلد جديد"</strong> لتنظيم محاضراتك، واجباتك، ومصادرك الأكاديمية بدقة.
             </p>
+            {!isViewer && (
+              <button
+                type="button"
+                onClick={() => setShowFolderModal(true)}
+                className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-lg"
+              >
+                <FolderPlus size={15} />
+                <span>+ إنشاء أول مجلد الآن</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -285,11 +448,11 @@ export default function SubjectFolderExplorer({
               <div
                 key={folder.id}
                 onClick={() => setCurrentFolder(folder)}
-                className="group relative p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-blue-500/40 hover:bg-blue-500/5 transition-all cursor-pointer shadow-lg flex flex-col justify-between"
+                className="group relative p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer shadow-lg flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
                       <Folder size={20} />
                     </div>
 
@@ -303,7 +466,7 @@ export default function SubjectFolderExplorer({
                         className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-opacity"
                         title="حذف المجلد"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     )}
                   </div>
@@ -318,175 +481,307 @@ export default function SubjectFolderExplorer({
                   )}
                 </div>
 
-                <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/5 text-[10px] text-gray-400">
-                  <span>{folder.itemsCount || 0} عناصر بالداخل</span>
-                  <span className="text-blue-400 font-bold group-hover:translate-x-[-2px] transition-transform">
-                    فتح المجلد ←
-                  </span>
+                <div className="pt-3 mt-4 border-t border-white/5 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-gray-400 font-mono">
+                    <span>{folder.itemsCount || 0} محتوى محفوظ</span>
+                    <span className="text-blue-400 font-bold group-hover:translate-x-[-2px] transition-transform">
+                      فتح المجلد ←
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )
       ) : (
-        /* Level 2: Inside Folder View */
-        <div className="space-y-4">
+        /* VIEW LEVEL 2: INSIDE SPECIFIC FOLDER */
+        <div className="space-y-6">
+          {/* Back button & folder header */}
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => setCurrentFolder(null)}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-gray-300 hover:text-white transition-all"
             >
               <ArrowRight size={14} />
-              <span>العودة لكافة المجلدات</span>
+              <span>العودة لكافة مجلدات المادة</span>
             </button>
-            <span className="text-xs text-gray-400">{items.length} محتوى محفوظ</span>
+            <div className="text-xs text-gray-400 font-mono">
+              إجمالي محتويات المجلد: <strong className="text-white font-bold">{items.length}</strong>
+            </div>
           </div>
 
-          {items.length === 0 ? (
-            <div className="py-16 text-center rounded-3xl bg-white/[0.02] border border-white/5">
-              <FileText size={36} className="mx-auto text-gray-600 mb-2" />
-              <p className="text-xs font-bold text-gray-400">هذا المجلد فارغ حالياً</p>
-              <p className="text-[11px] text-gray-500 mt-1">
-                اضغط على زر "إضافة ملف / كود / ملاحظة" لإدراج محتوى منظم بالداخل
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {items.map(item => (
-                <div
-                  key={item.id}
-                  className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all space-y-3"
+          {/* ── THE 4 REQUIRED CATEGORIES INSIDE THE FOLDER ── */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {categoriesConfig.map(cat => {
+              const IconComp = cat.icon;
+              const isActive = activeCategory === cat.id;
+
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`text-right p-4 rounded-2xl border transition-all relative overflow-hidden flex flex-col justify-between ${
+                    isActive
+                      ? 'bg-white/[0.08] border-amber-500/80 shadow-[0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/50'
+                      : 'bg-white/[0.02] border-white/10 hover:border-white/20 hover:bg-white/[0.04]'
+                  }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-8 h-8 rounded-xl bg-white/5 text-amber-400 flex items-center justify-center">
-                        {item.item_type === 'code' ? <Code2 size={16} /> : item.item_type === 'file' ? <Download size={16} /> : <FileText size={16} />}
-                      </span>
-                      <h4 className="text-sm font-black text-white">{item.title}</h4>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-gray-300">
-                        {item.item_type}
-                      </span>
-                    </div>
+                  <div className="flex items-center justify-between w-full mb-3">
+                    <span className={`p-2 rounded-xl ${
+                      cat.color === 'blue' ? 'bg-blue-500/20 text-blue-400' :
+                      cat.color === 'amber' ? 'bg-amber-500/20 text-amber-400' :
+                      cat.color === 'emerald' ? 'bg-emerald-500/20 text-emerald-400' :
+                      'bg-rose-500/20 text-rose-400'
+                    }`}>
+                      <IconComp size={18} />
+                    </span>
 
-                    <div className="flex items-center gap-1">
-                      {onOpenNotebookLM && (
-                        <button
-                          type="button"
-                          onClick={() => onOpenNotebookLM(item.title, `${item.content}\n${item.code_snippet}`)}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 text-xs font-bold border border-blue-500/20"
-                          title="تحليل في NotebookLM AI"
-                        >
-                          <Sparkles size={12} className="text-amber-400" />
-                          <span>تحليل AI</span>
-                        </button>
-                      )}
-
-                      {!isViewer && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10"
-                          title="حذف العنصر"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-                    </div>
+                    {/* Counter prominently displayed as requested */}
+                    <span className={`text-xl font-black font-mono px-2.5 py-0.5 rounded-lg ${
+                      isActive ? 'bg-amber-500 text-black' : 'bg-white/10 text-white'
+                    }`}>
+                      {cat.count}
+                    </span>
                   </div>
 
-                  {/* Notes / Rich Content */}
-                  {item.content && (
-                    <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                      {item.content}
-                    </div>
-                  )}
+                  <div>
+                    <strong className={`block text-xs font-black ${isActive ? 'text-amber-400' : 'text-gray-200'}`}>
+                      {cat.title}
+                    </strong>
+                    <span className="text-[10px] text-gray-400 line-clamp-1 mt-0.5 block">
+                      {cat.badge}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
-                  {/* Code Snippet */}
-                  {item.code_snippet && (
-                    <div className="rounded-xl border border-white/10 bg-[#080b10] overflow-hidden">
-                      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 bg-white/[0.02] text-[10px] text-gray-400 font-mono">
-                        <span>{item.code_language || 'code'}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyCode(item.id, item.code_snippet)}
-                          className="flex items-center gap-1 text-gray-300 hover:text-white"
-                        >
-                          {copiedId === item.id ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
-                          <span>{copiedId === item.id ? 'تم النسخ' : 'نسخ'}</span>
-                        </button>
-                      </div>
-                      <pre className="p-3 text-xs text-amber-200/90 font-mono overflow-x-auto leading-relaxed">
-                        {item.code_snippet}
-                      </pre>
-                    </div>
-                  )}
-
-                  {/* File Attachment */}
-                  {item.file_url && (
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
-                      <div className="flex items-center gap-2 truncate">
-                        <File size={14} className="text-amber-400 shrink-0" />
-                        <span className="font-bold text-gray-200 truncate">{item.file_name || 'ملف مرفق'}</span>
-                      </div>
-                      <a
-                        href={item.file_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-1 rounded-lg bg-amber-500 text-black font-bold text-xs flex items-center gap-1 hover:bg-amber-400 shrink-0"
-                      >
-                        <Download size={12} />
-                        <span>تحميل</span>
-                      </a>
-                    </div>
-                  )}
+          {/* Category Content Area */}
+          <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/10 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-white/5 text-amber-400">
+                  <currentCategoryData.icon size={18} />
+                </span>
+                <div>
+                  <h3 className="text-sm font-black text-white">{currentCategoryData.title}</h3>
+                  <p className="text-[11px] text-gray-400 font-mono">
+                    {currentCategoryData.count} عناصر مسجلة داخل هذا المجلد
+                  </p>
                 </div>
-              ))}
+              </div>
+
+              {!isViewer && (
+                <button
+                  type="button"
+                  onClick={() => openAddItemModal(activeCategory)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shadow-md transition-all"
+                >
+                  <Plus size={14} />
+                  <span>+ إضافة {currentCategoryData.title}</span>
+                </button>
+              )}
             </div>
-          )}
+
+            {/* Category Items List */}
+            {currentCategoryData.items.length === 0 ? (
+              <div className="py-12 text-center rounded-2xl bg-white/[0.01] border border-dashed border-white/10">
+                <currentCategoryData.icon size={36} className="mx-auto text-gray-600 mb-2" />
+                <p className="text-xs font-bold text-gray-400">
+                  لا توجد {currentCategoryData.title} مضافة في هذا المجلد بعد (0)
+                </p>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  اضغط على الزر أعلاه لإضافة أول محتوى
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {currentCategoryData.items.map(item => (
+                  <div
+                    key={item.id}
+                    className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        {/* If assignment, show completion checkbox */}
+                        {item.item_type === 'assignment' && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleTaskCompleted(item)}
+                            className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${
+                              item.is_completed
+                                ? 'bg-emerald-500 border-emerald-400 text-black'
+                                : 'border-white/30 hover:border-amber-400 bg-white/5'
+                            }`}
+                          >
+                            {item.is_completed ? <Check size={13} className="stroke-[3]" /> : null}
+                          </button>
+                        )}
+
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className={`text-sm font-black ${
+                              item.is_completed ? 'line-through text-gray-400' : 'text-white'
+                            }`}>
+                              {item.title}
+                            </h4>
+                            {item.due_date && (
+                              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                                <Clock size={10} />
+                                <span>تسليم: {item.due_date}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {item.content && (
+                            <p className="text-xs text-gray-300 leading-relaxed mt-1 whitespace-pre-wrap">
+                              {item.content}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* NotebookLM AI Prompt */}
+                        {onOpenNotebookLM && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenNotebookLM(
+                              item.title,
+                              `${item.title}\n\n${item.content || ''}\n${item.code_snippet || ''}\n${item.file_url || ''}`
+                            )}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-500/30 transition-all"
+                            title="تحليل في NotebookLM AI"
+                          >
+                            <Sparkles size={12} className="text-amber-400" />
+                            <span>تحليل AI</span>
+                          </button>
+                        )}
+
+                        {!isViewer && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteItem(item.id)}
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            title="حذف العنصر"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Attached Code */}
+                    {item.code_snippet && (
+                      <div className="rounded-xl border border-white/10 bg-[#080b10] overflow-hidden text-xs">
+                        <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 bg-white/[0.02] text-[10px] text-gray-400 font-mono">
+                          <span>{item.code_language || 'code'}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyCode(item.id, item.code_snippet)}
+                            className="flex items-center gap-1 text-gray-300 hover:text-white"
+                          >
+                            {copiedId === item.id ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+                            <span>{copiedId === item.id ? 'تم النسخ' : 'نسخ الكود'}</span>
+                          </button>
+                        </div>
+                        <pre className="p-3 text-amber-200/90 font-mono overflow-x-auto leading-relaxed">
+                          {item.code_snippet}
+                        </pre>
+                      </div>
+                    )}
+
+                    {/* Attached File or Link */}
+                    {item.file_url && (
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs">
+                        <div className="flex items-center gap-2 truncate">
+                          {item.item_type === 'video' ? (
+                            <Video size={14} className="text-rose-400 shrink-0" />
+                          ) : (
+                            <File size={14} className="text-amber-400 shrink-0" />
+                          )}
+                          <span className="font-bold text-gray-200 truncate">
+                            {item.file_name || item.file_url}
+                          </span>
+                        </div>
+                        <a
+                          href={item.file_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1 shrink-0"
+                        >
+                          <ExternalLink size={12} />
+                          <span>فتح الرابط</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Add Folder Modal */}
+      {/* MODAL: ADD NEW FOLDER */}
       {showFolderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-md bg-[#0e1217] border border-white/10 rounded-3xl p-6 shadow-2xl">
-            <h3 className="text-base font-black text-white mb-4">إنشاء مجلد جديد</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <FolderPlus size={18} className="text-blue-400" />
+                <span>إنشاء مجلد جديد ({subjectName})</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowFolderModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
             <form onSubmit={handleCreateFolder} className="space-y-4 text-xs">
               <div>
-                <label className="block text-gray-400 font-bold mb-1">اسم المجلد *</label>
+                <label className="block text-gray-300 font-bold mb-1">اسم المجلد الأكاديمي *</label>
                 <input
                   type="text"
                   required
                   value={folderName}
                   onChange={e => setFolderName(e.target.value)}
-                  placeholder="مثال: المحاضرة الأولى (مقدمة)"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white"
+                  placeholder="مثال: المحاضرة 1 (مقدمة الذكاء الاصطناعي)"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                 />
               </div>
+
               <div>
-                <label className="block text-gray-400 font-bold mb-1">وصف المجلد</label>
+                <label className="block text-gray-300 font-bold mb-1">وصف المجلد (اختياري)</label>
                 <input
                   type="text"
                   value={folderDesc}
                   onChange={e => setFolderDesc(e.target.value)}
-                  placeholder="محتويات أو تاريخ السكشن"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white"
+                  placeholder="مثال: يضم السلايدات، الواجب الأول، والمراجع"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setShowFolderModal(false)}
-                  className="px-4 py-2 rounded-xl border border-white/10 text-gray-400 hover:text-white"
+                  className="px-4 py-2 rounded-xl border border-white/10 text-gray-400 hover:text-white font-bold"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold"
+                  disabled={savingFolder}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg disabled:opacity-50"
                 >
-                  حفظ المجلد
+                  {savingFolder ? 'جاري الحفظ...' : 'حفظ المجلد'}
                 </button>
               </div>
             </form>
@@ -494,52 +789,101 @@ export default function SubjectFolderExplorer({
         </div>
       )}
 
-      {/* Add Item to Folder Modal */}
+      {/* MODAL: ADD ITEM INSIDE FOLDER */}
       {showItemModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-lg bg-[#0e1217] border border-white/10 rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-black text-white mb-4">إضافة عنصر داخل {currentFolder?.name}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-black text-white">
+                إضافة {currentCategoryData.title} داخل "{currentFolder?.name}"
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowItemModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
             <form onSubmit={handleCreateItem} className="space-y-4 text-xs">
+              {/* Category picker inside modal */}
               <div>
-                <label className="block text-gray-400 font-bold mb-1">العنوان *</label>
+                <label className="block text-gray-300 font-bold mb-1.5">القسم المستهدف داخل المجلد</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {categoriesConfig.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setItemCategory(c.id)}
+                      className={`p-2.5 rounded-xl border text-xs font-bold flex items-center gap-2 ${
+                        itemCategory === c.id
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                          : 'bg-white/5 border-white/10 text-gray-400'
+                      }`}
+                    >
+                      <c.icon size={14} />
+                      <span>{c.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-bold mb-1">العنوان *</label>
                 <input
                   type="text"
                   required
                   value={itemTitle}
                   onChange={e => setItemTitle(e.target.value)}
-                  placeholder="عنوان الملاحظة أو الكود أو الملف"
+                  placeholder="مثال: ملخص الخوارزميات، أو تكليف 1"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 font-bold mb-1">النوع</label>
-                <select
-                  value={itemType}
-                  onChange={e => setItemType(e.target.value as any)}
-                  className="w-full bg-[#161b22] border border-white/10 rounded-xl px-3 py-2 text-white"
-                >
-                  <option value="note">شرح وملاحظات نصية (Note)</option>
-                  <option value="code">كود برمجي مع تظليل (Code Snippet)</option>
-                  <option value="file">رابط أو ملف دراسي (File Link)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-gray-400 font-bold mb-1">المحتوى / الشرح</label>
+                <label className="block text-gray-300 font-bold mb-1">الشرح / المحتوى / التفاصيل</label>
                 <textarea
                   rows={4}
                   value={itemContent}
                   onChange={e => setItemContent(e.target.value)}
-                  placeholder="اكتب التلخيص أو الملاحظات هنا..."
+                  placeholder="اكتب التلخيص أو تفاصيل التكليف هنا..."
                   className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white"
                 />
               </div>
 
-              {itemType === 'code' && (
-                <div className="space-y-3 p-3 rounded-2xl bg-black/40 border border-white/5">
+              {/* Assignment-specific fields */}
+              {itemCategory === 'assignment' && (
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1">موعد التسليم (Deadline)</label>
+                  <input
+                    type="date"
+                    value={itemDueDate}
+                    onChange={e => setItemDueDate(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+              )}
+
+              {/* File / Link fields */}
+              <div>
+                <label className="block text-gray-300 font-bold mb-1">
+                  {itemCategory === 'video' ? 'رابط الفيديو (YouTube / Drive)' : 'رابط الملف أو المرجع (Google Drive / URL)'}
+                </label>
+                <input
+                  type="url"
+                  value={itemFileUrl}
+                  onChange={e => setItemFileUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white"
+                />
+              </div>
+
+              {/* Code Snippet for lectures/resources */}
+              {itemCategory === 'lecture' && (
+                <div className="space-y-2 p-3 rounded-2xl bg-black/40 border border-white/5">
                   <div className="flex items-center justify-between">
-                    <label className="text-gray-400 font-bold">لغة الكود</label>
+                    <label className="text-gray-300 font-bold">كود برمجي اختياري مع تظليل</label>
                     <select
                       value={itemLang}
                       onChange={e => setItemLang(e.target.value)}
@@ -553,41 +897,16 @@ export default function SubjectFolderExplorer({
                     </select>
                   </div>
                   <textarea
-                    rows={6}
+                    rows={4}
                     value={itemCode}
                     onChange={e => setItemCode(e.target.value)}
-                    placeholder="// اكتب أو الصق الكود هنا..."
+                    placeholder="// الصق الكود هنا إن وجد..."
                     className="w-full bg-[#080b10] border border-white/10 rounded-xl p-3 text-amber-200 font-mono text-xs"
                   />
                 </div>
               )}
 
-              {itemType === 'file' && (
-                <div className="space-y-3 p-3 rounded-2xl bg-black/40 border border-white/5">
-                  <div>
-                    <label className="block text-gray-400 font-bold mb-1">رابط الملف المباشر (Drive / URL)</label>
-                    <input
-                      type="url"
-                      value={itemFileUrl}
-                      onChange={e => setItemFileUrl(e.target.value)}
-                      placeholder="https://drive.google.com/..."
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 font-bold mb-1">اسم الملف للعرض</label>
-                    <input
-                      type="text"
-                      value={itemFileName}
-                      onChange={e => setItemFileName(e.target.value)}
-                      placeholder="Lecture_1_Slides.pdf"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setShowItemModal(false)}
@@ -597,9 +916,10 @@ export default function SubjectFolderExplorer({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black"
+                  disabled={savingItem}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black disabled:opacity-50"
                 >
-                  إضافة للمجلد
+                  {savingItem ? 'جاري الإضافة...' : 'إضافة إلى المجلد'}
                 </button>
               </div>
             </form>
