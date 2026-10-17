@@ -7,8 +7,15 @@ import {
   Plus, Edit2, Trash2, CheckCircle, Circle, RefreshCw, Settings, Users,
   ArrowLeft, ArrowRight, Download, ExternalLink, Play, Clock, Calendar,
   AlertCircle, ChevronRight, X, Search, Shield, Sparkles, Folder, Eye, FolderPlus,
-  ImageIcon, Upload, Camera
+  ImageIcon, Upload, Camera, ShieldAlert, Code2
 } from 'lucide-react';
+
+import NotebookLMWidget from './academic/NotebookLMWidget';
+import ScheduleDashboard from './academic/ScheduleDashboard';
+import CodePracticeSystem from './academic/CodePracticeSystem';
+import ExamSimulatorHub from './academic/ExamSimulatorHub';
+import SubjectFolderExplorer from './academic/SubjectFolderExplorer';
+import DeletionApprovalModal from './academic/DeletionApprovalModal';
 
 interface AcademicSettings {
   id?: number;
@@ -22,6 +29,7 @@ interface Subject {
   id: number;
   name: string;
   code: string;
+  term?: string;
   color: string;
   icon: string;
   sort_order: number;
@@ -128,12 +136,24 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
   });
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
-  const [activeTab, setActiveTab] = useState<'lectures' | 'assignments' | 'resources' | 'videos'>('lectures');
+  const [activeTab, setActiveTab] = useState<'folders' | 'lectures' | 'assignments' | 'resources' | 'videos'>('lectures');
   const [overallProgress, setOverallProgress] = useState({ total: 0, completed: 0, percentage: 0 });
   const [pendingSync, setPendingSync] = useState(0);
   const [assistants, setAssistants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Academic Hub Modules & Semester State
+  const [selectedSemester, setSelectedSemester] = useState<'term1' | 'term2' | 'all'>('term1');
+  const [collegeHubTab, setCollegeHubTab] = useState<'subjects' | 'schedule' | 'exams' | 'codepractice'>('subjects');
+  const [pendingDeletionCount, setPendingDeletionCount] = useState(0);
+  const [showDeletionModal, setShowDeletionModal] = useState(false);
+  const [notebookLMModal, setNotebookLMModal] = useState<{ open: boolean; title: string; text: string; subjectName: string }>({
+    open: false,
+    title: '',
+    text: '',
+    subjectName: '',
+  });
 
   // Modals state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -159,6 +179,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
     icon: '📘',
     drive_folder_url: '',
     cover_image: '',
+    term: 'term1',
   });
 
   const [materialForm, setMaterialForm] = useState({
@@ -172,7 +193,21 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
     material_date: new Date().toISOString().split('T')[0],
   });
 
-  const [assistantForm, setAssistantForm] = useState({ username: '', password: '', display_name: '', role: 'assistant' });
+  const [assistantForm, setAssistantForm] = useState({
+    username: '',
+    email: '',
+    password: '',
+    display_name: '',
+    role: 'assistant',
+    permissions: {
+      can_upload: true,
+      can_create: true,
+      can_edit: true,
+      can_manage_schedule: false,
+      can_access_exams: true,
+      can_practice_code: true,
+    }
+  });
 
   const t = {
     ar: {
@@ -310,11 +345,23 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
       if (subsRes.success && subsRes.subjects) setSubjects(subsRes.subjects);
       if (progRes.success && progRes.progress) setOverallProgress(progRes.progress);
       if (syncRes.success && syncRes.pending) setPendingSync(syncRes.pending.total);
+
+      // Check pending deletions for Owner
+      if (role === 'owner') {
+        fetch('/api/academic/deletions')
+          .then(r => r.json())
+          .then(delData => {
+            if (delData.success && delData.requests) {
+              setPendingDeletionCount(delData.requests.filter((r: any) => r.status === 'pending').length);
+            }
+          })
+          .catch(() => {});
+      }
     } catch (e) {
       console.error('Failed to fetch academic data:', e);
     }
     setLoading(false);
-  }, []);
+  }, [role]);
 
   const loadSubjectDetail = useCallback(async (id: number) => {
     try {
@@ -496,8 +543,13 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
     const { type, id } = deleteConfirm;
     try {
       if (type === 'subject') {
-        await fetch(`/api/academic/subjects/${id}`, { method: 'DELETE' });
-        setCurrentSubject(null);
+        const res = await fetch(`/api/academic/subjects/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.pendingApproval) {
+          alert('تم إرسال طلب حذف المادة إلى المالك للموافقة والتأكيد قبل الحذف النهائي.');
+        } else {
+          setCurrentSubject(null);
+        }
         fetchData();
       } else {
         const endpointMap: Record<string, string> = {
@@ -508,7 +560,11 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
         };
         const endpoint = endpointMap[type];
         if (endpoint) {
-          await fetch(`${endpoint}?id=${id}`, { method: 'DELETE' });
+          const res = await fetch(`${endpoint}?id=${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.pendingApproval) {
+            alert('تم إرسال طلب الحذف إلى المالك للموافقة والتأكيد قبل الحذف النهائي.');
+          }
           if (currentSubject) loadSubjectDetail(currentSubject.id);
           fetchData();
         }
@@ -542,7 +598,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/academic/assistants', { headers }).then(r => r.json());
+      const res = await fetch('/api/academic/assistants', { headers, credentials: 'include' }).then(r => r.json());
       if (res.success && res.assistants) setAssistants(res.assistants);
     } catch (e) {
       console.error(e);
@@ -569,16 +625,31 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
       const res = await fetch('/api/academic/assistants', {
         method: 'POST',
         headers,
+        credentials: 'include',
         body: JSON.stringify(assistantForm),
       }).then(r => r.json());
 
       if (res.success) {
-        setAssistantForm({ username: '', password: '', display_name: '', role: 'assistant' });
+        setAssistantForm({
+          username: '',
+          email: '',
+          password: '',
+          display_name: '',
+          role: 'assistant',
+          permissions: {
+            can_upload: true,
+            can_create: true,
+            can_edit: true,
+            can_manage_schedule: false,
+            can_access_exams: true,
+            can_practice_code: true,
+          }
+        });
         setAssistantFeedback({ type: 'success', message: 'تم إنشاء الحساب بنجاح! يمكن للمستخدم الآن تسجيل الدخول.' });
         loadAssistants();
       } else {
-        const errorMsg = res.error === 'Username already exists'
-          ? 'اسم المستخدم مسجل بالفعل، يرجى اختيار اسم مستخدم آخر'
+        const errorMsg = res.error === 'Username or email already exists' || res.error === 'Username already exists'
+          ? 'اسم المستخدم أو البريد الإلكتروني مسجل بالفعل'
           : (res.error || 'فشل إنشاء الحساب');
         setAssistantFeedback({ type: 'error', message: errorMsg });
       }
@@ -598,7 +669,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/academic/assistants?id=${id}`, { method: 'DELETE', headers }).then(r => r.json());
+      const res = await fetch(`/api/academic/assistants?id=${id}`, { method: 'DELETE', headers, credentials: 'include' }).then(r => r.json());
       if (res.success) {
         loadAssistants();
       } else {
@@ -609,10 +680,12 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
     }
   };
 
-  const filteredSubjects = subjects.filter(s =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.code && s.code.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredSubjects = subjects.filter(s => {
+    const matchSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.code && s.code.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchTerm = selectedSemester === 'all' || !s.term || s.term === selectedSemester;
+    return matchSearch && matchTerm;
+  });
 
   return (
     <div className="space-y-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
@@ -649,8 +722,31 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
             </button>
           )}
 
+          {/* NotebookLM AI Button - visible to all */}
+          <button
+            onClick={() => setNotebookLMModal({ open: true, title: currentSubject?.name || 'المادة الحالية', text: '', subjectName: currentSubject?.name || '' })}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-black shadow-lg transition-all"
+          >
+            <Sparkles size={14} />
+            <span>AI NotebookLM</span>
+          </button>
+
           {isOwner && (
             <>
+              {/* Pending Deletion Requests Badge */}
+              {pendingDeletionCount > 0 && (
+                <button
+                  onClick={() => setShowDeletionModal(true)}
+                  className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs font-black shadow-lg animate-pulse transition-all"
+                >
+                  <ShieldAlert size={14} />
+                  <span>طلبات حذف بانتظار موافقتك</span>
+                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center shadow">
+                    {pendingDeletionCount}
+                  </span>
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   loadAssistants();
@@ -693,8 +789,75 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT AREA ── */}
-      {!currentSubject ? (
+      {/* ── COLLEGE HUB MODULE TABS ── */}
+      <div className="space-y-3">
+        {/* Module Tab Switcher */}
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            { id: 'subjects', label: '📚 المواد الدراسية', icon: null },
+            { id: 'schedule', label: '🗓️ الجدول الدراسي', icon: null },
+            { id: 'exams', label: '📝 محاكاة الامتحانات', icon: null },
+            { id: 'codepractice', label: '💻 ممارسة الكود', icon: null },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => { setCollegeHubTab(tab.id as any); setCurrentSubject(null); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                collegeHubTab === tab.id
+                  ? 'bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                  : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Semester Filter Pills (shown only for subjects tab) */}
+        {collegeHubTab === 'subjects' && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-gray-500">الفصل الدراسي:</span>
+            {([
+              { id: 'term1', label: 'الترم الأول' },
+              { id: 'term2', label: 'الترم الثاني' },
+              { id: 'all', label: 'الكل' },
+            ] as const).map(sem => (
+              <button
+                key={sem.id}
+                onClick={() => setSelectedSemester(sem.id)}
+                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                  selectedSemester === sem.id
+                    ? 'bg-blue-500/30 border border-blue-500/50 text-blue-200'
+                    : 'bg-white/5 border border-white/10 text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {sem.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── SCHEDULE MODULE ── */}
+      {collegeHubTab === 'schedule' && (
+        <ScheduleDashboard userRole={role} currentTerm={selectedSemester === 'all' ? 'term1' : selectedSemester} />
+      )}
+
+      {/* ── EXAM SIMULATOR MODULE ── */}
+      {collegeHubTab === 'exams' && (
+        <ExamSimulatorHub userRole={role} currentTerm={selectedSemester === 'all' ? 'term1' : selectedSemester} />
+      )}
+
+      {/* ── CODE PRACTICE MODULE ── */}
+      {collegeHubTab === 'codepractice' && (
+        <CodePracticeSystem userRole={role} />
+      )}
+
+      {/* ── SUBJECTS MODULE ── */}
+      {collegeHubTab === 'subjects' && (
+
+      /* ── MAIN CONTENT AREA ── */
+      (!currentSubject ? (
         /* ── SUBJECTS GRID VIEW ── */
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -713,7 +876,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
               <button
                 onClick={() => {
                   setEditSubjectId(null);
-                  setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘', drive_folder_url: '', cover_image: '' });
+                  setSubjectForm({ name: '', code: '', color: '#FF6B00', icon: '📘', drive_folder_url: '', cover_image: '', term: selectedSemester === 'all' ? 'term1' : selectedSemester });
                   setShowSubjectModal(true);
                 }}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02]"
@@ -1019,6 +1182,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
           <div className="flex items-center justify-between border-b border-white/10 pb-4 overflow-x-auto gap-2">
             <div className="flex items-center gap-2 shrink-0">
               {[
+                { id: 'folders', label: '📁 المجلدات والملاحظات', icon: <Folder size={18} />, count: 0 },
                 { id: 'lectures', label: t.tabLectures, icon: <FileText size={18} />, count: currentSubject.lectures?.length || 0 },
                 { id: 'assignments', label: t.tabAssignments, icon: <CheckSquare size={18} />, count: currentSubject.assignments?.length || 0 },
                 { id: 'resources', label: t.tabResources, icon: <LinkIcon size={18} />, count: currentSubject.resources?.length || 0 },
@@ -1027,7 +1191,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all ${
                     activeTab === tab.id
                       ? 'bg-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.3)]'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -1035,9 +1199,11 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                 >
                   {tab.icon}
                   <span>{tab.label}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === tab.id ? 'bg-black/20 text-black' : 'bg-white/10 text-gray-300'}`}>
-                    {tab.count}
-                  </span>
+                  {tab.id !== 'folders' && (
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === tab.id ? 'bg-black/20 text-black' : 'bg-white/10 text-gray-300'}`}>
+                      {tab.count}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -1066,7 +1232,22 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
             )}
           </div>
 
-          {/* Material Items List */}
+          {/* Folders Tab Content or Material Items List */}
+          {activeTab === 'folders' ? (
+            <SubjectFolderExplorer
+              subjectId={currentSubject.id}
+              subjectName={currentSubject.name}
+              userRole={role}
+              onOpenNotebookLM={(title, text) =>
+                setNotebookLMModal({
+                  open: true,
+                  title: title || currentSubject.name,
+                  text: text || '',
+                  subjectName: currentSubject.name,
+                })
+              }
+            />
+          ) : (
           <div className="space-y-3">
             {(() => {
               const items = currentSubject[activeTab] || [];
@@ -1155,6 +1336,24 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
 
                     {/* Actions on item */}
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      {/* NotebookLM AI Analysis */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNotebookLMModal({
+                            open: true,
+                            title: item.title,
+                            text: `${item.title}\n\nالوصف والملاحظات:\n${item.description || ''}\n\nالرابط المرفق:\n${itemLink}`,
+                            subjectName: currentSubject.name,
+                          });
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs font-bold hover:bg-purple-500 hover:text-white transition-all shadow-sm"
+                        title="تحليل وتلخيص في Google NotebookLM"
+                      >
+                        <Sparkles size={13} className="text-purple-400" />
+                        <span>NotebookLM</span>
+                      </button>
+
                       {/* In-App Live Preview Button for Documents / Drive / Videos */}
                       {itemLink && (
                         <button
@@ -1226,7 +1425,11 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
               });
             })()}
           </div>
+          )}
         </div>
+      )}
+
+      {/* Close subjects module conditional */}
       )}
 
       {/* ── MODALS ── */}
@@ -1354,6 +1557,35 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                     className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm text-white focus:outline-none focus:border-amber-500"
                     placeholder="مثال: ELEC101"
                   />
+                </div>
+
+                {/* Academic Term Selection */}
+                <div>
+                  <label className="text-xs font-bold text-gray-400 block mb-1">الفصل الدراسي (الترم)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSubjectForm({ ...subjectForm, term: 'term1' })}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
+                        subjectForm.term === 'term1'
+                          ? 'border-amber-500 bg-amber-500/20 text-amber-300'
+                          : 'border-white/10 bg-white/5 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      الترم الأول (Term 1)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSubjectForm({ ...subjectForm, term: 'term2' })}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
+                        subjectForm.term === 'term2'
+                          ? 'border-amber-500 bg-amber-500/20 text-amber-300'
+                          : 'border-white/10 bg-white/5 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      الترم الثاني (Term 2)
+                    </button>
+                  </div>
                 </div>
 
                 {/* Google Drive Folder Link */}
@@ -1716,30 +1948,49 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
               {/* Create Assistant Form */}
               <form onSubmit={handleCreateAssistant} className="p-5 rounded-2xl border border-white/10 bg-white/[0.02] space-y-4">
                 <h4 className="text-sm font-black text-amber-400">{t.createAssistant}</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <input
-                    type="text"
-                    required
-                    placeholder={t.username}
-                    value={assistantForm.username}
-                    onChange={e => setAssistantForm({ ...assistantForm, username: e.target.value })}
-                    className="px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white"
-                  />
-                  <input
-                    type="password"
-                    required
-                    placeholder={t.password}
-                    value={assistantForm.password}
-                    onChange={e => setAssistantForm({ ...assistantForm, password: e.target.value })}
-                    className="px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white"
-                  />
-                  <input
-                    type="text"
-                    placeholder={t.displayName}
-                    value={assistantForm.display_name}
-                    onChange={e => setAssistantForm({ ...assistantForm, display_name: e.target.value })}
-                    className="px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 block mb-1">اسم المستخدم *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. ahmed_assistant"
+                      value={assistantForm.username}
+                      onChange={e => setAssistantForm({ ...assistantForm, username: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 block mb-1">البريد الإلكتروني (لتسجيل الدخول)</label>
+                    <input
+                      type="email"
+                      placeholder="name@college.edu"
+                      value={assistantForm.email}
+                      onChange={e => setAssistantForm({ ...assistantForm, email: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 block mb-1">كلمة المرور *</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={assistantForm.password}
+                      onChange={e => setAssistantForm({ ...assistantForm, password: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 block mb-1">الاسم المعروض</label>
+                    <input
+                      type="text"
+                      placeholder="م. أحمد محمد"
+                      value={assistantForm.display_name}
+                      onChange={e => setAssistantForm({ ...assistantForm, display_name: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 text-xs text-white"
+                    />
+                  </div>
                 </div>
 
                 {/* Account Role Selector: Assistant vs View-Only */}
@@ -1776,10 +2027,46 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
                       {assistantForm.role === 'viewer' && <CheckCircle size={15} className="text-purple-400" />}
                     </button>
                   </div>
-                  <span className="text-[10px] text-gray-500 block">
-                    * الحسابات المُنشأة هنا مقيدة بصلاحية قسم الكلية فقط وممنوعة تماماً من الوصول لأي بيانات أخرى في النظام.
-                  </span>
                 </div>
+
+                {/* Granular Permissions (Customizable for Assistant) */}
+                {assistantForm.role === 'assistant' && (
+                  <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
+                    <label className="text-[11px] font-bold text-amber-400 block">صلاحيات مخصصة ومرنة للمساعد:</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                      {[
+                        { key: 'can_upload', label: 'رفع الكفرات والملفات' },
+                        { key: 'can_create', label: 'إضافة مواد ومحاضرات' },
+                        { key: 'can_edit', label: 'تعديل المحتوى' },
+                        { key: 'can_manage_schedule', label: 'إدارة الجدول الدراسي' },
+                        { key: 'can_access_exams', label: 'محاكي الامتحانات' },
+                        { key: 'can_practice_code', label: 'ممارسة الأكواد' },
+                      ].map(perm => (
+                        <label key={perm.key} className="flex items-center gap-2 p-1.5 rounded-lg bg-white/5 text-gray-300 hover:text-white cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={Boolean((assistantForm.permissions as any)[perm.key])}
+                            onChange={e => {
+                              setAssistantForm({
+                                ...assistantForm,
+                                permissions: {
+                                  ...assistantForm.permissions,
+                                  [perm.key]: e.target.checked,
+                                }
+                              });
+                            }}
+                            className="rounded accent-amber-500"
+                          />
+                          <span className="text-[11px] font-medium">{perm.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <span className="text-[10px] text-gray-500 block">
+                  * الحسابات المُنشأة هنا مقيدة بصلاحية قسم الكلية فقط وممنوعة تماماً من الوصول لأي بيانات حساسة في النظام. أي محاولة حذف تتطلب موافقة المالك أولاً.
+                </span>
 
                 {assistantFeedback && (
                   <div className={`p-3 rounded-xl text-xs font-bold ${
@@ -1883,6 +2170,45 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── FLOATING NOTEBOOKLM BUTTON ── */}
+      <button
+        onClick={() => setNotebookLMModal(prev => ({ ...prev, open: true }))}
+        className="fixed bottom-6 left-6 z-40 flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-black shadow-2xl shadow-purple-500/30 transition-all hover:scale-105 border border-purple-400/30"
+        title="فتح AI NotebookLM مساعد الدراسة"
+      >
+        <Sparkles size={16} className="text-yellow-300" />
+        <span>AI Notebook</span>
+      </button>
+
+      {/* ── NOTEBOOKLM WIDGET ── */}
+      <NotebookLMWidget
+        isOpen={notebookLMModal.open}
+        onClose={() => setNotebookLMModal(prev => ({ ...prev, open: false }))}
+        contextTitle={notebookLMModal.title}
+        contextText={notebookLMModal.text}
+        subjectName={notebookLMModal.subjectName}
+      />
+
+      {/* ── DELETION APPROVAL MODAL (Owner Only) ── */}
+      {isOwner && (
+        <DeletionApprovalModal
+          isOpen={showDeletionModal}
+          onClose={() => setShowDeletionModal(false)}
+          onSuccess={() => {
+            fetchData();
+            setShowDeletionModal(false);
+            fetch('/api/academic/deletions')
+              .then(r => r.json())
+              .then(d => {
+                if (d.success && d.requests) {
+                  setPendingDeletionCount(d.requests.filter((r: any) => r.status === 'pending').length);
+                }
+              })
+              .catch(() => {});
+          }}
+        />
+      )}
     </div>
   );
 }

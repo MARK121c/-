@@ -49,6 +49,11 @@ async function isOwnerRequest(req: NextRequest): Promise<boolean> {
 export async function GET() {
   const client = getClient();
   try {
+    try {
+      const { ensureTables } = await import('@/backend/db/migrate');
+      await ensureTables();
+    } catch (_) {}
+
     const res = await client.execute(`SELECT * FROM academic_settings WHERE id = 1 LIMIT 1`);
     const settings = res.rows[0] || {
       college_name: '',

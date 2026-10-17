@@ -96,9 +96,15 @@ export async function POST(request: Request) {
     }
 
     // 3. Check against Database (academic_users)
+    let userPermissions = '{"can_upload":true,"can_create":true,"can_edit":false,"can_manage_schedule":false,"can_access_exams":true,"can_practice_code":true}';
+    let userEmail = identifier.includes('@') ? identifier : '';
+
     if (!authenticated) {
       try {
-        const dbUsers = await db.select().from(academicUsers).where(eq(academicUsers.username, identifier));
+        const { or } = await import('drizzle-orm');
+        const dbUsers = await db.select().from(academicUsers).where(
+          or(eq(academicUsers.username, identifier), eq(academicUsers.email, identifier))
+        );
         if (dbUsers.length > 0) {
           const u = dbUsers[0];
           if (u.active && (verifyPassword(password, u.passwordHash) || password === 'admin123' || password === 'password123')) {
@@ -106,6 +112,8 @@ export async function POST(request: Request) {
             userRole = u.role || 'assistant';
             displayName = u.displayName || u.username;
             userId = u.username;
+            userEmail = u.email || (identifier.includes('@') ? identifier : '');
+            if (u.permissions) userPermissions = u.permissions;
           }
         }
       } catch (dbErr) {
@@ -160,15 +168,26 @@ export async function POST(request: Request) {
       user: {
         id: 1,
         username: userId,
+        email: userEmail,
         role: userRole,
         display_name: displayName,
+        permissions: userPermissions ? (typeof userPermissions === 'string' ? JSON.parse(userPermissions) : userPermissions) : null,
       }
     }, { status: 200 });
 
     // Set HTTP-only Cookie for proxy middleware
+    const isHttps = request.url.startsWith('https://') || request.headers.get('x-forwarded-proto') === 'https';
     response.cookies.set('session', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isHttps,
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+      sameSite: 'lax',
+    });
+
+    response.cookies.set('academic_token', token, {
+      httpOnly: false,
+      secure: isHttps,
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
       sameSite: 'lax',

@@ -292,6 +292,7 @@ export const academicSubjects = sqliteTable('academic_subjects', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   code: text('code').default(''),
+  term: text('term').default('term1'), // 'term1' | 'term2'
   color: text('color').default('#FF6B00'),
   icon: text('icon').default('📘'),
   driveFolderUrl: text('drive_folder_url').default(''),
@@ -299,6 +300,104 @@ export const academicSubjects = sqliteTable('academic_subjects', {
   sortOrder: integer('sort_order').default(0),
   createdAt: text('created_at'),
   updatedAt: text('updated_at'),
+});
+
+export const academicFolders = sqliteTable('academic_folders', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  subjectId: integer('subject_id').notNull(),
+  parentId: integer('parent_id'),
+  name: text('name').notNull(),
+  description: text('description').default(''),
+  color: text('color').default('#3B82F6'),
+  icon: text('icon').default('Folder'),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: text('created_at'),
+});
+
+export const academicFolderItems = sqliteTable('academic_folder_items', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  folderId: integer('folder_id').notNull(),
+  subjectId: integer('subject_id').notNull(),
+  title: text('title').notNull(),
+  content: text('content').default(''),
+  itemType: text('item_type').default('note'), // note | code | file | assignment
+  codeSnippet: text('code_snippet').default(''),
+  codeLanguage: text('code_language').default('python'),
+  fileUrl: text('file_url').default(''),
+  fileName: text('file_name').default(''),
+  fileSize: integer('file_size').default(0),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: text('created_at'),
+});
+
+export const academicSchedule = sqliteTable('academic_schedule', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  term: text('term').default('term1'), // term1 | term2
+  subjectId: integer('subject_id'),
+  subjectName: text('subject_name').notNull(),
+  itemType: text('item_type').default('lecture'), // lecture | lab | section
+  dayOfWeek: text('day_of_week').notNull(), // السبت، الأحد، الإثنين، الثلاثاء، الأربعاء، الخميس، الجمعة
+  startTime: text('start_time').notNull(),
+  endTime: text('end_time').notNull(),
+  location: text('location').notNull(),
+  instructor: text('instructor').default(''),
+  takesAttendance: integer('takes_attendance', { mode: 'boolean' }).default(true),
+  importance: text('importance').default('high'), // high | medium | low
+  requiredTools: text('required_tools').default('[]'),
+  notes: text('notes').default(''),
+  createdAt: text('created_at'),
+});
+
+export const academicExams = sqliteTable('academic_exams', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  term: text('term').notNull(), // term1 | term2
+  examType: text('exam_type').notNull(), // midterm | final_term1 | final_term2 | quiz
+  subjectId: integer('subject_id'),
+  title: text('title').notNull(),
+  description: text('description').default(''),
+  durationMinutes: integer('duration_minutes').default(60),
+  passingScore: integer('passing_score').default(50),
+  totalMarks: integer('total_marks').default(100),
+  questions: text('questions').notNull(), // JSON array
+  scheduledDate: text('scheduled_date'),
+  createdAt: text('created_at'),
+});
+
+export const academicExamAttempts = sqliteTable('academic_exam_attempts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  examId: integer('exam_id').notNull(),
+  userId: text('user_id').notNull(),
+  score: integer('score').notNull(),
+  totalMarks: integer('total_marks').notNull(),
+  percentage: real('percentage').notNull(),
+  answers: text('answers').default('{}'),
+  completedAt: text('completed_at').notNull(),
+});
+
+export const academicCodePractices = sqliteTable('academic_code_practices', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id').notNull(),
+  subjectId: integer('subject_id'),
+  fileName: text('file_name').notNull(),
+  language: text('language').notNull(),
+  codeContent: text('code_content').notNull(),
+  analysis: text('analysis').default(''),
+  exercises: text('exercises').default('[]'),
+  createdAt: text('created_at'),
+});
+
+export const academicDeletionRequests = sqliteTable('academic_deletion_requests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  itemType: text('item_type').notNull(), // subject | material | folder | folder_item | schedule | exam | code_practice
+  itemId: integer('item_id').notNull(),
+  itemTitle: text('item_title').notNull(),
+  requestedBy: text('requested_by').notNull(),
+  requestedByName: text('requested_by_name').default(''),
+  reason: text('reason').default(''),
+  status: text('status').default('pending'), // pending | approved | rejected
+  reviewedBy: text('reviewed_by'),
+  reviewedAt: text('reviewed_at'),
+  createdAt: text('created_at').notNull(),
 });
 
 export const academicLectures = sqliteTable('academic_lectures', {
@@ -368,9 +467,11 @@ export const academicVideos = sqliteTable('academic_videos', {
 export const academicUsers = sqliteTable('academic_users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull().unique(),
+  email: text('email').default(''),
   passwordHash: text('password_hash').notNull(),
   role: text('role').notNull(),
   displayName: text('display_name').default(''),
+  permissions: text('permissions').default('{"can_upload":true,"can_create":true,"can_edit":false,"can_manage_schedule":false,"can_access_exams":true,"can_practice_code":true}'),
   active: integer('active', { mode: 'boolean' }).default(true),
   createdAt: text('created_at'),
   updatedAt: text('updated_at'),

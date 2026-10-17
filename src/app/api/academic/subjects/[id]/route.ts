@@ -73,7 +73,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const client = getClient();
   try {
     const body = await req.json();
-    const { name, code, color, icon, drive_folder_url, driveFolderUrl, cover_image, coverImage } = body;
+    const { name, code, color, icon, drive_folder_url, driveFolderUrl, cover_image, coverImage, term } = body;
 
     const subjectRes = await client.execute({ sql: `SELECT * FROM academic_subjects WHERE id = ?`, args: [id] });
     const subject = subjectRes.rows[0];
@@ -82,9 +82,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const driveUrl = drive_folder_url !== undefined ? drive_folder_url : (driveFolderUrl !== undefined ? driveFolderUrl : subject.drive_folder_url);
     const incomingCover = cover_image !== undefined ? cover_image : coverImage;
     const coverImg = incomingCover !== undefined ? incomingCover : (subject.cover_image || '');
+    const subjectTerm = term !== undefined ? term : (subject.term || 'term1');
 
     await client.execute({
-      sql: `UPDATE academic_subjects SET name = ?, code = ?, color = ?, icon = ?, drive_folder_url = ?, cover_image = ?, updated_at = datetime('now') WHERE id = ?`,
+      sql: `UPDATE academic_subjects SET name = ?, code = ?, color = ?, icon = ?, drive_folder_url = ?, cover_image = ?, term = ?, updated_at = datetime('now') WHERE id = ?`,
       args: [
         name || subject.name,
         code !== undefined ? code : subject.code,
@@ -92,6 +93,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         icon || subject.icon,
         driveUrl || '',
         coverImg,
+        subjectTerm,
         id
       ]
     });
@@ -108,28 +110,43 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const client = getClient();
   try {
     const subjectRes = await client.execute({ sql: `SELECT * FROM academic_subjects WHERE id = ?`, args: [id] });
-    if (!subjectRes.rows[0]) return NextResponse.json({ success: false, error: 'Subject not found' }, { status: 404 });
+    const subject = subjectRes.rows[0];
+    if (!subject) return NextResponse.json({ success: false, error: 'Subject not found' }, { status: 404 });
 
-    // Clean up uploaded files for this subject
-    const [lecRes, asgnRes, vidRes] = await Promise.all([
-      client.execute({ sql: `SELECT file_path FROM academic_lectures WHERE subject_id = ?`, args: [id] }),
-      client.execute({ sql: `SELECT file_path FROM academic_assignments WHERE subject_id = ?`, args: [id] }),
-      client.execute({ sql: `SELECT file_path FROM academic_videos WHERE subject_id = ?`, args: [id] }),
-    ]);
+    const { handleGuardedDeletion } = await import('@/backend/lib/deletionGuard');
 
-    lecRes.rows.forEach((r: any) => deleteFile(r.file_path));
-    asgnRes.rows.forEach((r: any) => deleteFile(r.file_path));
-    vidRes.rows.forEach((r: any) => deleteFile(r.file_path));
+    return await handleGuardedDeletion(
+      req,
+      client,
+      {
+        itemType: 'subject',
+        itemId: Number(id),
+        itemTitle: String(subject.name || `مادة #${id}`),
+        reason: 'طلب حذف مادة دراسية بكافة محتوياتها',
+      },
+      async () => {
+        // Clean up uploaded files for this subject
+        const [lecRes, asgnRes, vidRes] = await Promise.all([
+          client.execute({ sql: `SELECT file_path FROM academic_lectures WHERE subject_id = ?`, args: [id] }),
+          client.execute({ sql: `SELECT file_path FROM academic_assignments WHERE subject_id = ?`, args: [id] }),
+          client.execute({ sql: `SELECT file_path FROM academic_videos WHERE subject_id = ?`, args: [id] }),
+        ]);
 
-    await Promise.all([
-      client.execute({ sql: `DELETE FROM academic_lectures WHERE subject_id = ?`, args: [id] }),
-      client.execute({ sql: `DELETE FROM academic_assignments WHERE subject_id = ?`, args: [id] }),
-      client.execute({ sql: `DELETE FROM academic_materials_resources WHERE subject_id = ?`, args: [id] }),
-      client.execute({ sql: `DELETE FROM academic_videos WHERE subject_id = ?`, args: [id] }),
-      client.execute({ sql: `DELETE FROM academic_subjects WHERE id = ?`, args: [id] }),
-    ]);
+        lecRes.rows.forEach((r: any) => deleteFile(r.file_path));
+        asgnRes.rows.forEach((r: any) => deleteFile(r.file_path));
+        vidRes.rows.forEach((r: any) => deleteFile(r.file_path));
 
-    return NextResponse.json({ success: true });
+        await Promise.all([
+          client.execute({ sql: `DELETE FROM academic_lectures WHERE subject_id = ?`, args: [id] }),
+          client.execute({ sql: `DELETE FROM academic_assignments WHERE subject_id = ?`, args: [id] }),
+          client.execute({ sql: `DELETE FROM academic_materials_resources WHERE subject_id = ?`, args: [id] }),
+          client.execute({ sql: `DELETE FROM academic_videos WHERE subject_id = ?`, args: [id] }),
+          client.execute({ sql: `DELETE FROM academic_folders WHERE subject_id = ?`, args: [id] }),
+          client.execute({ sql: `DELETE FROM academic_folder_items WHERE subject_id = ?`, args: [id] }),
+          client.execute({ sql: `DELETE FROM academic_subjects WHERE id = ?`, args: [id] }),
+        ]);
+      }
+    );
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }

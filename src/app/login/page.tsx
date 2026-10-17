@@ -85,7 +85,12 @@ export default function LoginPage() {
 
       const data = await response.json();
       if (response.ok && (data.success || data.token)) {
-        if (data.token) localStorage.setItem('academic_token', data.token);
+        if (data.token) {
+          localStorage.setItem('academic_token', data.token);
+          // Set client cookie so server Home component immediately knows user identity
+          document.cookie = `session=${data.token}; path=/; max-age=604800; SameSite=Lax`;
+          document.cookie = `academic_token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
+        }
         if (data.user) {
           localStorage.setItem('academic_user', JSON.stringify(data.user));
           if (data.user.role === 'assistant' || data.user.role === 'viewer') {

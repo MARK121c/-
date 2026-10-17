@@ -172,13 +172,25 @@ export async function DELETE(req: NextRequest) {
     const item = itemRes.rows[0];
     if (!item) return NextResponse.json({ success: false, error: 'Lecture not found' }, { status: 404 });
 
-    if (item.file_path) {
-      const fullDiskPath = path.join(process.cwd(), 'public', String(item.file_path).replace(/^\//, ''));
-      deleteFile(fullDiskPath);
-    }
+    const { handleGuardedDeletion } = await import('@/backend/lib/deletionGuard');
 
-    await client.execute({ sql: `DELETE FROM academic_lectures WHERE id = ?`, args: [id] });
-    return NextResponse.json({ success: true });
+    return await handleGuardedDeletion(
+      req,
+      client,
+      {
+        itemType: 'lecture',
+        itemId: Number(id),
+        itemTitle: String(item.title || `محاضرة #${id}`),
+        reason: 'طلب حذف محاضرة دراسية',
+      },
+      async () => {
+        if (item.file_path) {
+          const fullDiskPath = path.join(process.cwd(), 'public', String(item.file_path).replace(/^\//, ''));
+          deleteFile(fullDiskPath);
+        }
+        await client.execute({ sql: `DELETE FROM academic_lectures WHERE id = ?`, args: [id] });
+      }
+    );
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }

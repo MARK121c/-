@@ -44,19 +44,17 @@ export default function DashboardClient({
 
   // Role-Based Access Control
   const [userRole, setUserRole] = useState<'owner' | 'assistant' | 'viewer'>(() => {
-    if (initialRole) return initialRole;
     if (typeof window !== 'undefined') {
       try {
         const u = JSON.parse(localStorage.getItem('academic_user') || '{}');
-        if (u.role === 'assistant' || u.role === 'viewer' || u.role === 'owner') return u.role;
+        if (u.role === 'assistant' || u.role === 'viewer') return u.role;
       } catch {}
     }
+    if (initialRole) return initialRole;
     return 'owner';
   });
 
   const [mainTab, setMainTab] = useState<string>(() => {
-    if (initialTab) return initialTab;
-    if (initialRole === 'assistant' || initialRole === 'viewer') return 'academic';
     if (typeof window !== 'undefined') {
       try {
         const u = JSON.parse(localStorage.getItem('academic_user') || '{}');
@@ -65,6 +63,8 @@ export default function DashboardClient({
         if (saved && saved !== 'habits') return saved;
       } catch {}
     }
+    if (initialTab) return initialTab;
+    if (initialRole === 'assistant' || initialRole === 'viewer') return 'academic';
     return 'overview';
   });
 

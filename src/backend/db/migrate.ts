@@ -58,10 +58,30 @@ export async function ensureTables() {
     await client.execute(`CREATE TABLE IF NOT EXISTS academic_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, subject_id INTEGER NOT NULL, title TEXT NOT NULL, description TEXT DEFAULT '', due_date TEXT, file_path TEXT DEFAULT '', file_name TEXT DEFAULT '', material_date TEXT, upload_timestamp TEXT, completed INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0, created_by TEXT DEFAULT 'owner', synced INTEGER DEFAULT 1)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS academic_materials_resources (id INTEGER PRIMARY KEY AUTOINCREMENT, subject_id INTEGER NOT NULL, title TEXT NOT NULL, description TEXT DEFAULT '', url TEXT DEFAULT '', resource_type TEXT DEFAULT 'link', material_date TEXT, upload_timestamp TEXT, completed INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0, created_by TEXT DEFAULT 'owner', synced INTEGER DEFAULT 1)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS academic_videos (id INTEGER PRIMARY KEY AUTOINCREMENT, subject_id INTEGER NOT NULL, title TEXT NOT NULL, description TEXT DEFAULT '', video_url TEXT DEFAULT '', file_path TEXT DEFAULT '', video_type TEXT DEFAULT 'youtube', duration TEXT DEFAULT '', material_date TEXT, upload_timestamp TEXT, completed INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0, created_by TEXT DEFAULT 'owner', synced INTEGER DEFAULT 1)`);
-    await client.execute(`CREATE TABLE IF NOT EXISTS academic_users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, role TEXT NOT NULL, display_name TEXT DEFAULT '', active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS academic_users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, email TEXT DEFAULT '', password_hash TEXT NOT NULL, role TEXT NOT NULL, display_name TEXT DEFAULT '', permissions TEXT DEFAULT '{"can_upload":true,"can_create":true,"can_edit":false,"can_manage_schedule":false,"can_access_exams":true,"can_practice_code":true}', active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS academic_sync_log (id INTEGER PRIMARY KEY AUTOINCREMENT, synced_by TEXT, sync_type TEXT DEFAULT 'full', items_synced INTEGER DEFAULT 0, synced_at TEXT)`);
     await client.execute(`CREATE TABLE IF NOT EXISTS academic_user_progress (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, material_type TEXT NOT NULL, material_id INTEGER NOT NULL, completed INTEGER DEFAULT 1, updated_at TEXT, UNIQUE(user_id, material_type, material_id))`);
     await client.execute(`CREATE INDEX IF NOT EXISTS idx_acad_uprog ON academic_user_progress(user_id, material_type, material_id)`);
+
+    // Folders & Folder Items (Hierarchical Organization)
+    await client.execute(`CREATE TABLE IF NOT EXISTS academic_folders (id INTEGER PRIMARY KEY AUTOINCREMENT, subject_id INTEGER NOT NULL, parent_id INTEGER DEFAULT NULL, name TEXT NOT NULL, description TEXT DEFAULT '', color TEXT DEFAULT '#3B82F6', icon TEXT DEFAULT 'Folder', sort_order INTEGER DEFAULT 0, created_at TEXT)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS academic_folder_items (id INTEGER PRIMARY KEY AUTOINCREMENT, folder_id INTEGER NOT NULL, subject_id INTEGER NOT NULL, title TEXT NOT NULL, content TEXT DEFAULT '', item_type TEXT DEFAULT 'note', code_snippet TEXT DEFAULT '', code_language TEXT DEFAULT 'python', file_url TEXT DEFAULT '', file_name TEXT DEFAULT '', file_size INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0, created_at TEXT)`);
+    await client.execute(`CREATE INDEX IF NOT EXISTS idx_acad_fold_subj ON academic_folders(subject_id)`);
+    await client.execute(`CREATE INDEX IF NOT EXISTS idx_acad_fitems_fold ON academic_folder_items(folder_id)`);
+
+    // Dynamic Academic Schedule
+    await client.execute(`CREATE TABLE IF NOT EXISTS academic_schedule (id INTEGER PRIMARY KEY AUTOINCREMENT, term TEXT DEFAULT 'term1', subject_id INTEGER, subject_name TEXT NOT NULL, item_type TEXT DEFAULT 'lecture', day_of_week TEXT NOT NULL, start_time TEXT NOT NULL, end_time TEXT NOT NULL, location TEXT NOT NULL, instructor TEXT DEFAULT '', takes_attendance INTEGER DEFAULT 1, importance TEXT DEFAULT 'high', required_tools TEXT DEFAULT '[]', notes TEXT DEFAULT '', created_at TEXT)`);
+    await client.execute(`CREATE INDEX IF NOT EXISTS idx_acad_sched_term ON academic_schedule(term, day_of_week)`);
+
+    // College Exams Simulation
+    await client.execute(`CREATE TABLE IF NOT EXISTS academic_exams (id INTEGER PRIMARY KEY AUTOINCREMENT, term TEXT NOT NULL, exam_type TEXT NOT NULL, subject_id INTEGER, title TEXT NOT NULL, description TEXT DEFAULT '', duration_minutes INTEGER DEFAULT 60, passing_score INTEGER DEFAULT 50, total_marks INTEGER DEFAULT 100, questions TEXT NOT NULL, scheduled_date TEXT, created_at TEXT)`);
+    await client.execute(`CREATE TABLE IF NOT EXISTS academic_exam_attempts (id INTEGER PRIMARY KEY AUTOINCREMENT, exam_id INTEGER NOT NULL, user_id TEXT NOT NULL, score INTEGER NOT NULL, total_marks INTEGER NOT NULL, percentage REAL NOT NULL, answers TEXT DEFAULT '{}', completed_at TEXT NOT NULL)`);
+
+    // Interactive Code File Practices
+    await client.execute(`CREATE TABLE IF NOT EXISTS academic_code_practices (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, subject_id INTEGER, file_name TEXT NOT NULL, language TEXT NOT NULL, code_content TEXT NOT NULL, analysis TEXT DEFAULT '', exercises TEXT DEFAULT '[]', created_at TEXT)`);
+
+    // Deletion Requests with Owner Approval
+    await client.execute(`CREATE TABLE IF NOT EXISTS academic_deletion_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, item_type TEXT NOT NULL, item_id INTEGER NOT NULL, item_title TEXT NOT NULL, requested_by TEXT NOT NULL, requested_by_name TEXT DEFAULT '', reason TEXT DEFAULT '', status TEXT DEFAULT 'pending', reviewed_by TEXT, reviewed_at TEXT, created_at TEXT NOT NULL)`);
 
     // 11. Brain Dump & Quick Notes OS (تفريغ الأفكار)
     await client.execute(`CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT DEFAULT '', content TEXT NOT NULL, category TEXT DEFAULT 'عام', color TEXT DEFAULT 'orange', tags TEXT DEFAULT '[]', is_pinned INTEGER DEFAULT 0, is_archived INTEGER DEFAULT 0, checklist TEXT DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT)`);
@@ -143,6 +163,80 @@ export async function ensureTables() {
     await addIfMissing('events', 'status', `ALTER TABLE events ADD COLUMN status TEXT DEFAULT 'upcoming'`);
 
     await addIfMissing('academic_subjects', 'cover_image', `ALTER TABLE academic_subjects ADD COLUMN cover_image TEXT DEFAULT ''`);
+    await addIfMissing('academic_subjects', 'term', `ALTER TABLE academic_subjects ADD COLUMN term TEXT DEFAULT 'term1'`);
+    await addIfMissing('academic_users', 'email', `ALTER TABLE academic_users ADD COLUMN email TEXT DEFAULT ''`);
+    await addIfMissing('academic_users', 'permissions', `ALTER TABLE academic_users ADD COLUMN permissions TEXT DEFAULT '{"can_upload":true,"can_create":true,"can_edit":false,"can_manage_schedule":false,"can_access_exams":true,"can_practice_code":true}'`);
+
+    // Seed default academic schedule if empty
+    try {
+      const schedCheck = await client.execute(`SELECT id FROM academic_schedule LIMIT 1`);
+      if (schedCheck.rows.length === 0) {
+        await client.execute(`
+          INSERT INTO academic_schedule (term, subject_name, item_type, day_of_week, start_time, end_time, location, instructor, takes_attendance, importance, required_tools, notes, created_at)
+          VALUES 
+          ('term1', 'تراكيب البيانات والخوارزميات (Data Structures)', 'lecture', 'الأحد', '09:00', '11:00', 'مدرج د. مجدي يعقوب (A)', 'د. محمد حسن', 1, 'high', '["لابتوب 💻", "كشكول محاضرات 📓"]', 'حضور إلزامي - كويز أسبوعي', datetime('now')),
+          ('term1', 'معمل هندسة البرمجيات (Software Lab)', 'lab', 'الإثنين', '11:30', '13:30', 'معمل الحاسبات 4 (Lab 4)', 'م. سارة علي', 1, 'high', '["لابتوب 💻", "VS Code & Git ⚙️", "فلاشة معمل 💾"]', 'تسليم تقرير التجربة العملية', datetime('now')),
+          ('term1', 'رياضيات هندسية متقدمة (Engineering Math)', 'lecture', 'الثلاثاء', '10:00', '12:00', 'قاعة 204 هندسة', 'أ.د. طارق محمود', 0, 'medium', '["آلة حاسبة علمية 🧮", "أدوات هندسية 📐"]', 'حل تمارين الشيت رقم 2', datetime('now')),
+          ('term1', 'شبكات الحاسب والأمن السيبراني (Computer Networks)', 'section', 'الأربعاء', '12:00', '14:00', 'مدرج 3 حاسبات', 'د. كريم أحمد', 1, 'high', '["لابتوب 💻", "Packet Tracer 🌐"]', 'تطبيق عملي على Routing Protocols', datetime('now')),
+          ('term2', 'أنظمة التشغيل المتقدمة (Operating Systems)', 'lecture', 'الأحد', '09:00', '11:00', 'مدرج B حاسبات', 'د. عادل سمير', 1, 'high', '["لابتوب 💻", "Linux Terminal 🐧"]', 'دراسة مفاهيم Threads & Concurrency', datetime('now')),
+          ('term2', 'معمارية الحاسب والمعالجات (Computer Architecture)', 'lab', 'الثلاثاء', '11:30', '13:30', 'معمل المعالجات الدقيقة', 'م. عمر خليل', 1, 'high', '["بالطو معمل 🥼", "لابتوب 💻"]', 'تطبيق Assembly & MIPS Simulator', datetime('now'))
+        `);
+        logs.push('SEEDED: Academic schedule samples');
+      }
+    } catch (_) {}
+
+    // Seed default college exams simulator samples if empty
+    try {
+      const examCheck = await client.execute(`SELECT id FROM academic_exams LIMIT 1`);
+      if (examCheck.rows.length === 0) {
+        const sampleMidtermQ = JSON.stringify([
+          {
+            id: 1,
+            question: "ما هو التعقيد الزمني (Time Complexity) للبحث الثنائي (Binary Search) في مصفوفة مرتبة؟",
+            options: ["O(n)", "O(log n)", "O(n^2)", "O(1)"],
+            correctIndex: 1,
+            points: 25,
+            explanation: "البحث الثنائي يقسم نطاق البحث إلى النصف في كل خطوة، مما يجعل التعقيد الزمني O(log n)."
+          },
+          {
+            id: 2,
+            question: "أي من الهياكل التالية يتبع مبدأ (FIFO - First In First Out)؟",
+            options: ["Stack", "Queue", "Tree", "Graph"],
+            correctIndex: 1,
+            points: 25,
+            explanation: "الطابور (Queue) هو الذي يتبع مبدأ الداخل أولاً يخرج أولاً FIFO."
+          },
+          {
+            id: 3,
+            question: "في لغات البرمجة كـ C++ و Python، ما فائدة الـ Recursion؟",
+            options: ["حجز مساحة ثابتة", "استدعاء الدالة لنفسها لحل مشكلة مقسمة لحالات أصغر", "تسريع تنفيذ الكود دائماً", "منع استخدام الذاكرة"],
+            correctIndex: 1,
+            points: 25,
+            explanation: "العودية (Recursion) تعني استدعاء الدالة لنفسها لحل المشاكل المقسمة لحالات أصغر متطابقة."
+          },
+          {
+            id: 4,
+            question: "أي من التالي لا يعتبر من مبادئ البرمجة كائنية التوجه (OOP)؟",
+            options: ["Encapsulation", "Inheritance", "Compilation", "Polymorphism"],
+            correctIndex: 2,
+            points: 25,
+            explanation: "الـ Compilation هي مرحلة ترجمة الكود وليست أحد المبادئ الأربعة للـ OOP."
+          }
+        ]);
+
+        await client.execute({
+          sql: `
+            INSERT INTO academic_exams (term, exam_type, title, description, duration_minutes, passing_score, total_marks, questions, scheduled_date, created_at)
+            VALUES 
+            ('term1', 'midterm', 'امتحان الميدترم الرسمي: خوارزميات وهياكل بيانات', 'اختبار منتصف الفصل الدراسي الأول - تقييم فهم الخوارزميات وهياكل البيانات الأساسية', 45, 50, 100, ?, '2026-11-15', datetime('now')),
+            ('term1', 'final_term1', 'امتحان نهاية الترم الأول (Final Exam - يناير)', 'الامتحان النهائي الشامل للترم الأول وفقاً لمعايير الكلية ولائحة التقييم', 120, 60, 100, ?, '2027-01-20', datetime('now')),
+            ('term2', 'final_term2', 'امتحان نهاية العام ونقل الفرقة الثانية (Final Term 2 - مايو/يونيو)', 'الامتحان الحاسم لنهاية الترم الثاني وتحديد التقدير العام والانتقال للفرقة الثانية', 120, 60, 100, ?, '2027-06-10', datetime('now'))
+          `,
+          args: [sampleMidtermQ, sampleMidtermQ, sampleMidtermQ]
+        });
+        logs.push('SEEDED: College exams simulator samples');
+      }
+    } catch (_) {}
 
     logs.push('DONE: All tables verified');
     return { success: true, logs };

@@ -123,8 +123,25 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
 
   try {
-    await client.execute({ sql: `DELETE FROM academic_materials_resources WHERE id = ?`, args: [id] });
-    return NextResponse.json({ success: true });
+    const itemRes = await client.execute({ sql: `SELECT * FROM academic_materials_resources WHERE id = ?`, args: [id] });
+    const item = itemRes.rows[0];
+    if (!item) return NextResponse.json({ success: false, error: 'Resource not found' }, { status: 404 });
+
+    const { handleGuardedDeletion } = await import('@/backend/lib/deletionGuard');
+
+    return await handleGuardedDeletion(
+      req,
+      client,
+      {
+        itemType: 'resource',
+        itemId: Number(id),
+        itemTitle: String(item.title || `مرجع #${id}`),
+        reason: 'طلب حذف مرجع دراسي / رابط',
+      },
+      async () => {
+        await client.execute({ sql: `DELETE FROM academic_materials_resources WHERE id = ?`, args: [id] });
+      }
+    );
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
