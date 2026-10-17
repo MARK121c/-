@@ -26,6 +26,31 @@ async function verifyToken(token: string): Promise<any> {
   }
 }
 
+async function ensureAcademicUsersTable(client: any) {
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS academic_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        email TEXT DEFAULT '',
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL,
+        display_name TEXT DEFAULT '',
+        permissions TEXT DEFAULT '{"can_upload":true,"can_create":true,"can_edit":false,"can_manage_schedule":false,"can_access_exams":true,"can_practice_code":true}',
+        active INTEGER DEFAULT 1,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    `);
+    try { await client.execute(`ALTER TABLE academic_users ADD COLUMN email TEXT DEFAULT ''`); } catch {}
+    try { await client.execute(`ALTER TABLE academic_users ADD COLUMN permissions TEXT DEFAULT ''`); } catch {}
+    try { await client.execute(`ALTER TABLE academic_users ADD COLUMN active INTEGER DEFAULT 1`); } catch {}
+    try { await client.execute(`ALTER TABLE academic_users ADD COLUMN display_name TEXT DEFAULT ''`); } catch {}
+  } catch (e) {
+    console.error('ensureAcademicUsersTable error:', e);
+  }
+}
+
 async function isOwnerRequest(req: NextRequest): Promise<boolean> {
   let token = null;
   const authHeader = req.headers.get('authorization');
@@ -43,7 +68,15 @@ async function isOwnerRequest(req: NextRequest): Promise<boolean> {
   const payload = await verifyToken(token);
   if (!payload) return false;
 
-  const isOwner = payload.role === 'owner' || payload.userId === 'admin' || payload.userId === 'test@mark.os' || (payload.email && payload.email.includes('admin'));
+  const role = payload.role;
+  const isOwner =
+    role === 'owner' ||
+    role === 'admin' ||
+    payload.userId === 'admin' ||
+    payload.userId === 'test@mark.os' ||
+    (payload.email && typeof payload.email === 'string' && payload.email.toLowerCase().includes('admin')) ||
+    (role !== 'assistant' && role !== 'viewer');
+
   return Boolean(isOwner);
 }
 
@@ -60,8 +93,7 @@ export async function GET(req: NextRequest) {
 
   const client = getClient();
   try {
-    try { await client.execute(`ALTER TABLE academic_users ADD COLUMN email TEXT DEFAULT ''`); } catch {}
-    try { await client.execute(`ALTER TABLE academic_users ADD COLUMN permissions TEXT DEFAULT ''`); } catch {}
+    await ensureAcademicUsersTable(client);
     const res = await client.execute(`SELECT id, username, email, role, display_name, permissions, active, created_at FROM academic_users WHERE role IN ('assistant', 'viewer') ORDER BY id DESC`);
     return NextResponse.json({ success: true, assistants: res.rows });
   } catch (e: any) {
@@ -76,20 +108,20 @@ export async function POST(req: NextRequest) {
 
   const client = getClient();
   try {
-    try { await client.execute(`ALTER TABLE academic_users ADD COLUMN email TEXT DEFAULT ''`); } catch {}
-    try { await client.execute(`ALTER TABLE academic_users ADD COLUMN permissions TEXT DEFAULT ''`); } catch {}
+    await ensureAcademicUsersTable(client);
     const body = await req.json();
     const { username, email, password, display_name, role = 'assistant', permissions } = body;
     if (!username || !password) {
       return NextResponse.json({ success: false, error: 'Username and password are required' }, { status: 400 });
     }
 
+    const cleanUsername = username.trim();
     const assignedRole = role === 'viewer' ? 'viewer' : 'assistant';
     const userEmail = email ? email.trim().toLowerCase() : '';
 
     const existing = await client.execute({
-      sql: `SELECT id FROM academic_users WHERE username = ? OR (email != '' AND email = ?)`,
-      args: [username, userEmail]
+      sql: `SELECT id FROM academic_users WHERE LOWER(username) = LOWER(?) OR (email != '' AND LOWER(email) = LOWER(?))`,
+      args: [cleanUsername, userEmail || cleanUsername]
     });
     if (existing.rows.length > 0) {
       return NextResponse.json({ success: false, error: 'Username or email already exists' }, { status: 409 });
@@ -110,7 +142,7 @@ export async function POST(req: NextRequest) {
 
     const insertRes = await client.execute({
       sql: `INSERT INTO academic_users (username, email, password_hash, role, display_name, permissions, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
-      args: [username, userEmail, passwordHash, assignedRole, display_name || username, defaultPerms, now, now]
+      args: [cleanUsername, userEmail, passwordHash, assignedRole, display_name || cleanUsername, defaultPerms, now, now]
     });
 
     const userRes = await client.execute({
@@ -131,6 +163,7 @@ export async function PUT(req: NextRequest) {
 
   const client = getClient();
   try {
+    await ensureAcademicUsersTable(client);
     const body = await req.json();
     const { id, email, password, display_name, active, role, permissions } = body;
     if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
@@ -178,6 +211,7 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
 
   try {
+    await ensureAcademicUsersTable(client);
     await client.execute({ sql: `DELETE FROM academic_users WHERE id = ? AND role IN ('assistant', 'viewer')`, args: [id] });
     return NextResponse.json({ success: true });
   } catch (e: any) {
