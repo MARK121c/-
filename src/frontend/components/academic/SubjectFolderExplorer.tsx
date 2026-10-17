@@ -645,21 +645,23 @@ export default function SubjectFolderExplorer({
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {/* NotebookLM AI Prompt */}
-                        {onOpenNotebookLM && (
-                          <button
-                            type="button"
-                            onClick={() => onOpenNotebookLM(
-                              item.title,
-                              `${item.title}\n\n${item.content || ''}\n${item.code_snippet || ''}\n${item.file_url || ''}`
-                            )}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-500/30 transition-all"
-                            title="تحليل في NotebookLM AI"
-                          >
-                            <Sparkles size={12} className="text-amber-400" />
-                            <span>تحليل AI</span>
-                          </button>
-                        )}
+                        {/* Google NotebookLM Official Launch */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const fullContent = `${item.title}\n\n${item.content || ''}${item.code_snippet ? `\n\nكود برمجي:\n${item.code_snippet}` : ''}${item.file_url ? `\n\nرابط:\n${item.file_url}` : ''}`;
+                            try {
+                              navigator.clipboard.writeText(fullContent.trim());
+                              showToast(`تم نسخ محتوى "${item.title}" للحافظة! جاري فتح أداة Google NotebookLM الرسمية...`, 'success');
+                            } catch {}
+                            window.open('https://notebooklm.google.com', '_blank', 'noopener,noreferrer');
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/25 hover:to-purple-500/25 text-blue-300 hover:text-white text-xs font-bold border border-blue-500/30 transition-all shadow-sm"
+                          title="فتح في Google NotebookLM الرسمي"
+                        >
+                          <Sparkles size={13} className="text-amber-400" />
+                          <span>Google NotebookLM الرسمي ↗</span>
+                        </button>
 
                         {!isViewer && (
                           <button

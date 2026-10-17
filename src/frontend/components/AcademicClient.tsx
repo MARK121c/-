@@ -10,7 +10,7 @@ import {
   ImageIcon, Upload, Camera, ShieldAlert, Code2
 } from 'lucide-react';
 
-import NotebookLMWidget from './academic/NotebookLMWidget';
+// NotebookLMWidget removed — replaced with direct link to official Google NotebookLM
 import ScheduleDashboard from './academic/ScheduleDashboard';
 import CodePracticeSystem from './academic/CodePracticeSystem';
 import ExamSimulatorHub from './academic/ExamSimulatorHub';
@@ -149,12 +149,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
   const [collegeHubTab, setCollegeHubTab] = useState<'subjects' | 'schedule' | 'exams' | 'codepractice'>('subjects');
   const [pendingDeletionCount, setPendingDeletionCount] = useState(0);
   const [showDeletionModal, setShowDeletionModal] = useState(false);
-  const [notebookLMModal, setNotebookLMModal] = useState<{ open: boolean; title: string; text: string; subjectName: string }>({
-    open: false,
-    title: '',
-    text: '',
-    subjectName: '',
-  });
+  // notebookLMModal state removed — now using openOfficialNotebookLM() which opens notebooklm.google.com directly
 
   // Modals state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -363,6 +358,16 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
     }
     setLoading(false);
   }, [role]);
+
+  const openOfficialNotebookLM = useCallback((title?: string, content?: string) => {
+    if (content && content.trim()) {
+      try {
+        const textToCopy = `${title ? `=== ${title} ===\n\n` : ''}${content}`;
+        navigator.clipboard.writeText(textToCopy);
+      } catch {}
+    }
+    window.open('https://notebooklm.google.com', '_blank', 'noopener,noreferrer');
+  }, []);
 
   const loadSubjectDetail = useCallback(async (id: number) => {
     try {
@@ -723,14 +728,17 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
             </button>
           )}
 
-          {/* NotebookLM AI Button - visible to all */}
-          <button
-            onClick={() => setNotebookLMModal({ open: true, title: currentSubject?.name || 'المادة الحالية', text: '', subjectName: currentSubject?.name || '' })}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-black shadow-lg transition-all"
+          {/* Official Google NotebookLM Button */}
+          <a
+            href="https://notebooklm.google.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600/30 to-purple-600/30 hover:from-blue-600/50 hover:to-purple-600/50 border border-blue-500/40 text-blue-300 hover:text-white text-xs font-black shadow-lg transition-all"
+            title="فتح أداة Google NotebookLM الرسمية"
           >
-            <Sparkles size={14} />
-            <span>AI NotebookLM</span>
-          </button>
+            <Sparkles size={14} className="text-amber-400" />
+            <span>Google NotebookLM الرسمي ↗</span>
+          </a>
 
           {isOwner && (
             <>
@@ -1246,14 +1254,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
               subjectName={currentSubject.name}
               userRole={role}
               initialOpenCreateModal={openFolderModalOnEnter}
-              onOpenNotebookLM={(title, text) =>
-                setNotebookLMModal({
-                  open: true,
-                  title: title || currentSubject.name,
-                  text: text || '',
-                  subjectName: currentSubject.name,
-                })
-              }
+              onOpenNotebookLM={(title, text) => openOfficialNotebookLM(title, text)}
             />
           ) : (
           <div className="space-y-3">
@@ -1344,22 +1345,18 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
 
                     {/* Actions on item */}
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                      {/* NotebookLM AI Analysis */}
+                      {/* Google NotebookLM Official Launch */}
                       <button
                         type="button"
-                        onClick={() => {
-                          setNotebookLMModal({
-                            open: true,
-                            title: item.title,
-                            text: `${item.title}\n\nالوصف والملاحظات:\n${item.description || ''}\n\nالرابط المرفق:\n${itemLink}`,
-                            subjectName: currentSubject.name,
-                          });
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs font-bold hover:bg-purple-500 hover:text-white transition-all shadow-sm"
-                        title="تحليل وتلخيص في Google NotebookLM"
+                        onClick={() => openOfficialNotebookLM(
+                          item.title,
+                          `${item.title}\n\nالوصف والملاحظات:\n${item.description || ''}${itemLink ? `\n\nالرابط المرفق:\n${itemLink}` : ''}`
+                        )}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-bold hover:bg-blue-500 hover:text-white transition-all shadow-sm"
+                        title="فتح في Google NotebookLM الرسمي"
                       >
-                        <Sparkles size={13} className="text-purple-400" />
-                        <span>NotebookLM</span>
+                        <Sparkles size={13} className="text-amber-400" />
+                        <span>Google NotebookLM الرسمي ↗</span>
                       </button>
 
                       {/* In-App Live Preview Button for Documents / Drive / Videos */}
@@ -2178,23 +2175,17 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
       </AnimatePresence>
 
       {/* ── FLOATING NOTEBOOKLM BUTTON ── */}
-      <button
-        onClick={() => setNotebookLMModal(prev => ({ ...prev, open: true }))}
-        className="fixed bottom-6 left-6 z-40 flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-black shadow-2xl shadow-purple-500/30 transition-all hover:scale-105 border border-purple-400/30"
-        title="فتح AI NotebookLM مساعد الدراسة"
+      {/* ── FLOATING GOOGLE NOTEBOOKLM BUTTON ── */}
+      <a
+        href="https://notebooklm.google.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 left-6 z-40 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-black shadow-2xl shadow-blue-600/40 transition-all hover:scale-105 border border-white/20 group"
+        title="فتح أداة Google NotebookLM الرسمية للذكاء الاصطناعي والدراسة"
       >
-        <Sparkles size={16} className="text-yellow-300" />
-        <span>AI Notebook</span>
-      </button>
-
-      {/* ── NOTEBOOKLM WIDGET ── */}
-      <NotebookLMWidget
-        isOpen={notebookLMModal.open}
-        onClose={() => setNotebookLMModal(prev => ({ ...prev, open: false }))}
-        contextTitle={notebookLMModal.title}
-        contextText={notebookLMModal.text}
-        subjectName={notebookLMModal.subjectName}
-      />
+        <Sparkles size={16} className="text-yellow-300 animate-pulse" />
+        <span className="font-black">Google NotebookLM الرسمي ↗</span>
+      </a>
 
       {/* ── DELETION APPROVAL MODAL (Owner Only) ── */}
       {isOwner && (
