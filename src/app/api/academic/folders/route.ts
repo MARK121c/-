@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@libsql/client';
 import { getUserSession, handleGuardedDeletion } from '@/backend/lib/deletionGuard';
+import { getUserIdFromRequest } from '@/backend/lib/userProgress';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -60,20 +61,41 @@ export async function GET(req: NextRequest) {
       args: [subjectId]
     });
 
+    // Per-user completion: get this user's completed folder_item IDs
+    let userCompletedIds = new Set<string>();
+    try {
+      const userId = await getUserIdFromRequest(req);
+      const progressRes = await client.execute({
+        sql: `SELECT material_id FROM academic_user_progress WHERE user_id = ? AND material_type = 'folder_item' AND completed = 1`,
+        args: [userId]
+      });
+      for (const row of progressRes.rows) {
+        userCompletedIds.add(String(row.material_id));
+      }
+    } catch {}
+
     // Also get breakdown count of items in each folder
     const foldersWithCount = await Promise.all(
       foldersRes.rows.map(async (folder: any) => {
         const countRes = await client.execute({
           sql: `SELECT 
+            id,
             COUNT(*) as total,
             SUM(CASE WHEN item_type IN ('lecture', 'note', 'file', 'code') THEN 1 ELSE 0 END) as lectures,
             SUM(CASE WHEN item_type = 'assignment' THEN 1 ELSE 0 END) as assignments,
             SUM(CASE WHEN item_type = 'resource' THEN 1 ELSE 0 END) as resources,
-            SUM(CASE WHEN item_type = 'video' THEN 1 ELSE 0 END) as videos,
-            SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) as completed_count
+            SUM(CASE WHEN item_type = 'video' THEN 1 ELSE 0 END) as videos
           FROM academic_folder_items WHERE folder_id = ?`,
           args: [folder.id]
         });
+
+        // Per-user completed count: count how many items in this folder the user completed
+        const itemIdsRes = await client.execute({
+          sql: `SELECT id FROM academic_folder_items WHERE folder_id = ?`,
+          args: [folder.id]
+        });
+        const completedCount = itemIdsRes.rows.filter((r: any) => userCompletedIds.has(String(r.id))).length;
+
         const row = countRes.rows[0] || {};
         return {
           ...folder,
@@ -82,7 +104,7 @@ export async function GET(req: NextRequest) {
           assignmentsCount: Number(row.assignments) || 0,
           resourcesCount: Number(row.resources) || 0,
           videosCount: Number(row.videos) || 0,
-          completedCount: Number(row.completed_count) || 0,
+          completedCount,
         };
       })
     );
@@ -90,6 +112,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, folders: foldersWithCount });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+
   }
 }
 

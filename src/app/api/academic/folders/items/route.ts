@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@libsql/client';
 import { getUserSession, handleGuardedDeletion } from '@/backend/lib/deletionGuard';
+import {
+  getUserIdFromRequest,
+  getUserCompletedSet,
+  toggleUserProgress,
+  ensureUserProgressTable,
+} from '@/backend/lib/userProgress';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -37,6 +43,8 @@ export async function GET(req: NextRequest) {
   const client = getClient();
   try {
     await ensureFolderItemsTable(client);
+    await ensureUserProgressTable(client);
+
     const folderId = req.nextUrl.searchParams.get('folder_id');
     if (!folderId) {
       return NextResponse.json({ success: false, error: 'folder_id is required' }, { status: 400 });
@@ -47,7 +55,17 @@ export async function GET(req: NextRequest) {
       args: [folderId]
     });
 
-    return NextResponse.json({ success: true, items: res.rows });
+    // Get per-user completion status
+    const userId = await getUserIdFromRequest(req);
+    const completedSet = await getUserCompletedSet(client, userId);
+
+    // Merge user-specific completion into items (override global is_completed)
+    const items = res.rows.map((item: any) => ({
+      ...item,
+      is_completed: completedSet.has(`folder_item:${item.id}`) ? 1 : 0,
+    }));
+
+    return NextResponse.json({ success: true, items });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
@@ -75,7 +93,6 @@ export async function POST(req: NextRequest) {
       file_name = '',
       file_size = 0,
       due_date = '',
-      is_completed = 0
     } = body;
 
     if (!folder_id || !subject_id || !title) {
@@ -93,7 +110,7 @@ export async function POST(req: NextRequest) {
       sql: `
         INSERT INTO academic_folder_items 
         (folder_id, subject_id, title, content, item_type, code_snippet, code_language, file_url, file_name, file_size, due_date, is_completed, sort_order, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
       `,
       args: [
         folder_id,
@@ -107,7 +124,6 @@ export async function POST(req: NextRequest) {
         file_name,
         file_size,
         due_date,
-        is_completed ? 1 : 0,
         nextOrder,
         now
       ]
@@ -118,37 +134,31 @@ export async function POST(req: NextRequest) {
       args: [insertRes.lastInsertRowid!]
     });
 
-    return NextResponse.json({ success: true, item: item.rows[0] });
+    return NextResponse.json({ success: true, item: { ...item.rows[0], is_completed: 0 } });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await getUserSession(req);
-  if (session && session.role === 'viewer') {
-    return NextResponse.json({ success: false, error: 'حساب المشاهد لا يملك صلاحية تعديل المحتوى' }, { status: 403 });
-  }
-
+  // No viewer restriction — viewers CAN mark their own progress
   const client = getClient();
   try {
     await ensureFolderItemsTable(client);
+    await ensureUserProgressTable(client);
+
     const body = await req.json();
-    const { id, is_completed } = body;
+    const { id } = body;
     if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
 
     const existingRes = await client.execute({ sql: `SELECT * FROM academic_folder_items WHERE id = ?`, args: [id] });
-    const existing = existingRes.rows[0];
-    if (!existing) return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
+    if (!existingRes.rows[0]) return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
 
-    const newCompleted = is_completed !== undefined ? (is_completed ? 1 : 0) : (existing.is_completed ? 0 : 1);
+    // Per-user toggle — each user has their own completion state
+    const userId = await getUserIdFromRequest(req);
+    const newCompleted = await toggleUserProgress(client, userId, 'folder_item', Number(id));
 
-    await client.execute({
-      sql: `UPDATE academic_folder_items SET is_completed = ? WHERE id = ?`,
-      args: [newCompleted, id]
-    });
-
-    return NextResponse.json({ success: true, is_completed: newCompleted });
+    return NextResponse.json({ success: true, is_completed: newCompleted ? 1 : 0 });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
@@ -164,7 +174,7 @@ export async function PUT(req: NextRequest) {
   try {
     await ensureFolderItemsTable(client);
     const body = await req.json();
-    const { id, title, content, item_type, code_snippet, code_language, file_url, file_name, file_size, due_date, is_completed } = body;
+    const { id, title, content, item_type, code_snippet, code_language, file_url, file_name, file_size, due_date } = body;
     if (!id) return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
 
     const existingRes = await client.execute({ sql: `SELECT * FROM academic_folder_items WHERE id = ?`, args: [id] });
@@ -182,8 +192,7 @@ export async function PUT(req: NextRequest) {
           file_url = ?,
           file_name = ?,
           file_size = ?,
-          due_date = ?,
-          is_completed = ?
+          due_date = ?
         WHERE id = ?
       `,
       args: [
@@ -196,7 +205,6 @@ export async function PUT(req: NextRequest) {
         file_name !== undefined ? file_name : existing.file_name,
         file_size !== undefined ? file_size : existing.file_size,
         due_date !== undefined ? due_date : existing.due_date,
-        is_completed !== undefined ? (is_completed ? 1 : 0) : existing.is_completed,
         id
       ]
     });
@@ -229,6 +237,11 @@ export async function DELETE(req: NextRequest) {
       },
       async () => {
         await client.execute({ sql: `DELETE FROM academic_folder_items WHERE id = ?`, args: [id] });
+        // Also clean up per-user progress records for this item
+        await client.execute({
+          sql: `DELETE FROM academic_user_progress WHERE material_type = 'folder_item' AND material_id = ?`,
+          args: [id]
+        });
       }
     );
   } catch (e: any) {

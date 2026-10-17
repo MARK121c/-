@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Folder, FolderPlus, FileText, Code2, Download, ExternalLink,
   Plus, Edit2, Trash2, ChevronRight, ArrowRight, Copy, Check, File, Sparkles, X,
-  CheckSquare, Link2, Video, Calendar, Clock, BookOpen, AlertCircle
+  CheckSquare, Link2, Video, Calendar, Clock, BookOpen, AlertCircle,
+  CheckCircle2, Circle, Maximize2, Eye
 } from 'lucide-react';
 
 export interface FolderItem {
@@ -84,8 +85,52 @@ export default function SubjectFolderExplorer({
   const [savingItem, setSavingItem] = useState(false);
 
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [previewItem, setPreviewItem] = useState<FolderItem | null>(null);
 
   const isViewer = userRole === 'viewer';
+
+  // Convert any Google Drive / YouTube URL to an embeddable iframe src
+  const getEmbedUrl = (url: string): string | null => {
+    if (!url) return null;
+    const clean = url.trim();
+
+    // YouTube
+    const ytMatch = clean.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))(?:[\w-]{11})/);
+    if (ytMatch) {
+      const videoId = ytMatch[0].split('/').pop()?.split('=').pop()?.split('&')[0];
+      if (videoId) return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1`;
+    }
+
+    // Google Drive file -> embed
+    if (clean.includes('drive.google.com')) {
+      let fileId: string | null = null;
+      const m1 = clean.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (m1) fileId = m1[1];
+      if (!fileId) {
+        const m2 = clean.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (m2) fileId = m2[1];
+      }
+      if (fileId) return `https://drive.google.com/file/d/${fileId}/preview`;
+    }
+
+    // Google Slides or Docs -> embed
+    if (clean.includes('docs.google.com')) {
+      if (clean.includes('/presentation/')) {
+        const m = clean.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+        if (m) return `https://docs.google.com/presentation/d/${m[1]}/embed?start=false&loop=false&delayms=3000`;
+      }
+      if (clean.includes('/document/')) {
+        const m = clean.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (m) return `https://docs.google.com/document/d/${m[1]}/preview`;
+      }
+      if (clean.includes('/spreadsheets/')) {
+        const m = clean.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        if (m) return `https://docs.google.com/spreadsheets/d/${m[1]}/preview`;
+      }
+    }
+
+    return null;
+  };
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
@@ -637,129 +682,207 @@ export default function SubjectFolderExplorer({
               </div>
             ) : (
               <div className="space-y-3">
-                {currentCategoryData.items.map(item => (
-                  <div
-                    key={item.id}
-                    className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all space-y-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        {/* If assignment, show completion checkbox */}
-                        {item.item_type === 'assignment' && (
+                {currentCategoryData.items.map(item => {
+                  const embedUrl = getEmbedUrl(item.file_url || '');
+                  const isDone = Boolean(item.is_completed);
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                        isDone
+                          ? 'bg-emerald-500/5 border-emerald-500/30'
+                          : 'bg-white/[0.03] border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      {/* Header row: completion + title + actions */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                          {/* Universal completion toggle — for ALL types */}
                           <button
                             type="button"
                             onClick={() => handleToggleTaskCompleted(item)}
-                            className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${
-                              item.is_completed
-                                ? 'bg-emerald-500 border-emerald-400 text-black'
-                                : 'border-white/30 hover:border-amber-400 bg-white/5'
+                            title={isDone ? 'إلغاء الإكمال' : 'تعليم كمكتمل'}
+                            className={`mt-0.5 shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all hover:scale-110 ${
+                              isDone
+                                ? 'bg-emerald-500 border-emerald-400 text-white shadow-emerald-500/30 shadow-md'
+                                : 'border-white/30 hover:border-emerald-400 bg-white/5 hover:bg-emerald-500/10'
                             }`}
                           >
-                            {item.is_completed ? <Check size={13} className="stroke-[3]" /> : null}
+                            {isDone ? <CheckCircle2 size={14} className="stroke-[2.5]" /> : <Circle size={12} className="opacity-50" />}
                           </button>
-                        )}
 
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className={`text-sm font-black ${
-                              item.is_completed ? 'line-through text-gray-400' : 'text-white'
-                            }`}>
-                              {item.title}
-                            </h4>
-                            {item.due_date && (
-                              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                                <Clock size={10} />
-                                <span>تسليم: {item.due_date}</span>
-                              </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className={`text-sm font-black transition-colors ${
+                                isDone ? 'line-through text-gray-400' : 'text-white'
+                              }`}>
+                                {item.title}
+                              </h4>
+                              {isDone && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/20">
+                                  ✓ مكتمل
+                                </span>
+                              )}
+                              {item.due_date && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                                  <Clock size={10} />
+                                  <span>تسليم: {item.due_date}</span>
+                                </span>
+                              )}
+                            </div>
+
+                            {item.content && (
+                              <p className="text-xs text-gray-300 leading-relaxed mt-1 whitespace-pre-wrap">
+                                {item.content}
+                              </p>
                             )}
                           </div>
+                        </div>
 
-                          {item.content && (
-                            <p className="text-xs text-gray-300 leading-relaxed mt-1 whitespace-pre-wrap">
-                              {item.content}
-                            </p>
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {/* Preview button — only if there's an embeddable URL */}
+                          {embedUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewItem(previewItem?.id === item.id ? null : item)}
+                              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                                previewItem?.id === item.id
+                                  ? 'bg-amber-500/20 border-amber-500/60 text-amber-300'
+                                  : 'bg-white/5 border-white/10 text-gray-300 hover:border-blue-500/50 hover:text-blue-300'
+                              }`}
+                              title="معاينة داخل الصفحة"
+                            >
+                              <Eye size={13} />
+                              <span>{previewItem?.id === item.id ? 'إخفاء' : 'معاينة'}</span>
+                            </button>
+                          )}
+
+                          {/* Open external link */}
+                          {item.file_url && (
+                            <a
+                              href={item.file_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1 p-1.5 rounded-lg text-gray-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors"
+                              title="فتح الرابط في تبويب جديد"
+                            >
+                              <ExternalLink size={14} />
+                            </a>
+                          )}
+
+                          {/* Google NotebookLM */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const fullContent = `${item.title}\n\n${item.content || ''}${item.code_snippet ? `\n\nكود برمجي:\n${item.code_snippet}` : ''}${item.file_url ? `\n\nرابط:\n${item.file_url}` : ''}`;
+                              try { navigator.clipboard.writeText(fullContent.trim()); showToast('تم النسخ! جاري فتح NotebookLM...', 'success'); } catch {}
+                              window.open('https://notebooklm.google.com', '_blank', 'noopener,noreferrer');
+                            }}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-purple-300 hover:bg-purple-500/10 transition-colors"
+                            title="فتح في Google NotebookLM"
+                          >
+                            <Sparkles size={14} />
+                          </button>
+
+                          {!isViewer && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteItem(item.id)}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                              title="حذف العنصر"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {/* Google NotebookLM Official Launch */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const fullContent = `${item.title}\n\n${item.content || ''}${item.code_snippet ? `\n\nكود برمجي:\n${item.code_snippet}` : ''}${item.file_url ? `\n\nرابط:\n${item.file_url}` : ''}`;
-                            try {
-                              navigator.clipboard.writeText(fullContent.trim());
-                              showToast(`تم نسخ محتوى "${item.title}" للحافظة! جاري فتح أداة Google NotebookLM الرسمية...`, 'success');
-                            } catch {}
-                            window.open('https://notebooklm.google.com', '_blank', 'noopener,noreferrer');
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/25 hover:to-purple-500/25 text-blue-300 hover:text-white text-xs font-bold border border-blue-500/30 transition-all shadow-sm"
-                          title="فتح في Google NotebookLM الرسمي"
-                        >
-                          <Sparkles size={13} className="text-amber-400" />
-                          <span>Google NotebookLM الرسمي ↗</span>
-                        </button>
+                      {/* Attached Code */}
+                      {item.code_snippet && (
+                        <div className="rounded-xl border border-white/10 bg-[#080b10] overflow-hidden text-xs">
+                          <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 bg-white/[0.02] text-[10px] text-gray-400 font-mono">
+                            <span>{item.code_language || 'code'}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyCode(item.id, item.code_snippet)}
+                              className="flex items-center gap-1 text-gray-300 hover:text-white"
+                            >
+                              {copiedId === item.id ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+                              <span>{copiedId === item.id ? 'تم النسخ' : 'نسخ الكود'}</span>
+                            </button>
+                          </div>
+                          <pre className="p-3 text-amber-200/90 font-mono overflow-x-auto leading-relaxed">
+                            {item.code_snippet}
+                          </pre>
+                        </div>
+                      )}
 
-                        {!isViewer && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteItem(item.id)}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                            title="حذف العنصر"
+                      {/* File / Link bar */}
+                      {item.file_url && !embedUrl && (
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs">
+                          <div className="flex items-center gap-2 truncate">
+                            {item.item_type === 'video' ? (
+                              <Video size={14} className="text-rose-400 shrink-0" />
+                            ) : (
+                              <File size={14} className="text-amber-400 shrink-0" />
+                            )}
+                            <span className="font-bold text-gray-200 truncate">
+                              {item.file_name || item.file_url}
+                            </span>
+                          </div>
+                          <a
+                            href={item.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1 shrink-0"
                           >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
+                            <ExternalLink size={12} />
+                            <span>فتح الرابط</span>
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Inline Preview (Drive / YouTube / Slides) */}
+                      {embedUrl && previewItem?.id === item.id && (
+                        <div className="rounded-2xl overflow-hidden border border-amber-500/30 bg-black shadow-xl">
+                          <div className="flex items-center justify-between px-3 py-2 bg-white/[0.03] border-b border-white/10">
+                            <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+                              <Eye size={12} />
+                              معاينة: {item.file_name || item.title}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <a
+                                href={item.file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[11px] text-gray-400 hover:text-blue-300 flex items-center gap-1"
+                              >
+                                <Maximize2 size={12} />
+                                <span>فتح كامل</span>
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewItem(null)}
+                                className="text-gray-500 hover:text-white ml-1"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </div>
+                          <iframe
+                            src={embedUrl}
+                            className="w-full"
+                            style={{ height: '480px', border: 'none' }}
+                            allow="autoplay; fullscreen"
+                            allowFullScreen
+                            title={item.title}
+                          />
+                        </div>
+                      )}
                     </div>
-
-                    {/* Attached Code */}
-                    {item.code_snippet && (
-                      <div className="rounded-xl border border-white/10 bg-[#080b10] overflow-hidden text-xs">
-                        <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 bg-white/[0.02] text-[10px] text-gray-400 font-mono">
-                          <span>{item.code_language || 'code'}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleCopyCode(item.id, item.code_snippet)}
-                            className="flex items-center gap-1 text-gray-300 hover:text-white"
-                          >
-                            {copiedId === item.id ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
-                            <span>{copiedId === item.id ? 'تم النسخ' : 'نسخ الكود'}</span>
-                          </button>
-                        </div>
-                        <pre className="p-3 text-amber-200/90 font-mono overflow-x-auto leading-relaxed">
-                          {item.code_snippet}
-                        </pre>
-                      </div>
-                    )}
-
-                    {/* Attached File or Link */}
-                    {item.file_url && (
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs">
-                        <div className="flex items-center gap-2 truncate">
-                          {item.item_type === 'video' ? (
-                            <Video size={14} className="text-rose-400 shrink-0" />
-                          ) : (
-                            <File size={14} className="text-amber-400 shrink-0" />
-                          )}
-                          <span className="font-bold text-gray-200 truncate">
-                            {item.file_name || item.file_url}
-                          </span>
-                        </div>
-                        <a
-                          href={item.file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1 shrink-0"
-                        >
-                          <ExternalLink size={12} />
-                          <span>فتح الرابط</span>
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
