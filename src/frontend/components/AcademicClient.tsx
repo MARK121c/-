@@ -1427,10 +1427,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
           </div>
           )}
         </div>
-      )}
-
-      {/* Close subjects module conditional */}
-      )}
+      ))}
 
       {/* ── MODALS ── */}
 
