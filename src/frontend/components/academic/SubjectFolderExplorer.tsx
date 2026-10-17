@@ -33,6 +33,7 @@ export interface AcademicFolder {
   color: string;
   icon: string;
   itemsCount: number;
+  completedCount?: number;
   lecturesCount?: number;
   assignmentsCount?: number;
   resourcesCount?: number;
@@ -242,6 +243,8 @@ export default function SubjectFolderExplorer({
       const data = await res.json();
       if (data.success) {
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_completed: newStatus } : i));
+        // Refresh folder list to update completedCount on folder card
+        fetchFolders();
       }
     } catch (err) {
       console.error('Error toggling task:', err);
@@ -444,53 +447,88 @@ export default function SubjectFolderExplorer({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {folders.map(folder => (
-              <div
-                key={folder.id}
-                onClick={() => setCurrentFolder(folder)}
-                className="group relative p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer shadow-lg flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
-                      <Folder size={20} />
+            {folders.map(folder => {
+              // Completion tracking: determine if folder is fully done
+              const total = folder.itemsCount || 0;
+              const completedCount = folder.completedCount ?? 0;
+              const allDone = total > 0 && completedCount >= total;
+              const hasItems = total > 0;
+
+              return (
+                <div
+                  key={folder.id}
+                  onClick={() => setCurrentFolder(folder)}
+                  className={`group relative p-5 rounded-2xl border transition-all cursor-pointer shadow-lg flex flex-col justify-between ${
+                    allDone
+                      ? 'border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-400/60'
+                      : 'border-white/10 bg-white/[0.03] hover:border-blue-500/50 hover:bg-blue-500/5'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${
+                        allDone ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {allDone ? <Check size={20} /> : <Folder size={20} />}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {/* Completion badge */}
+                        {allDone && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black border border-emerald-500/30">
+                            <Check size={10} className="stroke-[3]" />
+                            <span>مكتمل</span>
+                          </span>
+                        )}
+
+                        {!isViewer && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteFolder(folder.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-opacity"
+                            title="حذف المجلد"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    {!isViewer && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteFolder(folder.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-opacity"
-                        title="حذف المجلد"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                    <h4 className={`text-sm font-black transition-colors ${
+                      allDone ? 'text-emerald-300 group-hover:text-emerald-200' : 'text-white group-hover:text-blue-300'
+                    }`}>
+                      {folder.name}
+                    </h4>
+                    {folder.description && (
+                      <p className="text-[11px] text-gray-400 line-clamp-2 mt-1">
+                        {folder.description}
+                      </p>
                     )}
                   </div>
 
-                  <h4 className="text-sm font-black text-white group-hover:text-blue-300 transition-colors">
-                    {folder.name}
-                  </h4>
-                  {folder.description && (
-                    <p className="text-[11px] text-gray-400 line-clamp-2 mt-1">
-                      {folder.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="pt-3 mt-4 border-t border-white/5 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] text-gray-400 font-mono">
-                    <span>{folder.itemsCount || 0} محتوى محفوظ</span>
-                    <span className="text-blue-400 font-bold group-hover:translate-x-[-2px] transition-transform">
-                      فتح المجلد ←
-                    </span>
+                  <div className="pt-3 mt-4 border-t border-white/5 space-y-2">
+                    {/* Mini progress bar */}
+                    {hasItems && !allDone && (
+                      <div className="w-full h-1 rounded-full bg-white/5 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-amber-500 transition-all"
+                          style={{ width: `${Math.round((completedCount / total) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-[11px] text-gray-400 font-mono">
+                      <span>{total} محتوى{allDone ? ' ✓ جميعها مكتملة' : hasItems ? ` (${completedCount} منجز)` : ' محفوظ'}</span>
+                      <span className={`font-bold group-hover:translate-x-[-2px] transition-transform ${allDone ? 'text-emerald-400' : 'text-blue-400'}`}>
+                        {allDone ? 'عُرض ←' : 'فتح المجلد ←'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )
       ) : (

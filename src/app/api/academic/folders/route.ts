@@ -69,7 +69,8 @@ export async function GET(req: NextRequest) {
             SUM(CASE WHEN item_type IN ('lecture', 'note', 'file', 'code') THEN 1 ELSE 0 END) as lectures,
             SUM(CASE WHEN item_type = 'assignment' THEN 1 ELSE 0 END) as assignments,
             SUM(CASE WHEN item_type = 'resource' THEN 1 ELSE 0 END) as resources,
-            SUM(CASE WHEN item_type = 'video' THEN 1 ELSE 0 END) as videos
+            SUM(CASE WHEN item_type = 'video' THEN 1 ELSE 0 END) as videos,
+            SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) as completed_count
           FROM academic_folder_items WHERE folder_id = ?`,
           args: [folder.id]
         });
@@ -81,6 +82,7 @@ export async function GET(req: NextRequest) {
           assignmentsCount: Number(row.assignments) || 0,
           resourcesCount: Number(row.resources) || 0,
           videosCount: Number(row.videos) || 0,
+          completedCount: Number(row.completed_count) || 0,
         };
       })
     );

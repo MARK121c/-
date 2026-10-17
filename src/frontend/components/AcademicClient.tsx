@@ -1193,244 +1193,27 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center justify-between border-b border-white/10 pb-4 overflow-x-auto gap-2">
-            <div className="flex items-center gap-2 shrink-0">
-              {[
-                { id: 'folders', label: '📁 المجلدات والملاحظات', icon: <Folder size={18} />, count: 0 },
-                { id: 'lectures', label: t.tabLectures, icon: <FileText size={18} />, count: currentSubject.lectures?.length || 0 },
-                { id: 'assignments', label: t.tabAssignments, icon: <CheckSquare size={18} />, count: currentSubject.assignments?.length || 0 },
-                { id: 'resources', label: t.tabResources, icon: <LinkIcon size={18} />, count: currentSubject.resources?.length || 0 },
-                { id: 'videos', label: t.tabVideos, icon: <Video size={18} />, count: currentSubject.videos?.length || 0 },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.3)]'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                  {tab.id !== 'folders' && (
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === tab.id ? 'bg-black/20 text-black' : 'bg-white/10 text-gray-300'}`}>
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              ))}
+          {/* Subject Folders Header — only folders, no separate tabs */}
+          <div className="flex items-center justify-between pb-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                <Folder size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white">مجلدات المادة الأكاديمية</h3>
+                <p className="text-[11px] text-gray-400">نظّم محاضراتك، واجباتك، مصادرك وفيديوهاتك داخل مجلدات منظمة</p>
+              </div>
             </div>
-
-            {!isViewer && (
-              <button
-                onClick={() => {
-                  setEditMaterialId(null);
-                  setMaterialForm({
-                    title: '',
-                    description: '',
-                    file_path: '',
-                    url: '',
-                    video_url: '',
-                    video_type: 'youtube',
-                    due_date: '',
-                    material_date: new Date().toISOString().split('T')[0],
-                  });
-                  setShowMaterialModal(true);
-                }}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shadow-lg shrink-0"
-              >
-                <Plus size={16} />
-                <span>{t.add}</span>
-              </button>
-            )}
           </div>
 
-          {/* Folders Tab Content or Material Items List */}
-          {activeTab === 'folders' ? (
-            <SubjectFolderExplorer
-              subjectId={currentSubject.id}
-              subjectName={currentSubject.name}
-              userRole={role}
-              initialOpenCreateModal={openFolderModalOnEnter}
-              onOpenNotebookLM={(title, text) => openOfficialNotebookLM(title, text)}
-            />
-          ) : (
-          <div className="space-y-3">
-            {(() => {
-              const items = currentSubject[activeTab] || [];
-              if (items.length === 0) {
-                return (
-                  <div className="text-center py-12 text-gray-500">
-                    <p className="text-sm font-bold">{t.noItems}</p>
-                  </div>
-                );
-              }
-
-              return items.map((item: any) => {
-                const isCompleted = item.completed === 1 || item.completed === true;
-                const isOverdue = item.due_date && new Date(item.due_date) < new Date() && !isCompleted;
-                const itemLink = item.file_path || item.url || item.video_url || '';
-                const { embedUrl, type: previewType } = parseEmbedPreviewUrl(itemLink);
-
-                return (
-                  <motion.div
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl border transition-all ${
-                      isCompleted
-                        ? 'border-emerald-500/20 bg-emerald-500/[0.02] opacity-75'
-                        : isOverdue
-                        ? 'border-red-500/30 bg-red-500/[0.02]'
-                        : 'border-white/10 bg-white/[0.02] hover:border-white/20'
-                    }`}
-                  >
-                    {/* Checkbox and info */}
-                    <div className="flex items-start gap-4 w-full sm:w-auto flex-1 min-w-0">
-                      <button
-                        onClick={() => handleToggleCompleted(activeTab, item.id, isCompleted)}
-                        className={`mt-1 w-6 h-6 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
-                          isCompleted
-                            ? 'bg-emerald-500 border-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.5)]'
-                            : 'border-gray-500 hover:border-emerald-400 text-transparent'
-                        }`}
-                        title="تحديد كمكتمل لهذا الحساب"
-                      >
-                        <CheckCircle size={14} className={isCompleted ? 'stroke-[3]' : 'opacity-0'} />
-                      </button>
-
-                      <div className="space-y-1 flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className={`text-base font-bold truncate ${isCompleted ? 'line-through text-gray-500' : 'text-white'}`}>
-                            {item.title}
-                          </h4>
-                          {isOverdue && (
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold">
-                              <AlertCircle size={12} />
-                              {t.overdue}
-                            </span>
-                          )}
-                        </div>
-
-                        {item.description && (
-                          <p className="text-sm text-gray-400 line-clamp-2">{item.description}</p>
-                        )}
-
-                        {/* Metadata row */}
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 pt-1">
-                          {item.material_date && (
-                            <span className="flex items-center gap-1">
-                              <Calendar size={12} />
-                              {item.material_date}
-                            </span>
-                          )}
-                          {item.due_date && (
-                            <span className={`flex items-center gap-1 font-bold ${isOverdue ? 'text-red-400' : 'text-amber-400'}`}>
-                              <Clock size={12} />
-                              {t.dueIn} {item.due_date}
-                            </span>
-                          )}
-                          {itemLink && (
-                            <span className="flex items-center gap-1 text-cyan-400 font-mono truncate max-w-xs">
-                              <LinkIcon size={12} />
-                              <span className="truncate">{itemLink}</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Actions on item */}
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                      {/* Google NotebookLM Official Launch */}
-                      <button
-                        type="button"
-                        onClick={() => openOfficialNotebookLM(
-                          item.title,
-                          `${item.title}\n\nالوصف والملاحظات:\n${item.description || ''}${itemLink ? `\n\nالرابط المرفق:\n${itemLink}` : ''}`
-                        )}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-bold hover:bg-blue-500 hover:text-white transition-all shadow-sm"
-                        title="فتح في Google NotebookLM الرسمي"
-                      >
-                        <Sparkles size={13} className="text-amber-400" />
-                        <span>Google NotebookLM الرسمي ↗</span>
-                      </button>
-
-                      {/* In-App Live Preview Button for Documents / Drive / Videos */}
-                      {itemLink && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPreviewModal({
-                              open: true,
-                              title: item.title,
-                              url: itemLink,
-                              embedUrl: embedUrl,
-                              type: previewType,
-                            });
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-bold hover:bg-amber-500 hover:text-black transition-all shadow-sm"
-                          title={t.previewDoc}
-                        >
-                          <Eye size={14} />
-                          <span>{t.previewDoc}</span>
-                        </button>
-                      )}
-
-                      {/* Direct External Link */}
-                      {itemLink && (
-                        <a
-                          href={itemLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                          title={t.openLink}
-                        >
-                          <ExternalLink size={14} />
-                        </a>
-                      )}
-
-                      {/* Edit & Delete Buttons for non-viewers only */}
-                      {!isViewer && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setEditMaterialId(item.id);
-                              setMaterialForm({
-                                title: item.title,
-                                description: item.description || '',
-                                file_path: item.file_path || item.url || '',
-                                url: item.url || item.file_path || '',
-                                video_url: item.video_url || item.file_path || '',
-                                video_type: item.video_type || 'youtube',
-                                due_date: item.due_date || '',
-                                material_date: item.material_date || '',
-                              });
-                              setShowMaterialModal(true);
-                            }}
-                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-
-                          <button
-                            onClick={() => setDeleteConfirm({ open: true, type: activeTab, id: item.id, title: item.title })}
-                            className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              });
-            })()}
-          </div>
-          )}
+          {/* Subject Folders Explorer — all materials organized inside folders */}
+          <SubjectFolderExplorer
+            subjectId={currentSubject.id}
+            subjectName={currentSubject.name}
+            userRole={role}
+            initialOpenCreateModal={openFolderModalOnEnter}
+            onOpenNotebookLM={(title, text) => openOfficialNotebookLM(title, text)}
+          />
         </div>
       )
     )}
