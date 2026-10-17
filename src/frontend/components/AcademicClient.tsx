@@ -12,7 +12,6 @@ import {
 
 // NotebookLMWidget removed — replaced with direct link to official Google NotebookLM
 import ScheduleDashboard from './academic/ScheduleDashboard';
-import CodePracticeSystem from './academic/CodePracticeSystem';
 import ExamSimulatorHub from './academic/ExamSimulatorHub';
 import SubjectFolderExplorer from './academic/SubjectFolderExplorer';
 import DeletionApprovalModal from './academic/DeletionApprovalModal';
@@ -146,7 +145,7 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
 
   // Academic Hub Modules & Semester State
   const [selectedSemester, setSelectedSemester] = useState<'term1' | 'term2' | 'all'>('term1');
-  const [collegeHubTab, setCollegeHubTab] = useState<'subjects' | 'schedule' | 'exams' | 'codepractice'>('subjects');
+  const [collegeHubTab, setCollegeHubTab] = useState<'subjects' | 'schedule' | 'exams'>('subjects');
   const [pendingDeletionCount, setPendingDeletionCount] = useState(0);
   const [showDeletionModal, setShowDeletionModal] = useState(false);
   // notebookLMModal state removed — now using openOfficialNotebookLM() which opens notebooklm.google.com directly
@@ -806,7 +805,6 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
             { id: 'subjects', label: '📚 المواد الدراسية', icon: null },
             { id: 'schedule', label: '🗓️ الجدول الدراسي', icon: null },
             { id: 'exams', label: '📝 محاكاة الامتحانات', icon: null },
-            { id: 'codepractice', label: '💻 ممارسة الكود', icon: null },
           ].map(tab => (
             <button
               key={tab.id}
@@ -855,11 +853,6 @@ export default function AcademicClient({ userRole }: AcademicClientProps = {}) {
       {/* ── EXAM SIMULATOR MODULE ── */}
       {collegeHubTab === 'exams' && (
         <ExamSimulatorHub userRole={role} currentTerm={selectedSemester === 'all' ? 'term1' : selectedSemester} />
-      )}
-
-      {/* ── CODE PRACTICE MODULE ── */}
-      {collegeHubTab === 'codepractice' && (
-        <CodePracticeSystem userRole={role} />
       )}
 
       {/* ── SUBJECTS MODULE ── */}
