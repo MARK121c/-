@@ -6,7 +6,7 @@ import {
   Folder, FolderPlus, FileText, Code2, Download, ExternalLink,
   Plus, Edit2, Trash2, ChevronRight, ArrowRight, Copy, Check, File, Sparkles, X,
   CheckSquare, Link2, Video, Calendar, Clock, BookOpen, AlertCircle,
-  CheckCircle2, Circle, Maximize2, Eye
+  CheckCircle2, Circle, Maximize2, Minimize2, Eye
 } from 'lucide-react';
 
 export interface FolderItem {
@@ -86,6 +86,7 @@ export default function SubjectFolderExplorer({
 
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [previewItem, setPreviewItem] = useState<FolderItem | null>(null);
+  const [previewFullscreen, setPreviewFullscreen] = useState(false);
 
   const isViewer = userRole === 'viewer';
 
@@ -288,6 +289,7 @@ export default function SubjectFolderExplorer({
       const data = await res.json();
       if (data.success) {
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_completed: newStatus } : i));
+        setPreviewItem(prev => (prev?.id === item.id ? { ...prev, is_completed: newStatus } : prev));
         // Refresh folder list to update completedCount on folder card
         fetchFolders();
       }
@@ -685,11 +687,15 @@ export default function SubjectFolderExplorer({
                 {currentCategoryData.items.map(item => {
                   const embedUrl = getEmbedUrl(item.file_url || '');
                   const isDone = Boolean(item.is_completed);
+                  const isCurrentlyPreviewed = previewItem?.id === item.id;
+
                   return (
                     <div
                       key={item.id}
                       className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                        isDone
+                        isCurrentlyPreviewed
+                          ? 'border-blue-500/80 bg-blue-500/10 shadow-[0_0_25px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/50'
+                          : isDone
                           ? 'bg-emerald-500/5 border-emerald-500/30'
                           : 'bg-white/[0.03] border-white/10 hover:border-white/20'
                       }`}
@@ -729,10 +735,16 @@ export default function SubjectFolderExplorer({
                                   <span>تسليم: {item.due_date}</span>
                                 </span>
                               )}
+                              {isCurrentlyPreviewed && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30 flex items-center gap-1">
+                                  <Eye size={10} />
+                                  <span>معروض في البانيل</span>
+                                </span>
+                              )}
                             </div>
 
                             {item.content && (
-                              <p className="text-xs text-gray-300 leading-relaxed mt-1 whitespace-pre-wrap">
+                              <p className="text-xs text-gray-300 leading-relaxed mt-1 whitespace-pre-wrap line-clamp-2">
                                 {item.content}
                               </p>
                             )}
@@ -741,22 +753,26 @@ export default function SubjectFolderExplorer({
 
                         {/* Action buttons */}
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {/* Preview button — only if there's an embeddable URL */}
-                          {embedUrl && (
-                            <button
-                              type="button"
-                              onClick={() => setPreviewItem(previewItem?.id === item.id ? null : item)}
-                              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                                previewItem?.id === item.id
-                                  ? 'bg-amber-500/20 border-amber-500/60 text-amber-300'
-                                  : 'bg-white/5 border-white/10 text-gray-300 hover:border-blue-500/50 hover:text-blue-300'
-                              }`}
-                              title="معاينة داخل الصفحة"
-                            >
-                              <Eye size={13} />
-                              <span>{previewItem?.id === item.id ? 'إخفاء' : 'معاينة'}</span>
-                            </button>
-                          )}
+                          {/* Side Panel Preview Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isCurrentlyPreviewed) {
+                                setPreviewItem(null);
+                              } else {
+                                setPreviewItem(item);
+                              }
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border transition-all ${
+                              isCurrentlyPreviewed
+                                ? 'bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-600/30 scale-105'
+                                : 'bg-white/5 border-white/10 text-gray-200 hover:border-blue-500/60 hover:text-blue-300 hover:bg-blue-500/10'
+                            }`}
+                            title="فتح المعاينة في البانيل الجانبي المتطور"
+                          >
+                            <Eye size={13} />
+                            <span>{isCurrentlyPreviewed ? 'إغلاق البانيل' : 'معاينة بالبانيل'}</span>
+                          </button>
 
                           {/* Open external link */}
                           {item.file_url && (
@@ -812,14 +828,14 @@ export default function SubjectFolderExplorer({
                               <span>{copiedId === item.id ? 'تم النسخ' : 'نسخ الكود'}</span>
                             </button>
                           </div>
-                          <pre className="p-3 text-amber-200/90 font-mono overflow-x-auto leading-relaxed">
+                          <pre className="p-3 text-amber-200/90 font-mono overflow-x-auto leading-relaxed max-h-36">
                             {item.code_snippet}
                           </pre>
                         </div>
                       )}
 
                       {/* File / Link bar */}
-                      {item.file_url && !embedUrl && (
+                      {item.file_url && (
                         <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs">
                           <div className="flex items-center gap-2 truncate">
                             {item.item_type === 'video' ? (
@@ -831,53 +847,25 @@ export default function SubjectFolderExplorer({
                               {item.file_name || item.file_url}
                             </span>
                           </div>
-                          <a
-                            href={item.file_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1 shrink-0"
-                          >
-                            <ExternalLink size={12} />
-                            <span>فتح الرابط</span>
-                          </a>
-                        </div>
-                      )}
-
-                      {/* Inline Preview (Drive / YouTube / Slides) */}
-                      {embedUrl && previewItem?.id === item.id && (
-                        <div className="rounded-2xl overflow-hidden border border-amber-500/30 bg-black shadow-xl">
-                          <div className="flex items-center justify-between px-3 py-2 bg-white/[0.03] border-b border-white/10">
-                            <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewItem(item)}
+                              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-blue-300 font-bold text-xs flex items-center gap-1 border border-white/10"
+                            >
                               <Eye size={12} />
-                              معاينة: {item.file_name || item.title}
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <a
-                                href={item.file_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-[11px] text-gray-400 hover:text-blue-300 flex items-center gap-1"
-                              >
-                                <Maximize2 size={12} />
-                                <span>فتح كامل</span>
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => setPreviewItem(null)}
-                                className="text-gray-500 hover:text-white ml-1"
-                              >
-                                <X size={14} />
-                              </button>
-                            </div>
+                              <span>معاينة</span>
+                            </button>
+                            <a
+                              href={item.file_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1"
+                            >
+                              <ExternalLink size={12} />
+                              <span>فتح</span>
+                            </a>
                           </div>
-                          <iframe
-                            src={embedUrl}
-                            className="w-full"
-                            style={{ height: '480px', border: 'none' }}
-                            allow="autoplay; fullscreen"
-                            allowFullScreen
-                            title={item.title}
-                          />
                         </div>
                       )}
                     </div>
@@ -888,6 +876,276 @@ export default function SubjectFolderExplorer({
           </div>
         </div>
       )}
+
+      {/* ── ADVANCED SLIDE-OVER SIDE PANEL (DRAWER) FOR PREVIEW ── */}
+      <AnimatePresence>
+        {previewItem && (
+          <div className="fixed inset-0 z-50 overflow-hidden" dir="rtl">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setPreviewItem(null)}
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            />
+
+            {/* Sliding Drawer Container */}
+            <div className="fixed inset-y-0 left-0 max-w-full flex">
+              <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+                className={`relative bg-[#0c0f17] border-r border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.9)] flex flex-col h-full text-white transition-all duration-300 ${
+                  previewFullscreen
+                    ? 'w-screen'
+                    : 'w-screen sm:w-[580px] md:w-[680px] lg:w-[820px] xl:w-[940px]'
+                }`}
+              >
+                {/* 1. Header Toolbar */}
+                <div className="p-4 sm:p-5 border-b border-white/10 bg-white/[0.02] flex items-center justify-between gap-3 shrink-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="p-2.5 rounded-xl bg-blue-500/20 text-blue-400 shrink-0">
+                      <currentCategoryData.icon size={20} />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
+                          {currentCategoryData.title}
+                        </span>
+                        {previewItem.due_date && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            تسليم: {previewItem.due_date}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base font-black text-white truncate mt-0.5" title={previewItem.title}>
+                        {previewItem.title}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Toggle completion inside drawer */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleTaskCompleted(previewItem)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                        previewItem.is_completed
+                          ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-sm'
+                          : 'bg-white/5 border-white/10 text-gray-300 hover:border-emerald-400 hover:text-emerald-300'
+                      }`}
+                      title={previewItem.is_completed ? 'تم الإنجاز - اضغط للإلغاء' : 'اضغط للتعليم كمكتمل'}
+                    >
+                      {previewItem.is_completed ? (
+                        <>
+                          <CheckCircle2 size={14} className="text-emerald-400" />
+                          <span>مكتمل ✓</span>
+                        </>
+                      ) : (
+                        <>
+                          <Circle size={14} className="opacity-60" />
+                          <span>تعليم كمكتمل</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Toggle Fullscreen / Docked */}
+                    <button
+                      type="button"
+                      onClick={() => setPreviewFullscreen(!previewFullscreen)}
+                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-colors"
+                      title={previewFullscreen ? 'تصغير للبانيل الجانبي' : 'تكبير ملء الشاشة'}
+                    >
+                      {previewFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    </button>
+
+                    {/* Open in external tab */}
+                    {previewItem.file_url && (
+                      <a
+                        href={previewItem.file_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-blue-300 border border-white/10 transition-colors"
+                        title="فتح الرابط في صفحة جديدة"
+                      >
+                        <ExternalLink size={16} />
+                      </a>
+                    )}
+
+                    {/* Close */}
+                    <button
+                      type="button"
+                      onClick={() => setPreviewItem(null)}
+                      className="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-300 hover:text-red-400 border border-white/10 transition-colors"
+                      title="إغلاق البانيل"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Scrollable Drawer Body */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+                  {/* Embedded Iframe Preview if applicable */}
+                  {(() => {
+                    const embedUrl = getEmbedUrl(previewItem.file_url || '');
+                    if (!embedUrl) return null;
+                    return (
+                      <div className="rounded-2xl overflow-hidden border border-white/15 bg-black shadow-2xl flex flex-col">
+                        <div className="flex items-center justify-between px-4 py-2.5 bg-[#12161f] border-b border-white/10 text-xs">
+                          <div className="flex items-center gap-2 truncate">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="font-bold text-gray-200 truncate font-mono text-[11px]">
+                              {previewItem.file_name || previewItem.file_url}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <a
+                              href={previewItem.file_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-[11px] font-bold flex items-center gap-1 border border-white/10"
+                            >
+                              <ExternalLink size={11} />
+                              <span>المصدر الأصلي</span>
+                            </a>
+                          </div>
+                        </div>
+
+                        <iframe
+                          src={embedUrl}
+                          className="w-full bg-[#0a0c10]"
+                          style={{
+                            height: previewFullscreen ? 'calc(100vh - 280px)' : '540px',
+                            border: 'none',
+                          }}
+                          allow="autoplay; fullscreen"
+                          allowFullScreen
+                          title={previewItem.title}
+                        />
+                      </div>
+                    );
+                  })()}
+
+                  {/* Study Notes / Content Box */}
+                  {previewItem.content && (
+                    <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                        <span className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                          <FileText size={14} />
+                          <span>الشرح والملاحظات الدراسية</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(previewItem.content);
+                            showToast('تم نسخ الملاحظات للحافظة!', 'success');
+                          }}
+                          className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1"
+                        >
+                          <Copy size={12} />
+                          <span>نسخ النص</span>
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap font-sans">
+                        {previewItem.content}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Attached Code Box */}
+                  {previewItem.code_snippet && (
+                    <div className="rounded-2xl border border-white/10 bg-[#080b10] overflow-hidden text-xs">
+                      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/[0.02] text-xs text-gray-400 font-mono">
+                        <span className="font-bold text-amber-400">{previewItem.code_language || 'code'}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCode(previewItem.id, previewItem.code_snippet)}
+                          className="flex items-center gap-1 text-gray-300 hover:text-white font-bold"
+                        >
+                          {copiedId === previewItem.id ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                          <span>{copiedId === previewItem.id ? 'تم النسخ' : 'نسخ الكود'}</span>
+                        </button>
+                      </div>
+                      <pre className="p-4 text-amber-200/90 font-mono overflow-x-auto leading-relaxed text-xs">
+                        {previewItem.code_snippet}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* Google NotebookLM Super Action Bar */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-900/30 via-purple-900/30 to-amber-900/30 border border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0">
+                        <Sparkles size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-white">استذكار ذكي مع Google NotebookLM</h4>
+                        <p className="text-[11px] text-gray-300">نسخ المحتوى وفتح الأداة الرسمية لتلخيصه وتوليد أسئلة وبودكاست</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fullContent = `${previewItem.title}\n\n${previewItem.content || ''}${previewItem.code_snippet ? `\n\nكود برمجي:\n${previewItem.code_snippet}` : ''}${previewItem.file_url ? `\n\nرابط المصدر:\n${previewItem.file_url}` : ''}`;
+                        try {
+                          navigator.clipboard.writeText(fullContent.trim());
+                          showToast(`تم نسخ كامل محتوى "${previewItem.title}"! جاري فتح Google NotebookLM...`, 'success');
+                        } catch {}
+                        window.open('https://notebooklm.google.com', '_blank', 'noopener,noreferrer');
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-black text-xs shadow-lg flex items-center justify-center gap-2 shrink-0 transition-all hover:scale-105"
+                    >
+                      <Sparkles size={14} className="text-amber-300" />
+                      <span>فتح في NotebookLM الرسمي ↗</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Footer Bar: Quick Next/Prev Navigation */}
+                <div className="p-3 sm:p-4 border-t border-white/10 bg-white/[0.02] flex items-center justify-between text-xs shrink-0">
+                  {(() => {
+                    const currentIndex = currentCategoryData.items.findIndex(i => i.id === previewItem.id);
+                    const prevItem = currentIndex > 0 ? currentCategoryData.items[currentIndex - 1] : null;
+                    const nextItem = currentIndex < currentCategoryData.items.length - 1 && currentIndex !== -1 ? currentCategoryData.items[currentIndex + 1] : null;
+
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          disabled={!prevItem}
+                          onClick={() => prevItem && setPreviewItem(prevItem)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
+                        >
+                          <ChevronRight size={14} />
+                          <span>السابق: {prevItem ? prevItem.title.slice(0, 18) + '...' : 'لا يوجد'}</span>
+                        </button>
+
+                        <span className="text-[11px] text-gray-400 font-mono">
+                          {currentIndex + 1} من {currentCategoryData.items.length}
+                        </span>
+
+                        <button
+                          type="button"
+                          disabled={!nextItem}
+                          onClick={() => nextItem && setPreviewItem(nextItem)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all"
+                        >
+                          <span>التالي: {nextItem ? nextItem.title.slice(0, 18) + '...' : 'لا يوجد'}</span>
+                          <ChevronRight size={14} className="rotate-180" />
+                        </button>
+                      </>
+                    );
+                  })()}
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* MODAL: ADD NEW FOLDER */}
       {showFolderModal && (
